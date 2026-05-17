@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="220" height="230">
+<path fill="none" stroke="#000" stroke-width="25" id="h" stroke-linecap="round" d="M115,23h27l46,80 7-33"/>
+<use xlink:href="#h" transform="rotate(120 115 115)"/>
+<use xlink:href="#h" transform="rotate(240 115 115)"/>
+</svg>

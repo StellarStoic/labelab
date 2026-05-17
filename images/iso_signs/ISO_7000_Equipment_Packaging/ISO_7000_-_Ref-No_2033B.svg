@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" version="1.1" xmlns="http://www.w3.org/2000/svg">
+ <g fill="none" stroke="#000">
+  <path d="m106.37 60.012-40.965 39.988 40.965 39.988" stroke-width="20"/>
+  <path d="m64.91 100h84.322" stroke-width="20"/>
+  <circle transform="scale(-1,1)" cx="-100" cy="100" r="72.034" stroke-width="10"/>
+ </g>
+ 
+<g fill="none" stroke="#999" stroke-width="3">
+  <path d="m0 16v-16h16"/>
+  <path d="m200 16v-16h-16"/>
+  <path d="m0 184v16h16"/>
+  <path d="m200 184v16h-16"/>
+ </g></svg>

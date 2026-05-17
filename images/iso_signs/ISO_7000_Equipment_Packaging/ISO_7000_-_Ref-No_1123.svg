@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.710419mm"
+   height="53.710426mm"
+   viewBox="0 0 53.710419 53.710426"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   sodipodi:docname="ISO_7000_-_Ref-No_1123.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.71891835"
+     inkscape:cx="181.5227"
+     inkscape:cy="214.90619"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-57.15,-91.545833)">
+    <path
+       id="path1"
+       style="baseline-shift:baseline;display:inline;overflow:visible;vector-effect:none;fill:#999999;stroke:none;stroke-width:0.264583;enable-background:accumulate;stop-color:#000000"
+       d="m 57.15,91.545833 v 4.63021 h 0.79375 v -3.83646 h 3.836458 v -0.79375 z m 49.08021,0 v 0.79375 h 3.83646 v 3.83646 h 0.79375 v -4.63021 z M 57.15,140.62605 v 4.63021 h 4.630208 v -0.79375 H 57.94375 v -3.83646 z m 52.91667,0 v 3.83646 h -3.83646 v 0.79375 h 4.63021 v -4.63021 z"
+       inkscape:label="1" />
+    <path
+       id="path4"
+       style="fill:none;stroke:#000000;stroke-width:1.265;stroke-opacity:1"
+       d="m 75.634407,98.203973 v 9.476947 h 23.52725 v -9.476947 m -23.50658,12.129497 v 16.13493 h 23.48642 v -16.13493 z m 23.50658,28.26442 v -9.47694 h -23.52725 v 9.47694"
+       sodipodi:nodetypes="ccccccccccccc"
+       inkscape:label="1" />
+    <path
+       id="rect4"
+       style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.265;stroke-opacity:1"
+       d="m 68.216259,98.204203 v 2.898007 h 4.09432 v -2.898007 z m 0,6.249227 v 2.89801 h 4.09432 v -2.89801 z m 0,6.24923 v 2.89801 h 4.09432 v -2.89801 z m 0,6.24923 v 2.89801 h 4.09432 v -2.89801 z m 0,6.24924 v 2.898 h 4.09432 v -2.898 z m 0,6.24923 v 2.89801 h 4.09432 v -2.89801 z m 0,6.24923 v 2.89853 h 4.09432 v -2.89853 z"
+       inkscape:label="1" />
+  </g>
+</svg>

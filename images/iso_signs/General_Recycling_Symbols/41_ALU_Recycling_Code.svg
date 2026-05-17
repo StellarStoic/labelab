@@ -1,0 +1,2 @@
+<svg width="205" height="244" version="1.1" viewBox="0 0 205 244" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path id="a" d="m159 49-11 6-22-38c-11-18-37-18-47-1l-32 54 16 9 31-53c4-7 13-6 16-1l23 40-11 6 38 22z"/><use transform="rotate(120 102 114)" xlink:href="#a"/><use transform="rotate(240 102 114)" xlink:href="#a"/>
+ <g font-family="Arial" font-size="59px" font-weight="bold" letter-spacing="3px"><text x="39" y="240">ALU</text><text x="68" y="132" font-family="Arial">41</text></g></svg>

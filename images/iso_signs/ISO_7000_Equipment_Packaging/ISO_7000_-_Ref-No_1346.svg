@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.710407mm"
+   height="53.710419mm"
+   viewBox="0 0 53.710407 53.710419"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   sodipodi:docname="ISO_7000_-_Ref-No_1346.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.71891835"
+     inkscape:cx="145.35726"
+     inkscape:cy="253.85358"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-66.674998,-81.227078)">
+    <path
+       d="m 119.98853,130.30728 v 4.23334 h -4.23332 m -48.683337,-4.23334 v 4.23334 h 4.23334 m -4.23334,-48.683327 v -4.23334 h 4.23334 m 48.683317,4.23334 v -4.23334 h -4.23332"
+       style="fill:none;stroke:#999999;stroke-width:0.79375"
+       id="path1-8-4" />
+    <path
+       d="m 98.876693,103.78356 -14.09149,14.09149 v 5.0087 l 22.641387,7.7899 M 84.811483,84.892833 v 15.727947 m 4.90373,4.69101 c 0,2.70825 -2.19547,4.90373 -4.90373,4.90373 -2.70825,0 -4.90372,-2.19548 -4.90372,-4.90373 0,-2.70825 2.19547,-4.90372 4.90372,-4.90372 2.70825,0 4.90373,2.19547 4.90373,4.90372 z m -4.77724,12.33509 22.641387,7.7899"
+       style="fill:none;stroke:#000000;stroke-width:1.265;stroke-dasharray:none"
+       id="path1-2"
+       inkscape:label="1" />
+  </g>
+</svg>

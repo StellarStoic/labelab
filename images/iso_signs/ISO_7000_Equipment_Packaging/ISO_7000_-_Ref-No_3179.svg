@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" version="1.1" xmlns="http://www.w3.org/2000/svg">
+ <g fill="none">
+  <g stroke="#999" stroke-width="3">
+   <path d="m0 16v-16h16"/>
+   <path d="m200 16v-16h-16"/>
+   <path d="m0 184v16h16"/>
+   <path d="m200 184v16h-16"/>
+  </g>
+  <ellipse cx="157.32" cy="100" rx="25.106" ry="52.754" stroke="#000" stroke-width="10"/>
+  <path d="m157.32 47.246h-114.62a25.106 52.754 0 0 0-21.742 26.377 25.106 52.754 0 0 0 1e-6 52.754 25.106 52.754 0 0 0 21.742 26.377h114.62" stroke="#000" stroke-width="10"/>
+ </g>
+</svg>

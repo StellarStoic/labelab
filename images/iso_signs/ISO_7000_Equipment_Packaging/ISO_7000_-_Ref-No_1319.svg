@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.710411mm"
+   height="53.710419mm"
+   viewBox="0 0 53.710411 53.710419"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   sodipodi:docname="ISO_7000_-_Ref-No_1319.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     inkscape:zoom="1.4770342"
+     inkscape:cx="160.79519"
+     inkscape:cy="238.65391"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-39.6875,-102.12917)">
+    <path
+       d="m 93.001035,151.20937 v 4.23334 h -4.23332 m -48.68334,-4.23334 v 4.23334 h 4.23334 m -4.23334,-48.68334 v -4.23333 h 4.23334 m 48.68332,4.23333 v -4.23333 h -4.23332"
+       style="fill:none;stroke:#999999;stroke-width:0.79375"
+       id="path1-8-4" />
+    <g
+       id="g30"
+       transform="translate(217.50709,190.82255)">
+      <path
+         d="m -152.00518,-47.891717 h 23.46624 m -44.15571,-1.94e-4 v -9.817488 c 0,-1.879905 1.51317,-3.393075 3.39308,-3.393075 h 14.17174 c 1.87991,0 3.39359,1.51317 3.39359,3.393075 v 9.817488 z m 20.62679,-27.892719 h 23.46624 m -44.15571,1.94e-4 v 9.817488 c 0,1.879905 1.51317,3.393075 3.39308,3.393075 h 14.17174 c 1.87991,0 3.39359,-1.51317 3.39359,-3.393075 v -9.817488 z m 3.01938,13.951569 h 14.88315"
+         style="fill:none;stroke:#000000;stroke-width:1.265;paint-order:stroke fill markers"
+         id="path1-39" />
+      <text
+         xml:space="preserve"
+         style="font-size:6.19583px;line-height:0.8;font-family:Herculanum;-inkscape-font-specification:Herculanum;text-align:center;letter-spacing:0px;word-spacing:-0.0549175px;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:none;stroke:#000000;stroke-width:1.265;paint-order:stroke fill markers"
+         x="-162.12625"
+         y="-50.5868"
+         id="text30"
+         transform="scale(0.85447446,1.17031)"><tspan
+           sodipodi:role="line"
+           id="tspan30"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.265"
+           x="-162.12625"
+           y="-50.5868">1-3-4-2</tspan></text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   height="827.29602"
+   width="552.9577"
+   id="svg2"
+   sodipodi:version="0.32"
+   inkscape:version="0.44"
+   version="1.0"
+   sodipodi:docbase="C:\Documents and Settings\Roman\Pulpit"
+   sodipodi:docname="pw.svg">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:cx="276.47885"
+     inkscape:cy="413.64801"
+     inkscape:zoom="0.45570145"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     inkscape:window-width="888"
+     inkscape:window-height="573"
+     inkscape:window-x="66"
+     inkscape:window-y="87" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:groupmode="layer"
+     inkscape:label="Warstwa 1"
+     id="layer1"
+     transform="translate(-95.5684,-232.0399)">
+    <path
+       sodipodi:type="arc"
+       style="fill:none;fill-opacity:1;fill-rule:nonzero;stroke:black;stroke-width:29.9999733;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path1874"
+       sodipodi:cx="-107.14286"
+       sodipodi:cy="385.21933"
+       sodipodi:rx="261.42856"
+       sodipodi:ry="261.42856"
+       d="M 142.70137,308.25992 A 261.42856,261.42856 0 1 1 88.070148,211.33209"
+       sodipodi:start="5.9843783"
+       sodipodi:end="11.838686"
+       sodipodi:open="true"
+       transform="matrix(0.488636,-0.872902,0.872505,0.487869,88.29531,501.4028)" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:30;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 372.04724,247.03993 L 372.04724,771.82531"
+       id="path4532" />
+  </g>
+</svg>

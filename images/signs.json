@@ -1,0 +1,17 @@
+{
+  "metadata": "images/iso_signs/signs_metadata.json",
+  "folders": [
+    "images/iso_signs/General_Recycling_Symbols/",
+    "images/iso_signs/ISO_7000_Equipment_Packaging/",
+    "images/iso_signs/ISO_7001_Public_Information/",
+    "images/iso_signs/ISO_7010_Fire_Safety/",
+    "images/iso_signs/ISO_7010_Mandatory/",
+    "images/iso_signs/ISO_7010_Prohibition/",
+    "images/iso_signs/ISO_7010_Safe_Condition/",
+    "images/iso_signs/ISO_7010_Warning/",
+    "images/iso_signs/ISO_9244_Earth_Moving_Machinery/",
+    "images/iso_signs/ISO_11469_Plastic_Recycling/",
+    "images/ghs"
+  ],
+  "items": []
+}

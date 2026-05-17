@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.7104mm"
+   height="53.71043mm"
+   viewBox="0 0 53.7104 53.71043"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   sodipodi:docname="ISO_7000_-_Ref-No_1327.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.73851712"
+     inkscape:cx="54.16259"
+     inkscape:cy="178.05952"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-90.752075,-101.33542)">
+    <path
+       d="m 144.0656,150.41563 v 4.23334 h -4.23331 m -48.68334,-4.23334 v 4.23334 h 4.23334 m -4.23334,-48.68335 v -4.23333 h 4.23334 m 48.68331,4.23333 v -4.23333 h -4.23331"
+       style="fill:none;stroke:#999999;stroke-width:0.79375"
+       id="path1-8-4-7" />
+    <g
+       id="g15"
+       transform="translate(-449.3083,-149.38209)">
+      <path
+         d="m 564.49044,277.57884 h -13.39483 m -2.06163,14.03058 h 35.73672 m -27.97531,-17.53786 -6.19857,3.50727 6.19857,3.50729 m 15.73648,-0.04 -1.6777,-2.90585 v -14.60425 h 13.3105 v 14.60425 l -1.6777,2.90585 z m -1.54986,-3.4831 h 13.41068"
+         style="fill:none;stroke:#000000;stroke-width:1.265;stroke-opacity:1;paint-order:stroke fill markers"
+         id="path1-96" />
+      <path
+         id="path13"
+         style="baseline-shift:baseline;display:inline;overflow:visible;opacity:1;vector-effect:none;stroke-width:0.999999;paint-order:stroke fill markers;enable-background:accumulate;stop-color:#000000;stop-opacity:1"
+         d="m 567.15954,284.5242 -12.19615,7.04298 h 5.03483 l 8.41758,-4.86069 z"
+         sodipodi:nodetypes="ccccc" />
+    </g>
+  </g>
+</svg>

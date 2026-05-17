@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.710419mm"
+   height="53.710438mm"
+   viewBox="0 0 53.710419 53.710438"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   sodipodi:docname="ISO_7000_-_Ref-No_1361.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.75811588"
+     inkscape:cx="236.77119"
+     inkscape:cy="240.72837"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-42.333332,-84.931249)">
+    <path
+       d="m 95.646874,134.01147 v 4.23334 h -4.23332 m -48.683347,-4.23334 v 4.23334 h 4.23334 m -4.23334,-48.683346 v -4.23334 h 4.23334 m 48.683327,4.23334 v -4.23334 h -4.23332"
+       style="fill:none;stroke:#999999;stroke-width:0.79375"
+       id="path1-8-4"
+       inkscape:label="1" />
+    <g
+       id="g6"
+       inkscape:label="1"
+       transform="translate(-138.02613,21.144277)">
+      <path
+         d="m 226.83327,102.58903 -6.33159,-19.280663 -6.33105,19.280663 m -13.91193,0 -6.33159,-19.280664 -6.33105,19.280664"
+         style="fill:none;stroke:#000000;stroke-width:1.265;stroke-miterlimit:3.4;stroke-dashoffset:0.264567"
+         id="path1-2"
+         inkscape:label="1" />
+      <path
+         style="fill:none;stroke:#000000;stroke-width:2.665;stroke-linecap:butt;stroke-miterlimit:3.4;stroke-dasharray:none;stroke-dashoffset:0.264567"
+         d="m 184.97352,79.830503 h 44.48229"
+         id="path6"
+         inkscape:label="1" />
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.710415mm"
+   height="53.710415mm"
+   viewBox="0 0 53.710415 53.710415"
+   version="1.1"
+   id="svg28545"
+   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
+   sodipodi:docname="ISO 7000 - Ref-No 0015.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview28547"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="0.74564394"
+     inkscape:cx="158.92304"
+     inkscape:cy="89.85522"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs28542" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-32.757695,-125.01576)">
+    <g
+       fill="none"
+       stroke="#999999"
+       stroke-width="3"
+       id="g160"
+       transform="matrix(0.26458333,0,0,0.26458333,33.15457,125.41263)">
+      <path
+         d="M 0,16 V 0 h 16"
+         id="path152" />
+      <path
+         d="M 200,16 V 0 h -16"
+         id="path154" />
+      <path
+         d="m 0,184 v 16 h 16"
+         id="path156" />
+      <path
+         d="m 200,184 v 16 h -16"
+         id="path158" />
+    </g>
+    <path
+       id="path28129"
+       style="color:#000000;fill:#000000;-inkscape-stroke:none"
+       d="m 50.246291,129.66276 v 21.57439 h -9.718787 v 1.26556 h 9.718787 v 21.57646 h 1.263489 v -43.1524 h 13.922148 v -1.26401 z m 17.469735,0 v 43.15241 H 53.793878 v 1.26401 h 15.185636 v -21.57439 h 9.718788 v -1.26556 h -9.718788 v -21.57646 z" />
+  </g>
+</svg>

@@ -1,0 +1,789 @@
+﻿<!-- labelab.net - A platform for creating simple labels.
+Copyright (C) 2026 StellarStoic stelarstoic@tuta.io
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title data-i18n="app.title">Labelab</title>
+    <!-- Provides search engines and link previews with the public Labelab site summary. -->
+    <meta name="description" content="Labelab is a private local label maker for barcodes, QR codes, text labels, warning signs, custom paper layouts, and printable label sheets." />
+    <meta name="keywords" content="Labelab, label maker, barcode labels, QR code labels, printable labels, sheet labels, warning signs, pictogram labels, local label printing, private label editor, A4 labels, custom labels" />
+    <meta name="author" content="Labelab" />
+    <!-- Registers browser favicons, mobile home-screen icon, and installable app metadata. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="canonical" href="https://labelab.net/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Labelab" />
+    <meta property="og:description" content="Private local label maker for barcodes, QR codes, text labels, warning signs, and custom printable sheets." />
+    <meta property="og:url" content="https://labelab.net/" />
+    <meta property="og:site_name" content="Labelab" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Labelab" />
+    <meta name="twitter:description" content="Private local label maker for barcodes, QR codes, text labels, warning signs, and custom printable sheets." />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="copyToast" class="copy-toast" role="status" aria-live="polite"></div>
+    <main class="app-shell">
+      <aside class="panel controls-panel" aria-label="Label controls" data-i18n-aria-label="aria.labelControls">
+        <div class="brand-row">
+          <div>
+            <h1 data-i18n="app.title">Labelab</h1>
+            <p id="catalogMeta" data-i18n="status.loadingCatalog">Loading catalog...</p>
+          </div>
+        </div>
+
+        <section class="control-group">
+          <h2 data-i18n="section.catalog">Catalog</h2>
+          <label for="searchInput" data-i18n="label.searchTitle">Search title</label>
+          <input id="searchInput" type="search" placeholder="Type product title..." data-i18n-placeholder="placeholder.searchTitle" autocomplete="off" />
+          <div id="codeSelect" class="catalog-list" role="listbox" aria-label="Matching catalog items" data-i18n-aria-label="aria.matchingItems"></div>
+          <div class="selected-code" id="selectedCode">
+            <div>
+              <span class="selected-label" data-i18n="label.selected">Selected:</span>
+              <strong id="selectedTitle" data-i18n="status.noItemSelected">No item selected</strong>
+              <span id="selectedCodeValue"></span>
+            </div>
+            <div class="selected-actions">
+              <button id="editCodeButton" type="button" data-i18n="action.edit">Edit</button>
+              <button id="deleteCodeButton" class="danger-button" type="button" data-i18n="action.delete">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2 data-i18n="section.presets">Presets</h2>
+          <label for="presetSelect" data-i18n="label.preset">Saved preset</label>
+          <select id="presetSelect"></select>
+          <div class="button-row">
+            <button id="applyPresetButton" type="button" data-i18n="action.applyPreset">Apply</button>
+            <button id="savePresetButton" type="button" data-i18n="action.savePreset">Save current</button>
+          </div>
+          <div class="button-row">
+            <button id="updatePresetButton" class="secondary-button" type="button" data-i18n="action.updatePreset">Update</button>
+            <button id="deletePresetButton" class="secondary-button" type="button" data-i18n="action.deletePreset">Delete</button>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2 data-i18n="section.addCode">Add Code</h2>
+          <label for="newTitle" data-i18n="label.title">Title</label>
+          <input id="newTitle" type="text" placeholder="Product title" data-i18n-placeholder="placeholder.productTitle" />
+          <label for="newLabelMode" data-i18n="label.labelMode">Label mode</label>
+          <select id="newLabelMode">
+            <option value="code" data-i18n="option.labelModeCode">Code label</option>
+            <option value="text" data-i18n="option.labelModeText">Text only</option>
+            <option value="sign" data-i18n="option.labelModeSign">Sign</option>
+          </select>
+          <label for="newCode" data-i18n="label.code">Code</label>
+          <div class="scan-code-row">
+            <input id="newCode" type="text" inputmode="text" placeholder="Code value" data-i18n-placeholder="placeholder.codeValue" />
+            <button id="scanCodeButton" class="secondary-button" type="button" data-i18n="action.scanCode">Scan</button>
+          </div>
+          <div class="two-col">
+            <label for="newTextAbove">
+              <span data-i18n="label.textAbove">Text above</span>
+              <input id="newTextAbove" type="text" placeholder="Optional upper text" data-i18n-placeholder="placeholder.textAbove" />
+            </label>
+            <label for="newTextBelow">
+              <span data-i18n="label.textBelow">Text below</span>
+              <input id="newTextBelow" type="text" placeholder="Optional lower text" data-i18n-placeholder="placeholder.textBelow" />
+            </label>
+          </div>
+          <label for="newsignalWord" data-i18n="label.signalWord">signal word</label>
+          <input id="newsignalWord" type="text" placeholder="Warning, Danger, Fragile..." data-i18n-placeholder="placeholder.signalWord" />
+          <label for="newCustomSignInput">
+            <span data-i18n="label.customSigns">Unicode / emoji signs</span>
+            <span class="unicode-help-wrap">
+              <input id="newCustomSignInput" type="text" placeholder="⚠, ☠, U+2620 U+26A0" data-i18n-placeholder="placeholder.customSigns" />
+              <button id="newUnicodeHelpButton" class="unicode-help-button" type="button" title="Click to visit UnicodePlus and search for codes" data-i18n-title="title.unicodeSearch">?</button>
+            </span>
+          </label>
+          <div id="newCustomSignPreview" class="custom-sign-preview" aria-live="polite"></div>
+          <label for="newSignSearch" data-i18n="label.signSearch">Search signs</label>
+          <input id="newSignSearch" type="search" placeholder="Search sign dictionary..." data-i18n-placeholder="placeholder.signSearch" />
+          <span class="field-label" data-i18n="label.signs">Signs</span>
+          <div id="newsignGrid" class="sign-picker" aria-label="signs" data-i18n-aria-label="label.signs"></div>
+          <p class="sign-credit" data-i18n="sign.credit">Sign sources: Wikimedia Commons.</p>
+          <label for="newPresetSelect" data-i18n="label.itemPreset">Item preset</label>
+          <select id="newPresetSelect"></select>
+          <label for="newCategorySelect" data-i18n="label.category">Category</label>
+          <div class="category-picker-row">
+            <select id="newCategorySelect"></select>
+            <button id="addNewCategoryButton" class="secondary-button compact-button" type="button" aria-label="Add category" data-i18n-aria-label="aria.addCategory">+</button>
+          </div>
+          <div id="newCategoryFields" class="new-category-fields is-hidden">
+            <label for="newCategory" data-i18n="label.newCategory">New category</label>
+            <input id="newCategory" type="text" placeholder="Category name" data-i18n-placeholder="placeholder.categoryName" />
+            <label for="newCategoryColor" data-i18n="label.categoryColor">Category color</label>
+            <input id="newCategoryColor" type="color" value="#e5e7eb" />
+          </div>
+          <label for="newColor" data-i18n="label.color">Color</label>
+          <input id="newColor" type="color" value="#0f766e" />
+          <button id="addCodeButton" type="button" data-i18n="action.addCode">Add code</button>
+        </section>
+
+        <section class="control-group">
+          <h2 data-i18n="section.textStyle">Text Style</h2>
+          <label for="codeType" data-i18n="label.codeType">Code type</label>
+          <select id="codeType">
+            <option value="ean13">EAN-13</option>
+            <option value="ean8">EAN-8</option>
+            <option value="upca">UPC-A</option>
+            <option value="code39">Code 39</option>
+            <option value="code128">Code 128</option>
+            <option value="qr">QR Code</option>
+          </select>
+          <label for="labelFont" data-i18n="label.font">Font</label>
+          <select id="labelFont">
+            <optgroup label="Sans serif">
+              <option value="Arial, Helvetica, sans-serif">Arial</option>
+              <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+              <option value="Verdana, Geneva, sans-serif">Verdana</option>
+              <option value="Tahoma, Geneva, sans-serif">Tahoma</option>
+              <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</option>
+              <option value="'Segoe UI', Arial, sans-serif">Segoe UI</option>
+              <option value="'Calibri', 'Segoe UI', sans-serif">Calibri</option>
+              <option value="'Gill Sans', 'Gill Sans MT', Calibri, sans-serif">Gill Sans</option>
+              <option value="'Arial Narrow', Arial, sans-serif">Arial Narrow</option>
+              <option value="Impact, Haettenschweiler, sans-serif">Impact</option>
+            </optgroup>
+            <optgroup label="Serif">
+              <option value="'Times New Roman', Times, serif">Times New Roman</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="Garamond, 'Times New Roman', serif">Garamond</option>
+              <option value="'Palatino Linotype', Palatino, serif">Palatino</option>
+              <option value="'Book Antiqua', Palatino, serif">Book Antiqua</option>
+              <option value="'Cambria', Georgia, serif">Cambria</option>
+              <option value="'Baskerville', 'Times New Roman', serif">Baskerville</option>
+            </optgroup>
+            <optgroup label="Monospace">
+              <option value="'Courier New', Courier, monospace">Courier New</option>
+              <option value="Consolas, 'Courier New', monospace">Consolas</option>
+              <option value="'Lucida Console', Monaco, monospace">Lucida Console</option>
+              <option value="'Cascadia Mono', Consolas, monospace">Cascadia Mono</option>
+            </optgroup>
+            <optgroup label="Display">
+              <option value="'Century Gothic', Arial, sans-serif">Century Gothic</option>
+              <option value="'Franklin Gothic Medium', Arial, sans-serif">Franklin Gothic</option>
+              <option value="'Copperplate', 'Copperplate Gothic Light', serif">Copperplate</option>
+            </optgroup>
+          </select>
+          <div class="two-col">
+            <label>
+              <span class="label-line"><span data-i18n="label.titleSize">Title size</span> <span data-unit-label></span></span>
+              <input id="titleSize" type="number" min="0" max="12" step="0.01" value="2.4" />
+            </label>
+            <label>
+              <span class="label-line"><span data-i18n="label.codeSize">Code No. size</span> <span data-unit-label></span></span>
+              <input id="codeTextSize" type="number" min="0" max="12" step="0.01" value="2.1" />
+            </label>
+            <hr class="control-divider grid-divider" />
+            <label>
+              <span class="label-line"><span data-i18n="label.barcodeMaxHeight">Barcode max height</span> <span data-unit-label></span></span>
+              <input id="barcodeMaxHeight" type="number" min="1" max="200" step="0.01" value="12" />
+            </label>
+            <label>
+              <span class="label-line"><span data-i18n="label.qrMaxSize">QR max size</span> <span data-unit-label></span></span>
+              <input id="qrMaxSize" type="number" min="1" max="200" step="0.01" value="16" />
+            </label>
+          </div>
+          <!-- Aligns directional code padding controls as a visual movement cross. -->
+          <div class="direction-pad">
+            <label class="dir-top">
+              <span class="label-line"><span data-i18n="label.codeTop">Code top</span> <span data-unit-label></span></span>
+              <input id="codePaddingTop" type="number" min="0" max="30" step="0.01" value="0" />
+            </label>
+            <label class="dir-left">
+              <span class="label-line"><span data-i18n="label.codeLeft">Code left</span> <span data-unit-label></span></span>
+              <input id="codePaddingLeft" type="number" min="0" max="30" step="0.01" value="1" />
+            </label>
+            <button class="direction-pad-center" type="button" data-reset-controls="codePaddingLeft codePaddingRight codePaddingTop codePaddingBottom" aria-label="Reset code movement values" data-i18n-aria-label="aria.resetDirectionValues">+</button>
+            <label class="dir-right">
+              <span class="label-line"><span data-i18n="label.codeRight">Code right</span> <span data-unit-label></span></span>
+              <input id="codePaddingRight" type="number" min="0" max="30" step="0.01" value="1" />
+            </label>
+            <label class="dir-bottom">
+              <span class="label-line"><span data-i18n="label.codeBottom">Code bottom</span> <span data-unit-label></span></span>
+              <input id="codePaddingBottom" type="number" min="0" max="30" step="0.01" value="0" />
+            </label>
+          </div>
+          <hr class="control-divider" />
+          <div class="two-col">
+            <label>
+              <span class="label-line"><span data-i18n="label.signMaxSize">Sign max size</span> <span data-unit-label></span></span>
+              <input id="signMaxSize" type="number" min="1" max="200" step="0.01" value="24" />
+            </label>
+          </div>
+          <!-- Aligns directional sign padding controls as a visual movement cross. -->
+          <div class="direction-pad">
+            <label class="dir-top">
+              <span class="label-line"><span data-i18n="label.signTop">Sign top</span> <span data-unit-label></span></span>
+              <input id="signPaddingTop" type="number" min="0" max="200" step="0.01" value="0" />
+            </label>
+            <label class="dir-left">
+              <span class="label-line"><span data-i18n="label.signLeft">Sign left</span> <span data-unit-label></span></span>
+              <input id="signPaddingLeft" type="number" min="0" max="200" step="0.01" value="0" />
+            </label>
+            <button class="direction-pad-center" type="button" data-reset-controls="signPaddingLeft signPaddingRight signPaddingTop signPaddingBottom" aria-label="Reset sign movement values" data-i18n-aria-label="aria.resetDirectionValues">+</button>
+            <label class="dir-right">
+              <span class="label-line"><span data-i18n="label.signRight">Sign right</span> <span data-unit-label></span></span>
+              <input id="signPaddingRight" type="number" min="0" max="200" step="0.01" value="0" />
+            </label>
+            <label class="dir-bottom">
+              <span class="label-line"><span data-i18n="label.signBottom">Sign bottom</span> <span data-unit-label></span></span>
+              <input id="signPaddingBottom" type="number" min="0" max="200" step="0.01" value="0" />
+            </label>
+          </div>
+          <div class="two-col">
+            <label class="check-row">
+              <input id="includeTitle" type="checkbox" checked />
+              <span data-i18n="label.includeTitle">Include title</span>
+            </label>
+            <label class="check-row">
+              <input id="includeCodeNumber" type="checkbox" checked />
+              <span data-i18n="label.includeCodeNumber">Include code number</span>
+            </label>
+            <label class="check-row">
+              <input id="titleBold" type="checkbox" checked />
+              <span data-i18n="label.titleBold">Title bold</span>
+            </label>
+            <label class="check-row">
+              <input id="titleItalic" type="checkbox" />
+              <span data-i18n="label.titleItalic">Title italic</span>
+            </label>
+            <label class="check-row">
+              <input id="codeBold" type="checkbox" />
+              <span data-i18n="label.codeBold">Code No. bold</span>
+            </label>
+            <label class="check-row">
+              <input id="codeItalic" type="checkbox" />
+              <span data-i18n="label.codeItalic">Code No. italic</span>
+            </label>
+          </div>
+          <hr class="control-divider" />
+          <div class="two-col">
+            <label>
+              <span class="label-line"><span data-i18n="label.textAboveSize">Text above size</span> <span data-unit-label></span></span>
+              <input id="textAboveSize" type="number" min="0" max="12" step="0.01" value="2.1" />
+            </label>
+            <label>
+              <span class="label-line"><span data-i18n="label.textBelowSize">Text below size</span> <span data-unit-label></span></span>
+              <input id="textBelowSize" type="number" min="0" max="12" step="0.01" value="2.1" />
+            </label>
+          </div>
+          <div class="two-col">
+            <label class="check-row">
+              <input id="includeTextAbove" type="checkbox" checked />
+              <span data-i18n="label.includeTextAbove">Include text above</span>
+            </label>
+            <label class="check-row">
+              <input id="includeTextBelow" type="checkbox" checked />
+              <span data-i18n="label.includeTextBelow">Include text below</span>
+            </label>
+            <label class="check-row">
+              <input id="textMiddleBold" type="checkbox" checked />
+              <span data-i18n="label.textMiddleBold">Text middle bold</span>
+            </label>
+            <label class="check-row">
+              <input id="textMiddleItalic" type="checkbox" />
+              <span data-i18n="label.textMiddleItalic">Text middle italic</span>
+            </label>
+            <label class="check-row">
+              <input id="textAboveBold" type="checkbox" />
+              <span data-i18n="label.textAboveBold">Text above bold</span>
+            </label>
+            <label class="check-row">
+              <input id="textAboveItalic" type="checkbox" />
+              <span data-i18n="label.textAboveItalic">Text above italic</span>
+            </label>
+            <label class="check-row">
+              <input id="textBelowBold" type="checkbox" />
+              <span data-i18n="label.textBelowBold">Text below bold</span>
+            </label>
+            <label class="check-row">
+              <input id="textBelowItalic" type="checkbox" />
+              <span data-i18n="label.textBelowItalic">Text below italic</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2 data-i18n="section.sort">Sort</h2>
+          <div id="labelSortList" class="label-sort-list" aria-label="Label part order" data-i18n-aria-label="aria.labelPartOrder"></div>
+        </section>
+
+        <section class="control-group">
+          <h2 data-i18n="section.paper">Paper</h2>
+          <label for="paperSize" data-i18n="label.paperSize">Paper size</label>
+          <select id="paperSize">
+            <optgroup label="ISO A">
+              <option value="A0">A0 841 x 1189 mm</option>
+              <option value="A1">A1 594 x 841 mm</option>
+              <option value="A2">A2 420 x 594 mm</option>
+              <option value="A3">A3 297 x 420 mm</option>
+              <option value="A4" selected>A4 210 x 297 mm</option>
+              <option value="A5">A5 148 x 210 mm</option>
+              <option value="A6">A6 105 x 148 mm</option>
+              <option value="A7">A7 74 x 105 mm</option>
+              <option value="A8">A8 52 x 74 mm</option>
+              <option value="A9">A9 37 x 52 mm</option>
+              <option value="A10">A10 26 x 37 mm</option>
+            </optgroup>
+            <optgroup label="ISO B">
+              <option value="B0">B0 1000 x 1414 mm</option>
+              <option value="B1">B1 707 x 1000 mm</option>
+              <option value="B2">B2 500 x 707 mm</option>
+              <option value="B3">B3 353 x 500 mm</option>
+              <option value="B4">B4 250 x 353 mm</option>
+              <option value="B5">B5 176 x 250 mm</option>
+              <option value="B6">B6 125 x 176 mm</option>
+              <option value="B7">B7 88 x 125 mm</option>
+              <option value="B8">B8 62 x 88 mm</option>
+              <option value="B9">B9 44 x 62 mm</option>
+              <option value="B10">B10 31 x 44 mm</option>
+            </optgroup>
+            <optgroup label="ISO C envelopes">
+              <option value="C0">C0 917 x 1297 mm</option>
+              <option value="C1">C1 648 x 917 mm</option>
+              <option value="C2">C2 458 x 648 mm</option>
+              <option value="C3">C3 324 x 458 mm</option>
+              <option value="C4">C4 229 x 324 mm</option>
+              <option value="C5">C5 162 x 229 mm</option>
+              <option value="C6">C6 114 x 162 mm</option>
+              <option value="C7">C7 81 x 114 mm</option>
+              <option value="C8">C8 57 x 81 mm</option>
+              <option value="C9">C9 40 x 57 mm</option>
+              <option value="C10">C10 28 x 40 mm</option>
+            </optgroup>
+            <optgroup label="US">
+              <option value="Letter">Letter 215.9 x 279.4 mm</option>
+              <option value="Legal">Legal 215.9 x 355.6 mm</option>
+              <option value="Tabloid">Tabloid 279.4 x 431.8 mm</option>
+              <option value="Ledger">Ledger 431.8 x 279.4 mm</option>
+              <option value="Executive">Executive 184.2 x 266.7 mm</option>
+              <option value="Statement">Statement 139.7 x 215.9 mm</option>
+              <option value="Folio">Folio 215.9 x 330.2 mm</option>
+            </optgroup>
+            <optgroup label="Photo">
+              <option value="10x15Photo">10 x 15 cm 100 x 150 mm</option>
+              <option value="13x18Photo">13 x 18 cm 130 x 180 mm</option>
+              <option value="4x6Photo">4 x 6 in 101.6 x 152.4 mm</option>
+              <option value="5x7Photo">5 x 7 in 127 x 177.8 mm</option>
+            </optgroup>
+            <optgroup label="Other">
+              <option value="Quarto">Quarto 215 x 275 mm</option>
+              <option value="Custom" data-i18n="option.custom">Custom</option>
+            </optgroup>
+          </select>
+          <label for="paperOrientation" data-i18n="label.orientation">Orientation</label>
+          <select id="paperOrientation">
+            <option value="portrait" data-i18n="option.portrait">Portrait</option>
+            <option value="landscape" data-i18n="option.landscape">Landscape</option>
+          </select>
+          <div class="two-col">
+            <label>
+              <span class="label-line"><span data-i18n="label.width">Width</span> <span data-unit-label></span></span>
+              <input id="paperWidth" type="number" min="0" step="0.01" />
+            </label>
+            <label>
+              <span class="label-line"><span data-i18n="label.height">Height</span> <span data-unit-label></span></span>
+              <input id="paperHeight" type="number" min="0" step="0.01" />
+            </label>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2 data-i18n="section.labels">Labels</h2>
+          <label for="gridPreset" data-i18n="label.quantitySeparation">Quantity separation</label>
+          <select id="gridPreset">
+            <option value="5x15">5 x 15</option>
+            <option value="4x16">4 x 16</option>
+            <option value="3x10">3 x 10</option>
+            <option value="2x8">2 x 8</option>
+            <option value="Custom" data-i18n="option.custom">Custom</option>
+          </select>
+          <div class="two-col">
+            <label>
+              <span data-i18n="label.columns">Columns</span>
+              <input id="columnsInput" type="number" min="1" max="30" step="1" />
+            </label>
+            <label>
+              <span data-i18n="label.rows">Rows</span>
+              <input id="rowsInput" type="number" min="1" max="60" step="1" />
+            </label>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2><span class="label-line"><span data-i18n="section.spacing">Spacing</span> <span data-unit-label></span></span></h2>
+          <!-- Aligns page margin controls as a visual movement cross. -->
+          <div class="direction-pad">
+            <label class="dir-top">
+              <span data-i18n="label.top">Top</span>
+              <input id="marginTop" type="number" min="0" step="0.1" value="5" />
+            </label>
+            <label class="dir-left">
+              <span data-i18n="label.left">Left</span>
+              <input id="marginLeft" type="number" min="0" step="0.1" value="5" />
+            </label>
+            <button class="direction-pad-center" type="button" data-reset-controls="marginLeft marginRight marginTop marginBottom" aria-label="Reset movement values" data-i18n-aria-label="aria.resetDirectionValues">+</button>
+            <label class="dir-right">
+              <span data-i18n="label.right">Right</span>
+              <input id="marginRight" type="number" min="0" step="0.1" value="5" />
+            </label>
+            <label class="dir-bottom">
+              <span data-i18n="label.bottom">Bottom</span>
+              <input id="marginBottom" type="number" min="0" step="0.1" value="5" />
+            </label>
+          </div>
+          <div class="two-col">
+            <label>
+              <span data-i18n="label.betweenX">Between X</span>
+              <input id="gapX" type="number" min="0" step="0.1" value="2" />
+            </label>
+            <label>
+              <span data-i18n="label.betweenY">Between Y</span>
+              <input id="gapY" type="number" min="0" step="0.1" value="2" />
+            </label>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2 data-i18n="section.settings">Settings</h2>
+          <div class="settings-row">
+            <label>
+              <span data-i18n="label.theme">Theme</span>
+              <select id="themeSelect">
+                <option value="light" data-i18n="option.lightTheme">&#9728; Light</option>
+                <option value="dark" data-i18n="option.darkTheme">&#127769; Dark</option>
+              </select>
+            </label>
+            <label>
+              <span data-i18n="label.units">Units</span>
+              <select id="measurementUnit">
+                <option value="metric" data-i18n="option.metric">Metric</option>
+                <option value="imperial" data-i18n="option.imperial">Imperial</option>
+              </select>
+            </label>
+            <label>
+              <span data-i18n="label.language">Language</span>
+              <select id="languageSelect">
+                <option value="en">English</option>
+                <option value="sl">Slovenščina</option>
+                <option value="fr">Français</option>
+                <option value="zh">中文</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2 data-i18n="section.experimental">Experimental</h2>
+          <div class="settings-row">
+            <label for="experimentalLabelBackground">
+              <span data-i18n="label.labelBackground">Label background</span>
+              <input id="experimentalLabelBackground" type="color" value="#ffffff" />
+            </label>
+            <label for="experimentalBarcodeColor">
+              <span data-i18n="label.barcodeColor">Barcode color</span>
+              <input id="experimentalBarcodeColor" type="color" value="#111111" />
+            </label>
+            <label for="experimentalTitleColor">
+              <span data-i18n="label.titleColor">Title color</span>
+              <input id="experimentalTitleColor" type="color" value="#111827" />
+            </label>
+            <label for="experimentalCodeNumberColor">
+              <span data-i18n="label.codeNumberColor">Code number color</span>
+              <input id="experimentalCodeNumberColor" type="color" value="#111827" />
+            </label>
+            <label for="experimentalPrintCount">
+              <span data-i18n="label.printCount">Labels to print (0 = all)</span>
+              <input id="experimentalPrintCount" type="number" min="0" step="1" value="0" />
+            </label>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2 data-i18n="section.backup">Backup</h2>
+          <div class="button-row">
+            <button id="exportButton" type="button" data-i18n="action.exportJson">Export JSON</button>
+            <label class="file-button">
+              <span data-i18n="action.importJson">Import JSON</span>
+              <input id="importInput" type="file" accept="application/json,.json" />
+            </label>
+          </div>
+        </section>
+        <div class="standalone-actions">
+          <button id="printButton" class="standalone-print" type="button" data-i18n="action.printLabels">Print labels</button>
+          <button id="shareButton" class="share-button" type="button" data-i18n="action.shareOrSave">Share or save</button>
+        </div>
+        <button id="donateButton" class="donate-button" type="button" data-i18n="action.donate">Donate</button>
+      </aside>
+
+      <section class="preview-area" aria-label="Label preview" data-i18n-aria-label="aria.labelPreview">
+        <div class="preview-toolbar">
+          <strong id="layoutMeta">0 labels</strong>
+          <div class="zoom-controls" aria-label="Preview zoom controls" data-i18n-aria-label="aria.previewZoomControls">
+            <button id="zoomOutButton" type="button">-</button>
+            <button id="zoomFitButton" type="button" data-i18n="action.fit">Fit</button>
+            <button id="zoomInButton" type="button">+</button>
+            <span id="zoomMeta">100%</span>
+          </div>
+        </div>
+        <div id="paperWrap" class="paper-wrap">
+          <div id="paperStage" class="paper-stage">
+            <div id="paper" class="paper"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="itemEditModal" class="modal-backdrop" aria-hidden="true">
+      <div class="item-edit-modal" role="dialog" aria-modal="true" aria-labelledby="itemEditTitle">
+        <button id="itemEditCloseButton" class="modal-close" type="button" aria-label="Close" data-i18n-aria-label="aria.close">×</button>
+        <h2 id="itemEditTitle" data-i18n="modal.editItem">Edit catalog item</h2>
+        <form id="itemEditForm" class="item-edit-form">
+          <label for="editTitleInput" data-i18n="label.title">Title</label>
+          <input id="editTitleInput" type="text" placeholder="Product title" data-i18n-placeholder="placeholder.productTitle" />
+
+          <label for="editLabelModeInput" data-i18n="label.labelMode">Label mode</label>
+          <select id="editLabelModeInput">
+            <option value="code" data-i18n="option.labelModeCode">Code label</option>
+            <option value="text" data-i18n="option.labelModeText">Text only</option>
+            <option value="sign" data-i18n="option.labelModeSign">Sign</option>
+          </select>
+
+          <label for="editCodeInput" data-i18n="label.code">Code</label>
+          <input id="editCodeInput" type="text" inputmode="text" placeholder="Code value" data-i18n-placeholder="placeholder.codeValue" />
+
+          <div class="two-col">
+            <label for="editTextAboveInput">
+              <span data-i18n="label.textAbove">Text above</span>
+              <input id="editTextAboveInput" type="text" placeholder="Optional upper text" data-i18n-placeholder="placeholder.textAbove" />
+            </label>
+            <label for="editTextBelowInput">
+              <span data-i18n="label.textBelow">Text below</span>
+              <input id="editTextBelowInput" type="text" placeholder="Optional lower text" data-i18n-placeholder="placeholder.textBelow" />
+            </label>
+          </div>
+
+          <label for="editsignalWordInput" data-i18n="label.signalWord">signal word</label>
+          <input id="editsignalWordInput" type="text" placeholder="Warning, Danger, Fragile..." data-i18n-placeholder="placeholder.signalWord" />
+
+          <label for="editCustomSignInput">
+            <span data-i18n="label.customSigns">Unicode / emoji signs</span>
+            <span class="unicode-help-wrap">
+              <input id="editCustomSignInput" type="text" placeholder="⚠, ☠, U+2620 U+26A0" data-i18n-placeholder="placeholder.customSigns" />
+              <button id="editUnicodeHelpButton" class="unicode-help-button" type="button" title="Click to visit UnicodePlus and search for codes" data-i18n-title="title.unicodeSearch">?</button>
+            </span>
+          </label>
+          <div id="editCustomSignPreview" class="custom-sign-preview" aria-live="polite"></div>
+
+          <label for="editSignSearch" data-i18n="label.signSearch">Search signs</label>
+          <input id="editSignSearch" type="search" placeholder="Search sign dictionary..." data-i18n-placeholder="placeholder.signSearch" />
+          <span class="field-label" data-i18n="label.signs">Signs</span>
+          <div id="editsignGrid" class="sign-picker" aria-label="signs" data-i18n-aria-label="label.signs"></div>
+          <p class="sign-credit" data-i18n="sign.credit">Sign sources: Wikimedia Commons.</p>
+
+          <label for="editCodeTypeInput" data-i18n="label.codeType">Code type</label>
+          <select id="editCodeTypeInput">
+            <option value="ean13">EAN-13</option>
+            <option value="ean8">EAN-8</option>
+            <option value="upca">UPC-A</option>
+            <option value="code39">Code 39</option>
+            <option value="code128">Code 128</option>
+            <option value="qr">QR Code</option>
+          </select>
+
+          <label for="editPresetSelect" data-i18n="label.itemPreset">Item preset</label>
+          <select id="editPresetSelect"></select>
+
+          <div class="category-edit-row">
+            <label for="editCategorySelect">
+              <span data-i18n="label.category">Category</span>
+              <div class="category-picker-row">
+                <select id="editCategorySelect"></select>
+                <button id="editNewCategoryButton" class="secondary-button compact-button" type="button" aria-label="Add category" data-i18n-aria-label="aria.addCategory">+</button>
+              </div>
+            </label>
+            <div id="editCategoryFields" class="new-category-fields is-hidden">
+              <label for="editCategoryInput">
+                <span data-i18n="label.newCategory">New category</span>
+                <input id="editCategoryInput" type="text" placeholder="Category name" data-i18n-placeholder="placeholder.categoryName" />
+              </label>
+              <label for="editCategoryColorInput">
+                <span data-i18n="label.categoryColor">Category color</span>
+                <input id="editCategoryColorInput" type="color" value="#e5e7eb" />
+              </label>
+            </div>
+          </div>
+
+          <div class="color-edit-row">
+            <label for="editColorInput">
+              <span data-i18n="label.color">Color</span>
+              <input id="editColorInput" type="color" value="#0f766e" />
+            </label>
+            <div>
+              <span class="field-label" data-i18n="label.colorPresets">Color presets</span>
+              <div id="editColorPresets" class="color-preset-grid" aria-label="Color presets" data-i18n-aria-label="aria.colorPresets"></div>
+            </div>
+          </div>
+
+          <p id="editModalError" class="modal-error" role="alert"></p>
+          <div class="modal-actions">
+            <button id="itemEditSaveButton" type="submit" data-i18n="action.save">Save</button>
+            <button id="itemEditCancelButton" class="secondary-button" type="button" data-i18n="action.cancel">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="categoryEditModal" class="modal-backdrop" aria-hidden="true">
+      <div class="category-edit-modal" role="dialog" aria-modal="true" aria-labelledby="categoryEditTitle">
+        <button id="categoryEditCloseButton" class="modal-close" type="button" aria-label="Close" data-i18n-aria-label="aria.close">×</button>
+        <h2 id="categoryEditTitle" data-i18n="modal.editCategory">Edit category</h2>
+        <form id="categoryEditForm" class="category-edit-form">
+          <div class="category-edit-row">
+            <label for="categoryNameInput">
+              <span data-i18n="label.category">Category</span>
+              <input id="categoryNameInput" type="text" placeholder="Category name" data-i18n-placeholder="placeholder.categoryName" />
+            </label>
+            <label for="categoryColorInput">
+              <span data-i18n="label.categoryColor">Category color</span>
+              <input id="categoryColorInput" type="color" value="#e5e7eb" />
+            </label>
+          </div>
+          <div>
+            <span class="field-label" data-i18n="label.categoryItems">Category items</span>
+            <div id="categoryItemList" class="category-item-list"></div>
+          </div>
+          <p id="categoryModalError" class="modal-error" role="alert"></p>
+          <div class="modal-actions">
+            <button type="submit" data-i18n="action.save">Save</button>
+            <button id="categoryEditCancelButton" class="secondary-button" type="button" data-i18n="action.cancel">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="importReviewModal" class="modal-backdrop" aria-hidden="true">
+      <div class="import-review-modal" role="dialog" aria-modal="true" aria-labelledby="importReviewTitle">
+        <button id="importReviewCloseButton" class="modal-close" type="button" aria-label="Close" data-i18n-aria-label="aria.close">×</button>
+        <h2 id="importReviewTitle" data-i18n="modal.importReview">Import catalog</h2>
+        <div id="importOlderWarning" class="import-warning is-hidden" role="alert" data-i18n="status.importOlderData">This file is older than your current catalog.</div>
+        <div id="importSummary" class="import-summary"></div>
+        <p class="import-note" data-i18n="status.importBackupCreated">A local backup will be saved before importing.</p>
+        <div class="modal-actions import-actions">
+          <button id="importReplaceButton" class="danger-button" type="button" data-i18n="action.replaceCatalog">Replace catalog</button>
+          <button id="importMergeButton" type="button" data-i18n="action.mergeCatalog">Merge catalog</button>
+          <button id="importCancelButton" class="secondary-button" type="button" data-i18n="action.cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="scannerModal" class="modal-backdrop" aria-hidden="true">
+      <div class="scanner-modal" role="dialog" aria-modal="true" aria-labelledby="scannerTitle">
+        <button id="scannerCloseButton" class="modal-close" type="button" aria-label="Close" data-i18n-aria-label="aria.close">×</button>
+        <h2 id="scannerTitle" data-i18n="modal.scanCode">Scan code</h2>
+        <video id="scannerVideo" class="scanner-video" playsinline muted></video>
+        <p id="scannerStatus" class="scanner-status" data-i18n="status.scannerStarting">Starting camera...</p>
+      </div>
+    </div>
+
+    <div id="shareModal" class="modal-backdrop" aria-hidden="true">
+      <div class="share-modal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+        <button id="shareCloseButton" class="modal-close" type="button" aria-label="Close" data-i18n-aria-label="aria.close">×</button>
+        <h2 id="shareModalTitle" data-i18n="modal.shareOrSave">Share or save label</h2>
+        <p class="share-modal-intro" data-i18n="status.shareOrSaveIntro">Choose how you want to send or store this exact label setup.</p>
+        <div class="share-option-grid">
+          <button id="copyShareLinkButton" type="button" data-i18n="action.copyShareLink">Copy share link</button>
+          <button id="saveLabelFileButton" class="secondary-button" type="button" data-i18n="action.saveLabelFile">Save label file</button>
+          <button id="savePdfButton" class="secondary-button" type="button" data-i18n="action.savePdf">Print / save PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <datalist id="categoryOptions"></datalist>
+
+    <div id="donationModal" class="modal-backdrop" aria-hidden="true">
+      <div class="donation-modal" role="dialog" aria-modal="true" aria-labelledby="donationTitle">
+        <button id="donationCloseButton" class="modal-close" type="button" aria-label="Close" data-i18n-aria-label="aria.close">×</button>
+        <h2 id="donationTitle" data-i18n="donation.title">Support Labelab</h2>
+        <div class="donation-intro">
+          <p data-i18n="donation.intro1">I built Labelab to make local label printing simple, private, and useful.</p>
+          <p data-i18n="donation.intro2">No data selling, no dark patterns. If this tool saved you time, you can toss a few sats or a coffee into the jar.</p>
+        </div>
+        <div class="donation-grid">
+          <article class="donation-method">
+            <h3>Bitcoin Lightning</h3>
+            <img class="donation-qr" src="assets/qr/qrLND.svg" alt="Bitcoin Lightning QR code" data-qr-title="Bitcoin Lightning" data-qr-src="assets/qr/qrLND.svg">
+            <p class="donation-address" data-donation-address="ss@cake.cash">ss@cake.cash</p>
+            <button class="copy-donation-button" type="button" data-donation-type="Bitcoin Lightning" data-donation-address="ss@cake.cash" data-i18n="action.copyAddress">Copy Address</button>
+          </article>
+          <article class="donation-method">
+            <h3>Bitcoin On-Chain</h3>
+            <img class="donation-qr" src="assets/qr/qrOC.svg" alt="Bitcoin on-chain QR code" data-qr-title="Bitcoin On-Chain" data-qr-src="assets/qr/qrOC.svg">
+            <p class="donation-address" data-donation-address="bc1q2ytw4gwrkw5jg6ekutcwrgw8x5nlkahyk54l5e">bc1q2ytw4gwrkw5jg6ekutcwrgw8x5nlkahyk54l5e</p>
+            <button class="copy-donation-button" type="button" data-donation-type="Bitcoin On-Chain" data-donation-address="bc1q2ytw4gwrkw5jg6ekutcwrgw8x5nlkahyk54l5e" data-i18n="action.copyAddress">Copy Address</button>
+          </article>
+          <article class="donation-method">
+            <h3>Monero</h3>
+            <img class="donation-qr" src="assets/qr/qrMonero.svg" alt="Monero QR code" data-qr-title="Monero" data-qr-src="assets/qr/qrMonero.svg">
+            <p class="donation-address"  data-donation-address="873v6Svx7x3Ai12BVvJNU7UceEroDeCLx5dzSi3zUWzqLsDbzPV6UeAQpQJNgV3YhrhME4pZ8Qa7N9833Kx1Z2EQ3G1snDC">873v6Svx7x3Ai12BVvJNU7UceEroDeCLx5dzSi3zUWzqLsDbzPV6UeAQpQJNgV3YhrhME4pZ8Qa7N9833Kx1Z2EQ3G1snDC </p>
+            <button class="copy-donation-button" type="button" data-donation-type="Monero" data-donation-address="873v6Svx7x3Ai12BVvJNU7UceEroDeCLx5dzSi3zUWzqLsDbzPV6UeAQpQJNgV3YhrhME4pZ8Qa7N9833Kx1Z2EQ3G1snDC" data-i18n="action.copyAddress">Copy Address</button>
+          </article>
+          <article class="donation-method">
+            <h3>Tether</h3>
+            <img class="donation-qr" src="assets/qr/qrTether.svg" alt="Tether QR code" data-qr-title="Tether" data-qr-src="assets/qr/qrTether.svg">
+            <p class="donation-address" data-donation-address="0xDEa397D50179e2dbf46781087C2235FAd460D3c6">0xDEa397D50179e2dbf46781087C2235FAd460D3c6</p>
+            <button class="copy-donation-button" type="button" data-donation-type="Tether" data-donation-address="0xDEa397D50179e2dbf46781087C2235FAd460D3c6" data-i18n="action.copyAddress">Copy Address</button>
+          </article>
+          <article class="donation-method">
+            <h3>Ton</h3>
+            <img class="donation-qr" src="assets/qr/qrTon.svg" alt="Ton QR code" data-qr-title="Ton" data-qr-src="assets/qr/qrTon.svg">
+            <p class="donation-address" data-donation-address="UQBabpCfz6dDmTfDIw1TDOdt13pRAEMD35V3hgHFI_7ETxRf">UQBabpCfz6dDmTfDIw1TDOdt13pRAEMD35V3hgHFI_7ETxRf </p>
+            <button class="copy-donation-button" type="button" data-donation-type="Ton" data-donation-address="UQBabpCfz6dDmTfDIw1TDOdt13pRAEMD35V3hgHFI_7ETxRf" data-i18n="action.copyAddress">Copy Address</button>
+          </article>
+          <article class="donation-method">
+            <h3>Credit card or PayPal</h3>
+            <img class="donation-qr" src="assets/qr/ko-fi-QR.png" alt="Ko-fi QR code" data-qr-title="Fiat Coffee" data-qr-src="assets/qr/ko-fi-QR.png">
+            <p class="donation-address" data-donation-address="https://ko-fi.com/H2H31SXBT8">https://ko-fi.com/H2H31SXBT8</p>
+            <a class="kofi-link" href="https://ko-fi.com/H2H31SXBT8" target="_blank" rel="noopener" data-i18n="action.openKofi">Buy me a coffee</a>
+          </article>
+        </div>
+        <div id="donationNote" class="donation-note" data-i18n="status.copied">Copied to clipboard.</div>
+      </div>
+    </div>
+
+    <div id="qrViewer" class="qr-viewer" aria-hidden="true">
+      <div class="qr-viewer-box" role="dialog" aria-modal="true" aria-labelledby="qrViewerTitle">
+        <button id="qrViewerCloseButton" class="modal-close qr-viewer-close" type="button" aria-label="Close" data-i18n-aria-label="aria.close">×</button>
+        <div id="qrViewerTitle" class="qr-viewer-title">QR Code</div>
+        <img id="qrViewerImage" src="" alt="">
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

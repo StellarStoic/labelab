@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" version="1.1" xmlns="http://www.w3.org/2000/svg">
+ <g fill="none" stroke="#999" stroke-width="3">
+  <path d="m0 16v-16h16"/>
+  <path d="m200 16v-16h-16"/>
+  <path d="m0 184v16h16"/>
+  <path d="m200 184v16h-16"/>
+ </g>
+ <path d="m146.51 95.262a54.847 54.847 0 0 1 8.3342 29.065 54.847 54.847 0 0 1-54.847 54.847 54.847 54.847 0 0 1-54.847-54.847 54.847 54.847 0 0 1 8.342-29.077l46.505-74.427z" fill="none" stroke="#000" stroke-width="5"/>
+ <g>
+  <circle cx="84.045" cy="110.34" r="9.8126"/>
+  <circle cx="115.95" cy="110.34" r="9.8126"/>
+  <circle transform="scale(-1)" cx="-84.045" cy="-142.25" r="9.8126"/>
+  <circle transform="scale(-1)" cx="-115.95" cy="-142.25" r="9.8126"/>
+ </g>
+</svg>

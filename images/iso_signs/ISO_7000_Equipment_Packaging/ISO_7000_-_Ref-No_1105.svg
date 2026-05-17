@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" version="1.1" xmlns="http://www.w3.org/2000/svg">
+ <g fill="none">
+  <g stroke="#999" stroke-width="3">
+   <path d="m0 16v-16h16"/>
+   <path d="m200 16v-16h-16"/>
+   <path d="m0 184v16h16"/>
+   <path d="m200 184v16h-16"/>
+  </g>
+  <circle cx="95.356" cy="97.154" r="9.0407" stroke="#000" stroke-width="5"/>
+  <circle cx="95.356" cy="97.154" r="57.879" stroke="#000" stroke-width="5"/>
+ </g>
+ <g>
+  <rect x="89.913" y="20.12" width="10.887" height="19.155"/>
+  <rect x="120.65" y="20.12" width="10.887" height="19.155"/>
+  <rect x="151.39" y="20.12" width="10.887" height="19.155"/>
+  <rect transform="scale(-1)" x="-100.8" y="-174.19" width="10.887" height="19.155"/>
+  <rect transform="rotate(210)" x="-136.6" y="-113.49" width="10.887" height="19.155"/>
+  <rect transform="rotate(240)" x="-137.26" y="-43.03" width="10.887" height="19.155"/>
+  <rect transform="rotate(-90)" x="-102.6" y="18.322" width="10.887" height="19.155"/>
+  <rect transform="rotate(-60)" x="-41.903" y="54.124" width="10.887" height="19.155"/>
+  <rect transform="rotate(-30)" x="28.561" y="54.782" width="10.887" height="19.155"/>
+  <path d="m95.356 39.275h74.665" stroke="#000" stroke-width="5"/>
+  <rect transform="scale(1,-1)" x="120.65" y="-174.19" width="10.887" height="19.155"/>
+  <rect transform="scale(1,-1)" x="151.39" y="-174.19" width="10.887" height="19.155"/>
+  <path d="m95.356 155.03h74.665" stroke="#000" stroke-width="5"/>
+ </g>
+</svg>

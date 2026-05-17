@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 200 200">
+<path id="S" d="M52,87H32a6,6,0,0,1-6-6V32a6,6,0,0,1,6-6H79V21A24,24,0,0,1,91,0H24A24,24,0,0,0,0,24V89a24,24,0,0,0,24,24H52v19l32-32L52,68Z"/>
+<use xlink:href="#S" y="200" transform="rotate(-90,0,200)"/>
+<use xlink:href="#S" x="200" transform="rotate(90,200,0)"/>
+<use xlink:href="#S" x="200" y="200" transform="rotate(180,200,200)"/>
+</svg>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.710419mm"
+   height="53.710419mm"
+   viewBox="0 0 53.710419 53.710419"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   sodipodi:docname="ISO_7000_-_Ref-No_1132.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.71891835"
+     inkscape:cx="-144.66177"
+     inkscape:cy="323.40251"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-143.13958,-62.970832)">
+    <path
+       id="path1"
+       style="baseline-shift:baseline;display:inline;overflow:visible;vector-effect:none;fill:#999999;stroke:none;stroke-width:0.264583;enable-background:accumulate;stop-color:#000000"
+       d="m 143.13958,62.970832 v 4.630208 h 0.79375 v -3.836458 h 3.83646 v -0.79375 z m 49.08022,0 v 0.793751 h 3.83646 v 3.836458 H 196.85 v -4.630209 z m -49.08022,49.080208 v 4.63021 h 4.63021 v -0.79375 h -3.83645 v -3.83646 z m 52.91668,0 v 3.83646 h -3.83646 v 0.79375 h 4.6302 v -4.63021 z"
+       inkscape:label="1" />
+    <path
+       id="path17"
+       style="fill:none;stroke:#000000;stroke-width:1.265;paint-order:stroke fill markers"
+       d="m 156.08763,76.611345 h 27.81432 z m 0,5.285982 h 27.81432 z m 0,5.285982 h 27.81432 z m 0,5.285466 h 27.81432 z m 0,5.285982 h 27.81432 z m 0,5.285983 h 27.81432 z"
+       inkscape:label="1" />
+  </g>
+</svg>

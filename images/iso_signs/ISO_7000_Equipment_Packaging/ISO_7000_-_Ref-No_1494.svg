@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" version="1.1" xmlns="http://www.w3.org/2000/svg">
+ <g fill="none">
+  <g stroke="#999" stroke-width="3">
+   <path d="m0 16v-16h16"/>
+   <path d="m200 16v-16h-16"/>
+   <path d="m0 184v16h16"/>
+   <path d="m200 184v16h-16"/>
+  </g>
+  <g stroke="#000" stroke-width="10">
+   <path d="m100 83.863-80.949 11.377 10.369 38.696a30.628 30.628 48.5 0 0 18.111 20.47l37.369 15.098z"/>
+   <path d="m100 83.863 80.949 11.377-10.369 38.696a30.628 30.628 0 0 1-18.111 20.47l-37.369 15.098z"/>
+   <path d="m100 22.669v61.229"/>
+  </g>
+ </g>
+ <circle cx="100" cy="78.385" r="15.461"/>
+</svg>

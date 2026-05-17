@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.710407mm"
+   height="53.710419mm"
+   viewBox="0 0 53.710407 53.710419"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   sodipodi:docname="ISO_7000_-_Ref-No_1338.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.73851712"
+     inkscape:cx="161.13371"
+     inkscape:cy="113.06441"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-62.441667,-118.53333)">
+    <path
+       d="m 115.7552,167.61353 v 4.23334 h -4.23332 m -48.683338,-4.23334 v 4.23334 h 4.23334 m -4.23334,-48.68333 v -4.23334 h 4.23334 m 48.683318,4.23334 v -4.23334 h -4.23332"
+       style="fill:none;stroke:#999999;stroke-width:0.79375"
+       id="path1-8-4" />
+    <path
+       id="path20-8"
+       style="baseline-shift:baseline;display:inline;overflow:visible;vector-effect:none;paint-order:stroke fill markers;enable-background:accumulate;stop-color:#000000"
+       d="m 81.980506,120.16114 v 9.68572 0.0941 l 4.271574,19.46858 h 6.087484 l 4.271574,-19.46858 v -0.0941 h 0.0021 v -9.68572 z m 1.263489,1.26608 h 12.103654 v 7.15408 H 83.243995 Z m 0.01033,8.41964 h 12.084017 l -4.015775,18.29707 h -4.052466 z m 2.725932,22.34334 c -2.445045,6.45979 -0.629499,14.6559 3.316594,18.42574 3.946262,-3.77 5.761433,-11.96617 3.316593,-18.42574 h -1.434538 c 2.073762,5.21337 1.444245,12.68205 -1.882055,16.52767 -3.326375,-3.84506 -3.955631,-11.31448 -1.882056,-16.52767 z m 3.305225,0.35088 c -1.729767,3.88756 -1.645358,8.74148 0,12.6323 0.948949,-2.24401 2.349716,-7.0848 0,-12.6323 z" />
+  </g>
+</svg>

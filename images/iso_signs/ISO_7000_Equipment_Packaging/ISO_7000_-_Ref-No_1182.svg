@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.710426mm"
+   height="53.710419mm"
+   viewBox="0 0 53.710426 53.710419"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   sodipodi:docname="ISO_7000_-_Ref-No_1182.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.71891835"
+     inkscape:cx="113.36475"
+     inkscape:cy="227.42499"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-75.141665,-88.370833)">
+    <path
+       id="path1"
+       style="baseline-shift:baseline;display:inline;overflow:visible;vector-effect:none;fill:#999999;stroke:none;stroke-width:0.264583;enable-background:accumulate;stop-color:#000000"
+       d="m 75.141665,88.370833 v 4.6302 h 0.793751 v -3.83646 h 3.836458 v -0.79374 z m 49.080205,0 v 0.79374 h 3.83647 v 3.83646 h 0.79375 v -4.6302 z M 75.141665,137.45104 v 4.63021 h 4.630208 v -0.79375 h -3.836458 v -3.83646 z m 52.916675,0 v 3.83646 h -3.83647 v 0.79375 h 4.63022 v -4.63021 z"
+       inkscape:label="1" />
+    <path
+       id="rect6-3"
+       d="M 79.59333,96.431583 V 117.2639 h 17.627865 l 5.127855,1.93063 -4.595588,1.85518 4.710828,1.96474 -4.712895,2.02933 4.714955,1.84227 -4.714955,2.15025 4.595585,1.67587 -4.78317,1.99213 v 1.3162 h 8.17986 v -1.26556 h -5.00951 l 5.09375,-2.12132 -4.74442,-1.72806 4.62711,-2.1115 -4.62711,-1.80661 4.62504,-1.99057 -4.62504,-1.92753 4.74442,-1.91771 -5.01675,-1.88774 h 23.58926 V 96.431583 Z m 1.266073,1.264 H 123.13641 V 115.99989 H 97.452189 l -0.111105,-0.0419 -0.0155,0.0419 H 80.859403 Z m 15.971118,1.53841 v 15.226977 h 2.665987 v -5.76968 h 4.041092 c 2.59694,0 4.73047,-2.13153 4.73047,-4.72839 0,-2.59686 -2.13353,-4.728907 -4.73047,-4.728907 z m 2.665987,2.664427 h 4.041092 c 1.16673,0 2.06448,0.8983 2.06448,2.06448 0,1.16618 -0.89775,2.06447 -2.06448,2.06447 h -4.041092 z"
+       inkscape:label="1" />
+  </g>
+</svg>

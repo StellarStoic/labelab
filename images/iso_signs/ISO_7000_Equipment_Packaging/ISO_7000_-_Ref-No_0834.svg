@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.710415mm"
+   height="53.710415mm"
+   viewBox="0 0 53.710415 53.710415"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
+   sodipodi:docname="ISO_7000_-_Ref-No_0834.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.74029882"
+     inkscape:cx="53.356832"
+     inkscape:cy="353.23574"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-90.752083,-55.033328)">
+    <g
+       fill="none"
+       id="g50898-3-7-2"
+       transform="matrix(0.26458333,0,0,0.26458333,91.148958,55.430203)"
+       inkscape:label="2"
+       style="display:inline">
+      <g
+         stroke="#999999"
+         stroke-width="3"
+         id="g50892-0-1-0"
+         inkscape:label="2">
+        <path
+           d="M 0,16 V 0 h 16"
+           id="path50884-9-2-1"
+           inkscape:label="2" />
+        <path
+           d="M 200,16 V 0 h -16"
+           id="path50886-6-7-1"
+           inkscape:label="2" />
+        <path
+           d="m 0,184 v 16 h 16"
+           id="path50888-7-3-2"
+           inkscape:label="2" />
+        <path
+           d="m 200,184 v 16 h -16"
+           id="path50890-3-1-9"
+           inkscape:label="2" />
+      </g>
+    </g>
+    <path
+       id="path3"
+       style="color:#000000;fill:#000000;-inkscape-stroke:none"
+       d="m 130.28378,60.216473 v 3.90519 l -1.33997,-2.31924 -1.09554,0.63252 3.01946,5.23276 3.11712,-5.39657 -1.09554,-0.63304 -1.33997,2.32079 v -3.74241 z m -17.46921,0.67283 v 4.67206 1.02268 0.002 3.48712 h 1.26555 v -2.28513 c 0.99822,0.70012 2.23449,1.11466 3.56568,1.11466 1.33117,0 2.56746,-0.41457 3.56567,-1.11466 v 0.90021 h 1.26556 v -2.1022 -0.002 -1.02268 -4.67206 h -1.26556 v 5.24361 c -0.85552,0.91868 -2.12636,1.50636 -3.56567,1.50636 -1.43987,0 -2.7106,-0.58808 -3.56568,-1.5074 v -5.24257 z m 17.46921,6.82284 v 3.90519 l -1.33997,-2.31924 -1.09554,0.63252 3.01946,5.23275 3.11712,-5.39657 -1.09554,-0.63303 -1.33997,2.32078 v -3.7424 z m -9.07231,2.24172 v 1.45521 h 1.26556 v -1.45521 z m -8.3969,1.38493 v 1.55081 h 1.26555 v -1.55081 z m 8.3969,1.33584 v 2.57762 c -0.25479,0.27361 -0.54725,0.51691 -0.8692,0.72502 l 0.52348,1.15393 c 0.62603,-0.37802 1.17437,-0.86075 1.61128,-1.42575 v -0.002 -1.02268 -2.00608 z m -8.3969,1.47846 v 0.52761 1.02268 0.002 c 0.78636,1.01694 1.9301,1.77201 3.24941,2.11356 l 0.18707,-1.25418 c -0.85763,-0.24397 -1.60551,-0.70572 -2.17093,-1.31362 v -1.09812 z m 6.3841,2.36471 c -0.48437,0.15538 -1.00642,0.24081 -1.55287,0.24081 -0.0488,0 -0.0968,-0.002 -0.14521,-0.004 l -0.18707,1.25728 c 0.11008,0.006 0.22079,0.01 0.33228,0.01 0.7281,0 1.42766,-0.12476 2.07584,-0.3514 z m -25.339544,1.57717 v 4.81831 h 9.795274 v 3.55844 h 37.70106 v -4.82038 h -9.79682 v -3.55637 z m 1.26401,1.26348 h 35.171504 v 2.29134 H 95.123136 Z m 9.796824,3.55844 h 35.16994 v 2.28927 h -35.16994 z m 12.72687,3.63958 c -1.97523,0 -3.7438,0.91037 -4.83123,2.31665 v 0.002 1.02267 13.662737 h 1.26556 V 89.327363 c 0.85507,-0.91932 2.12579,-1.50741 3.56567,-1.50741 1.43931,0 2.71015,0.58768 3.56567,1.50637 V 103.5606 h 1.26556 v -13.662737 -1.02267 -0.002 c -1.08744,-1.40628 -2.856,-2.31665 -4.83123,-2.31665 z"
+       inkscape:label="1" />
+  </g>
+</svg>

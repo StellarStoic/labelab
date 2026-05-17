@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.710407mm"
+   height="53.710423mm"
+   viewBox="0 0 53.710407 53.710423"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   sodipodi:docname="ISO_7000_-_Ref-No_1305.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.73851712"
+     inkscape:cx="75.827626"
+     inkscape:cy="316.17412"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-84.893407,-64.740633)">
+    <path
+       d="m 138.20694,113.82084 v 4.23334 h -4.23332 m -48.683338,-4.23334 v 4.23334 h 4.23334 m -4.23334,-48.683342 v -4.23333 h 4.23334 m 48.683318,4.23333 v -4.23333 h -4.23332"
+       style="fill:none;stroke:#999999;stroke-width:0.79375"
+       id="path1-8" />
+    <path
+       d="m 97.324762,69.989098 h 14.506328 v 4.06733 H 97.771272 V 113.7026 m 6.465968,-36.179452 c 0,0 -1.85681,1.44875 -1.85681,5.27716 0,3.82842 2.72413,4.91712 2.65957,8.64511 -0.0645,3.727977 -2.08978,6.371767 -2.08978,6.371767 m 8.71591,-23.760757 h 14.05982 V 113.7026 m -5.44407,-36.130202 c 0,0 -1.82138,1.44553 -1.82138,5.26543 0,3.8199 2.67215,4.90618 2.60882,8.62588 -0.0633,3.719697 -2.0499,6.357607 -2.0499,6.357607 m -7.89568,-12.262887 c 0,0 1.82138,1.44553 1.82138,5.26543 0,3.819897 -2.67215,4.906177 -2.60882,8.625877 0.0633,3.719705 2.0499,6.357615 2.0499,6.357615"
+       style="fill:none;stroke:#000000;stroke-width:1.265;paint-order:stroke fill markers"
+       id="path1-2"
+       inkscape:label="1" />
+  </g>
+</svg>

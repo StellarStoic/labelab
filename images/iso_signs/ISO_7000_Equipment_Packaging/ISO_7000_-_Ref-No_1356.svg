@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.710411mm"
+   height="53.71043mm"
+   viewBox="0 0 53.710411 53.71043"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   sodipodi:docname="ISO_7000_-_Ref-No_1356.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.73851712"
+     inkscape:cx="221.38959"
+     inkscape:cy="238.99243"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-46.566666,-85.195833)">
+    <path
+       d="m 99.880201,134.27605 v 4.23334 h -4.23332 m -48.68334,-4.23334 v 4.23334 h 4.23334 m -4.23334,-48.683342 v -4.23334 h 4.23334 m 48.68332,4.23334 v -4.23334 h -4.23332"
+       style="fill:none;stroke:#999999;stroke-width:0.79375"
+       id="path1-8-4" />
+    <path
+       d="m 73.42219,94.770185 -4.6762,4.50722 h 2.940906 v 6.267835 h 3.470589 v -6.267835 h 2.940389 z m -4.766399,22.036035 -5.428559,3.13418 1.47045,2.5469 -6.24146,-1.79611 1.56552,-6.30286 1.4702,2.54645 5.428554,-3.13418 z m 9.532162,0 5.428559,3.13418 -1.470453,2.5469 6.241459,-1.79611 -1.565517,-6.30286 -1.470194,2.54645 -5.428559,-3.13418 z m 14.221858,-4.75517 c 0,10.48675 -8.501192,18.98794 -18.987941,18.98794 -10.486749,0 -18.987939,-8.50119 -18.987938,-18.98794 -10e-7,-10.48675 8.501189,-18.987942 18.987938,-18.987942 10.486749,0 18.987941,8.501192 18.987941,18.987942 z"
+       style="fill:none;stroke:#000000;stroke-width:1.265"
+       id="path1-7" />
+  </g>
+</svg>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.3, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="212.6px"
+	 height="212.6px" viewBox="0 0 212.6 212.6" enable-background="new 0 0 212.6 212.6" xml:space="preserve">
+<g id="Grid">
+	
+		<line fill="none" stroke="#6D6E71" stroke-width="0.9921" stroke-miterlimit="10" x1="-0.059" y1="177.166" x2="212.771" y2="177.166"/>
+	
+		<line fill="none" stroke="#6D6E71" stroke-width="0.9921" stroke-miterlimit="10" x1="0.288" y1="106.3" x2="213.062" y2="106.166"/>
+	
+		<line fill="none" stroke="#6D6E71" stroke-width="0.9921" stroke-miterlimit="10" x1="0.288" y1="141.734" x2="213.062" y2="141.732"/>
+	
+		<line fill="none" stroke="#6D6E71" stroke-width="0.9921" stroke-miterlimit="10" x1="0.288" y1="70.867" x2="212.771" y2="70.867"/>
+	
+		<line fill="none" stroke="#6D6E71" stroke-width="0.9921" stroke-miterlimit="10" x1="0.173" y1="35.431" x2="212.771" y2="35.433"/>
+	<line fill="none" stroke="#6D6E71" stroke-width="0.9921" stroke-miterlimit="10" x1="35.387" y1="0" x2="35.387" y2="212.598"/>
+	<line fill="none" stroke="#6D6E71" stroke-width="0.9921" stroke-miterlimit="10" x1="106.387" y1="0" x2="106.387" y2="212.898"/>
+	<line fill="none" stroke="#6D6E71" stroke-width="0.9921" stroke-miterlimit="10" x1="70.82" y1="0" x2="70.82" y2="212.898"/>
+	<line fill="none" stroke="#6D6E71" stroke-width="0.9921" stroke-miterlimit="10" x1="141.687" y1="0" x2="141.687" y2="212.6"/>
+	<line fill="none" stroke="#6D6E71" stroke-width="0.9921" stroke-miterlimit="10" x1="177.12" y1="0" x2="177.119" y2="212.598"/>
+	
+		<rect x="0.173" y="0" fill="none" stroke="#6D6E71" stroke-width="0.9921" stroke-miterlimit="10" width="212.599" height="212.598"/>
+</g>
+<g id="Model_Base">
+	
+		<rect id="Base_Square_1" x="35.433" y="35.433" fill="none" stroke="#000000" stroke-width="0.9921" stroke-miterlimit="10" width="141.731" height="141.731"/>
+	<polygon id="Circle_1" fill="none" stroke="#000000" stroke-width="0.9921" stroke-miterlimit="10" points="0.093,106.334 
+		21.258,189.508 106.299,212.6 192.674,189.049 212.654,106.299 192.617,23.487 106.3,0 21.212,23.174 	"/>
+	
+		<circle id="Circle_2" fill="none" stroke="#000000" stroke-width="0.9921" stroke-miterlimit="10" cx="106.299" cy="106.299" r="70.865"/>
+	
+		<rect id="Square_5" x="17.426" y="53.149" fill="none" stroke="#000000" stroke-width="0.9921" stroke-miterlimit="10" width="177.166" height="106.3"/>
+	
+		<rect id="Square_6" x="53.069" y="17.716" fill="none" stroke="#000000" stroke-width="0.9921" stroke-miterlimit="10" width="106.298" height="177.165"/>
+	<polygon id="Square_7" fill="none" stroke="#000000" stroke-width="0.9921" stroke-miterlimit="10" points="106.299,212.6 
+		0,106.299 106.3,0 212.654,106.299 	"/>
+	
+		<circle id="Octagon_1" fill="none" stroke="#000000" stroke-width="0.9921" stroke-miterlimit="10" cx="106.299" cy="106.299" r="79.369"/>
+</g>
+</svg>

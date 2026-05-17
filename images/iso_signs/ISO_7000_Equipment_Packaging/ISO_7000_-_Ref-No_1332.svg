@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.710411mm"
+   height="53.710419mm"
+   viewBox="0 0 53.710411 53.710419"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   sodipodi:docname="ISO_7000_-_Ref-No_1332.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.73851712"
+     inkscape:cx="136.76054"
+     inkscape:cy="169.93513"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-68.791665,-103.45209)">
+    <path
+       d="m 122.1052,152.53229 v 4.23334 h -4.23332 m -48.68334,-4.23334 v 4.23334 h 4.23334 m -4.23334,-48.68334 v -4.23333 h 4.23334 m 48.68332,4.23333 v -4.23333 h -4.23332"
+       style="fill:none;stroke:#999999;stroke-width:0.79375"
+       id="path1-8-4" />
+    <path
+       d="m 78.184985,119.81887 -4.84029,2.79455 9.61071,16.64624 4.84029,-2.79455 z m 8.54989,14.80886 1.36165,2.35844 1.70464,6.3618 -1.88777,1.08991 -4.65716,-4.65716 -1.36165,-2.35845 m 31.214165,-17.6034 4.84029,2.79455 -9.61071,16.64624 -4.84029,-2.79455 z m -8.54989,14.80886 -1.36165,2.35844 -1.70464,6.3618 1.88777,1.08991 4.65716,-4.65716 1.36165,-2.35845 M 92.852325,116.01878 h 5.58909 v 19.22142 h -5.58909 z m 0,17.09979 v 2.7233 l 1.70464,6.3618 h 2.17981 l 1.70464,-6.3618 v -2.7233"
+       style="fill:none;stroke:#000000;stroke-width:1.265;paint-order:stroke fill markers"
+       id="path1-3" />
+  </g>
+</svg>

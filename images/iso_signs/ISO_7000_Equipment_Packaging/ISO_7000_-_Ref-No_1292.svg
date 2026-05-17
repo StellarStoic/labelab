@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.710411mm"
+   height="53.710419mm"
+   viewBox="0 0 53.710411 53.710419"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   sodipodi:docname="ISO_7000_-_Ref-No_1292.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.71891835"
+     inkscape:cx="156.48509"
+     inkscape:cy="277.50022"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-63.764583,-75.141667)">
+    <path
+       d="m 117.07812,124.22187 v 4.23334 h -4.23333 m -48.683332,-4.23334 v 4.23334 h 4.233334 M 64.161458,79.771872 v -4.23333 h 4.233334 m 48.683328,4.23333 v -4.23333 h -4.23333"
+       style="fill:none;stroke:#999999;stroke-width:0.79375"
+       id="path1-8"
+       inkscape:label="1" />
+    <path
+       id="path1-1-6"
+       d="m 66.573969,85.301773 v 1.265555 h 5.814116 c 0.89679,0 1.599902,0.702603 1.599902,1.599386 v 5.30872 c 0,0.896784 -0.703112,1.599386 -1.599902,1.599386 h -5.814116 v 1.266072 h 5.814116 c 1.575669,0 2.865457,-1.289791 2.865457,-2.865458 V 92.30548 l 29.056628,5.094262 0.005,-0.0031 1.5167,2.190047 8.83409,-6.116423 -1.51619,-2.190047 -5.73815,3.972367 -32.157729,-5.653918 v -1.431954 c 0,-1.575667 -1.289788,-2.864941 -2.865457,-2.864941 z m 28.124382,14.779977 -10.472229,3.93568 0.444416,1.18287 7.792807,-2.92747 c -3.284271,5.06417 -8.802897,8.56623 -16.282728,8.81342 l 0.04238,1.26452 c 7.24646,-0.23947 12.868766,-3.44416 16.443957,-8.16436 l -1.198376,6.59029 1.244368,0.22738 z m -26.835056,17.34674 v 1.26349 h 41.331845 v -1.26349 z"
+       inkscape:label="1" />
+  </g>
+</svg>

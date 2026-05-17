@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN"
+"http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   width="210.00000mm"
+   height="210.00000mm"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   id="svg1"
+   sodipodi:version="0.32"
+   inkscape:version="0.40"
+   sodipodi:docbase="/home/jake/images/svgs/linuxerist-icon-set"
+   sodipodi:docname="recycle.lxset.svg">
+  <defs
+     id="defs3" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.43415836"
+     inkscape:cx="312.16945"
+     inkscape:cy="285.60761"
+     inkscape:current-layer="layer1"
+     inkscape:window-width="640"
+     inkscape:window-height="541"
+     inkscape:window-x="186"
+     inkscape:window-y="74" />
+  <metadata
+     id="metadata4">
+    <rdf:RDF
+       id="RDF5">
+      <cc:Work
+         rdf:about=""
+         id="Work6">
+        <dc:format
+           id="format7">image/svg+xml</dc:format>
+        <dc:type
+           id="type9"
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g1697"
+       transform="matrix(1.056197,0.000000,0.000000,1.171598,-25.75986,-90.98875)">
+      <g
+         id="g1694">
+        <path
+           style="fill:#57c095;fill-opacity:1.0000000;stroke:#00c3d1;stroke-opacity:1.0000000"
+           d="M 141.07755,171.14687 L 584.46414,171.14687 L 584.46414,680.75356 L 141.07755,680.75356 L 141.07755,171.14687 z "
+           id="rect1065" />
+        <path
+           transform="matrix(0.914034,0.000000,0.000000,0.914034,73.99146,37.81374)"
+           style="fill:none;fill-opacity:0.75000000;fill-rule:evenodd;stroke:#000000;stroke-width:1.0000000pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1.0000000"
+           d="M 308.06732,398.59842 C 308.50039,408.70328 294.65983,404.16756 291.27237,399.31820 C 282.09259,386.17673 293.79294,369.70815 306.62776,365.00853 C 329.58624,356.60200 352.79112,374.44629 358.45216,396.43907 C 366.75997,428.71437 342.07555,459.44657 310.94645,465.77821 C 269.45625,474.21729 230.98290,442.46454 224.09259,402.19733 C 215.42183,351.52515 254.34016,305.22226 303.74863,297.82874 C 363.58891,288.87419 417.76688,335.00797 425.63195,393.55995 C 434.90066,462.56143 381.52253,524.64119 313.82558,532.95800 C 235.66676,542.56008 165.66812,481.91936 156.91280,405.07645 C 146.96444,317.76266 214.87997,239.83353 300.86950,230.64895 C 397.33677,220.34524 483.20465,295.54420 492.81174,390.68082 C 503.47743,496.30051 420.98876,590.11324 316.70470,600.13778"
+           id="path1688" />
+      </g>
+      <path
+         transform="matrix(-0.999936,-1.127964e-2,1.127964e-2,-0.999936,716.4455,341.6517)"
+         style="fill:#57c095;fill-opacity:1.0000000;stroke:#00c3d1;stroke-opacity:1.0000000"
+         d="M 685.23383,125.08072 C 685.23383,190.24128 536.25593,243.12521 352.69388,243.12521 C 170.59977,243.12521 22.467510,191.19788 20.180167,126.56351 L 352.69388,125.08072 L 685.23383,125.08072 z "
+         id="path1687" />
+    </g>
+  </g>
+</svg>

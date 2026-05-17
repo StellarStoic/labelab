@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" version="1.1" xmlns="http://www.w3.org/2000/svg">
+ <g fill="none">
+  <g stroke="#999" stroke-width="3">
+   <path d="m0 16v-16h16"/>
+   <path d="m200 16v-16h-16"/>
+   <path d="m0 184v16h16"/>
+   <path d="m200 184v16h-16"/>
+  </g>
+  <g stroke="#000" stroke-width="5">
+   <circle cx="100" cy="100" r="75"/>
+   <path d="m100 25 75 75"/>
+   <path d="m25 100 75-75"/>
+   <path d="m99.985 100a16 16 0 0 1-8 13.856 16 16 0 0 1-16 0 16 16 0 0 1-8-13.856"/>
+   <path d="m132.01 100a16 16 0 0 1-8 13.856 16 16 0 0 1-16 0 16 16 0 0 1-8-13.856"/>
+   <path d="m148.01 116a16 16 0 0 1-11.314-4.6863 16 16 0 0 1-4.6863-11.314"/>
+   <path d="m67.985 100a16 16 0 0 1-16 16"/>
+  </g>
+ </g>
+</svg>

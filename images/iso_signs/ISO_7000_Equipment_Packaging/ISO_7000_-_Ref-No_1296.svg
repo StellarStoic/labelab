@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.710411mm"
+   height="53.710415mm"
+   viewBox="0 0 53.710411 53.710415"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   sodipodi:docname="ISO_7000_-_Ref-No_1296.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.71891835"
+     inkscape:cx="164.83096"
+     inkscape:cy="198.21444"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-61.383333,-96.04375)">
+    <path
+       d="m 114.69687,145.12395 v 4.23334 h -4.23333 m -48.683332,-4.23334 v 4.23334 h 4.233334 m -4.233334,-48.68333 v -4.233335 h 4.233334 m 48.683328,4.233335 v -4.233335 h -4.23333"
+       style="fill:none;stroke:#999999;stroke-width:0.79375"
+       id="path1-8"
+       inkscape:label="1" />
+    <g
+       id="g2"
+       transform="translate(34.474868,-60.195766)"
+       inkscape:label="1">
+      <path
+         d="m 44.367187,178.28711 v 9.61523 h 18.792969 v -9.61523 z"
+         id="path1"
+         sodipodi:nodetypes="ccccc"
+         inkscape:label="1" />
+      <path
+         d="m 27.96757,183.09473 h 13.707175 z m 37.88503,0 h 13.707173 z m -29.589238,-8.83062 h 35.00063 v 17.66123 h -35.00063 z"
+         style="fill:none;stroke:#000000;stroke-width:1.265"
+         id="path1-4-4"
+         inkscape:label="1"
+         sodipodi:nodetypes="ccccccccccc" />
+    </g>
+  </g>
+</svg>

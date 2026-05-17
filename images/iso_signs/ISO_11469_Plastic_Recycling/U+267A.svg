@@ -1,0 +1,8 @@
+<?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="107" height="103">
+<g stroke="#000" id="p">
+<path stroke-width="10" fill="none" d="M52,92H16A14,14 0 0,1 6,75L15,59"/>  
+<path fill="#000" d="M5,56 22,66 21,49z"/></g>
+<use xlink:href="#p" transform="rotate(120 53,59)"/>
+<use xlink:href="#p" transform="rotate(240 53,59)"/>
+</svg>

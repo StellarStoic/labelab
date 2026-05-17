@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.710407mm"
+   height="53.710419mm"
+   viewBox="0 0 53.710407 53.710419"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   sodipodi:docname="ISO_7000_-_Ref-No_1317.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.73851712"
+     inkscape:cx="139.46867"
+     inkscape:cy="94.107501"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-67.997917,-123.56042)">
+    <path
+       d="m 121.31145,172.64062 v 4.23334 h -4.23332 m -48.683338,-4.23334 v 4.23334 h 4.23334 m -4.23334,-48.68334 v -4.23333 h 4.23334 m 48.683318,4.23333 v -4.23333 h -4.23332"
+       style="fill:none;stroke:#999999;stroke-width:0.79375"
+       id="path1-8-4" />
+    <path
+       d="m 92.586712,155.42326 -3.79995,-3.79995 0.71248,-0.71249 3.79995,3.79995 z m -2.99227,-3.25947 9.13447,-15.1213 c 0.2064,-0.34174 0.74765,-0.2683 1.04537,0.0294 l 7.299608,7.2996 c 0.29772,0.29772 0.37112,0.83895 0.0294,1.04537 l -15.121298,9.13447 m -9.60514,10.09241 0.013,-2.2601 c 0,-0.50434 0.11191,-0.70263 0.44421,-1.03493 l 7.92219,-7.92219 m -13.32254,-20.4303 h 34.838818 v 34.83882 H 77.433712 Z"
+       style="fill:none;stroke:#000000;stroke-width:1.265;paint-order:stroke fill markers"
+       id="path1-58" />
+  </g>
+</svg>
