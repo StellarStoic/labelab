@@ -24,6 +24,7 @@ const SIGN_METADATA_URL = "images/iso_signs/signs_metadata.json";
 const UNICODE_SEARCH_URL = "https://home.unicode.org/";
 const SIGN_PICKER_BATCH_SIZE = 150;
 const SIGN_PICKER_SCROLL_THRESHOLD = 80;
+const BUILT_IN_GRID_PRESETS = ["5x15", "4x16", "3x10", "2x8"];
 
 const PAPER_SIZES = {
   A0: { width: 841, height: 1189 },
@@ -290,6 +291,12 @@ const MM_PER_INCH = 25.4;
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 0.1;
+const FREESTYLE_MIN_SIZE_PERCENT = 3;
+const FREESTYLE_DEFAULT_WIDTH_PERCENT = 24;
+const FREESTYLE_DEFAULT_HEIGHT_PERCENT = 9;
+const FREESTYLE_TOOLS = ["resize", "rotate", "move"];
+const FREESTYLE_IMAGE_TYPES = ["image/svg+xml", "image/png", "image/jpeg", "image/webp", "image/gif"];
+const FREESTYLE_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 const DEFAULT_CATEGORY_COLOR = "#e5e7eb";
 const COLOR_PRESETS = [
   "#0f766e",
@@ -307,17 +314,23 @@ const COLOR_PRESETS = [
 ];
 
 const state = {
-  catalog: { lastUpdate: "", totalItems: 0, totalCategories: 0, totalPresets: 0, categories: [], presets: [], items: [] },
+  catalog: { lastUpdate: "", totalItems: 0, totalCategories: 0, totalPresets: 0, totalSheets: 0, favoriteGrids: [], globalSettings: { favoriteGrids: [] }, labelSheets: [], categories: [], presets: [], items: [] },
   selectedItem: null,
   selectedCategory: null,
+  selectedSheet: null,
   previewZoom: 1,
   hasSavedPreviewZoom: false,
+  hasSavedCollapsedGroups: false,
   measurementUnit: "metric",
   locale: DEFAULT_LOCALE,
   messages: {},
   presets: [],
   collapsedGroups: {},
   collapsedCatalogCategories: {},
+  categoryPresetFilter: "all",
+  categoryEditCheckedKeys: new Set(),
+  selectedItemSettingsBaseline: "",
+  selectedSheetSettingsBaseline: "",
   paperPan: null,
   pendingImport: null,
   scannerStream: null,
@@ -325,6 +338,12 @@ const state = {
   scannerDetector: null,
   imageSigns: [],
   labelPartOrder: ["top", "main", "bottom"],
+  sheetQueue: [],
+  freestyleObjects: [],
+  activeFreestyleObjectId: "",
+  freestylePointer: null,
+  freestyleHandleMoved: false,
+  favoriteGrids: [],
 };
 
 const signPickerState = new WeakMap();
@@ -340,6 +359,7 @@ const el = {
   applyPresetButton: document.querySelector("#applyPresetButton"),
   savePresetButton: document.querySelector("#savePresetButton"),
   updatePresetButton: document.querySelector("#updatePresetButton"),
+  renamePresetButton: document.querySelector("#renamePresetButton"),
   deletePresetButton: document.querySelector("#deletePresetButton"),
   newTitle: document.querySelector("#newTitle"),
   newLabelMode: document.querySelector("#newLabelMode"),
@@ -363,8 +383,10 @@ const el = {
   scanCodeButton: document.querySelector("#scanCodeButton"),
   editCodeButton: document.querySelector("#editCodeButton"),
   deleteCodeButton: document.querySelector("#deleteCodeButton"),
+  createCategoryButton: document.querySelector("#createCategoryButton"),
   codeType: document.querySelector("#codeType"),
   labelFont: document.querySelector("#labelFont"),
+  textAlignGroup: document.querySelector("#textAlignGroup"),
   titleSize: document.querySelector("#titleSize"),
   codeTextSize: document.querySelector("#codeTextSize"),
   textAboveSize: document.querySelector("#textAboveSize"),
@@ -401,6 +423,29 @@ const el = {
   gridPreset: document.querySelector("#gridPreset"),
   columnsInput: document.querySelector("#columnsInput"),
   rowsInput: document.querySelector("#rowsInput"),
+  saveGridButton: document.querySelector("#saveGridButton"),
+  removeGridButton: document.querySelector("#removeGridButton"),
+  favoriteGridList: document.querySelector("#favoriteGridList"),
+  sheetFillMode: document.querySelector("#sheetFillMode"),
+  saveSheetButton: document.querySelector("#saveSheetButton"),
+  sequenceSheetControls: document.querySelector("#sequenceSheetControls"),
+  sequenceStart: document.querySelector("#sequenceStart"),
+  sequenceEnd: document.querySelector("#sequenceEnd"),
+  sequenceStep: document.querySelector("#sequenceStep"),
+  sequencePad: document.querySelector("#sequencePad"),
+  sequencePrefix: document.querySelector("#sequencePrefix"),
+  sequenceSuffix: document.querySelector("#sequenceSuffix"),
+  queueSheetControls: document.querySelector("#queueSheetControls"),
+  addSelectedToQueueButton: document.querySelector("#addSelectedToQueueButton"),
+  clearQueueButton: document.querySelector("#clearQueueButton"),
+  selectFreestyleImageButton: document.querySelector("#selectFreestyleImageButton"),
+  freestyleImageInput: document.querySelector("#freestyleImageInput"),
+  queueCustomTitle: document.querySelector("#queueCustomTitle"),
+  queueCustomSigns: document.querySelector("#queueCustomSigns"),
+  mixSignSearch: document.querySelector("#mixSignSearch"),
+  mixsignGrid: document.querySelector("#mixsignGrid"),
+  addCustomToQueueButton: document.querySelector("#addCustomToQueueButton"),
+  sheetQueueList: document.querySelector("#sheetQueueList"),
   marginLeft: document.querySelector("#marginLeft"),
   marginRight: document.querySelector("#marginRight"),
   marginTop: document.querySelector("#marginTop"),
@@ -443,6 +488,10 @@ const el = {
   categoryEditCancelButton: document.querySelector("#categoryEditCancelButton"),
   categoryNameInput: document.querySelector("#categoryNameInput"),
   categoryColorInput: document.querySelector("#categoryColorInput"),
+  categoryPresetSelect: document.querySelector("#categoryPresetSelect"),
+  applyCategoryPresetButton: document.querySelector("#applyCategoryPresetButton"),
+  clearCategoryPresetButton: document.querySelector("#clearCategoryPresetButton"),
+  categoryPresetFilters: document.querySelector("#categoryPresetFilters"),
   categoryItemList: document.querySelector("#categoryItemList"),
   categoryModalError: document.querySelector("#categoryModalError"),
   importReviewModal: document.querySelector("#importReviewModal"),
@@ -486,6 +535,8 @@ const el = {
   paperWrap: document.querySelector("#paperWrap"),
   paperStage: document.querySelector("#paperStage"),
   paper: document.querySelector("#paper"),
+  saveItemSetupButton: document.querySelector("#saveItemSetupButton"),
+  freestyleTrash: document.querySelector("#freestyleTrash"),
   copyToast: document.querySelector("#copyToast"),
 };
 
@@ -514,6 +565,24 @@ function renderLayoutMeta({ count, title, width, height, unit }) {
     .replaceAll("{width}", escapeHtml(width))
     .replaceAll("{height}", escapeHtml(height))
     .replaceAll("{unit}", escapeHtml(unit));
+}
+
+function showStatusToast(message, duration = 2600) {
+  // Show one shared top status banner for short non-blocking app messages.
+  el.copyToast.textContent = message;
+  el.copyToast.classList.add("is-visible");
+  window.clearTimeout(showCopyToast.timeoutId);
+  showCopyToast.timeoutId = window.setTimeout(() => {
+    el.copyToast.classList.remove("is-visible");
+  }, duration);
+}
+
+function showModeChangedToast(previousMode, nextMode) {
+  // Tell the user only when an action actually changes the active sheet mode.
+  if (normalizeSheetFillMode(previousMode) === normalizeSheetFillMode(nextMode)) {
+    return;
+  }
+  showStatusToast(t("status.modeChanged", { mode: t(getSheetModeLabelKey(nextMode)) }), 5000);
 }
 
 function encodeSharePayload(payload) {
@@ -577,6 +646,12 @@ function createItemId(title, code, index = Date.now()) {
   // Create a stable local item id so text-only items can be selected without a code value.
   const source = `${title || "item"}-${code || "text"}-${index}`;
   return `item-${source.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}
+
+function createSheetId(name, index = Date.now()) {
+  // Create a stable local sheet id for saved repeat, sequence, and mixed label sheets.
+  const source = `${name || "sheet"}-${index}`;
+  return `sheet-${source.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 }
 
 function getItemKey(item) {
@@ -664,6 +739,302 @@ function normalizesigns(value) {
   // Keep only known sign ids so imported data cannot create broken controls.
   const ids = Array.isArray(value) ? value : String(value || "").split(",");
   return [...new Set(ids.map((id) => String(id).trim()).filter((id) => getsign(id)))];
+}
+
+function normalizeMixedLabelSigns(value) {
+  // Preserve saved mixed-label sign ids during startup before the sign catalog has loaded.
+  const ids = Array.isArray(value) ? value : String(value || "").split(",");
+  return [...new Set(ids.map((id) => String(id).trim()).filter(Boolean))];
+}
+
+function normalizeSheetFillMode(value) {
+  // Keep sheet fill behavior limited to the supported render modes.
+  return ["repeat", "sequence", "queue", "freestyle"].includes(value) ? value : "repeat";
+}
+
+function normalizeTextAlign(value) {
+  // Keep text alignment constrained to values that map cleanly to CSS and buttons.
+  return ["left", "center", "right"].includes(value) ? value : "center";
+}
+
+function getTextJustify(align) {
+  // Convert text-align into a grid justify value for label text blocks.
+  if (align === "left") {
+    return "start";
+  }
+  if (align === "right") {
+    return "end";
+  }
+  return "center";
+}
+
+function updateTextAlignButtons() {
+  // Reflect the active text alignment on the segmented button control.
+  const align = normalizeTextAlign(el.textAlignGroup?.dataset.value || "center");
+  el.textAlignGroup?.querySelectorAll("[data-text-align]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.textAlign === align);
+  });
+}
+
+function setTextAlign(value, shouldRender = true) {
+  // Store and optionally render the chosen text alignment.
+  const align = normalizeTextAlign(value);
+  el.textAlignGroup.dataset.value = align;
+  updateTextAlignButtons();
+  if (shouldRender) {
+    renderLabels();
+    if (normalizeSheetFillMode(el.sheetFillMode.value) === "freestyle" && state.activeFreestyleObjectId) {
+      setActiveFreestyleObject(state.activeFreestyleObjectId, true);
+    }
+  }
+}
+
+function getSheetModeLabelKey(mode) {
+  // Map stored sheet render modes to the existing visible option labels.
+  if (mode === "sequence") {
+    return "option.sheetFillSequence";
+  }
+  if (mode === "queue") {
+    return "option.sheetFillQueue";
+  }
+  if (mode === "freestyle") {
+    return "option.sheetFillFreestyle";
+  }
+  return "option.sheetFillRepeat";
+}
+
+function clampNumber(value, min, max) {
+  // Keep freeform percentage geometry and rotations inside practical numeric bounds.
+  const number = Number.parseFloat(value);
+  if (!Number.isFinite(number)) {
+    return min;
+  }
+  return Math.min(max, Math.max(min, number));
+}
+
+function normalizeFreestyleTool(value) {
+  // Keep each drawn object on one of the three supported handle behaviors.
+  return FREESTYLE_TOOLS.includes(value) ? value : "resize";
+}
+
+function normalizeFreestyleStyle(value = {}) {
+  // Keep per-object freestyle text styling small, printable, and safe to restore.
+  return {
+    labelFont: String(value.labelFont || "Arial, Helvetica, sans-serif"),
+    textAlign: normalizeTextAlign(value.textAlign),
+    titleSize: clampNumber(value.titleSize ?? 2.4, 0, 200),
+    textMiddleBold: value.textMiddleBold === undefined ? true : Boolean(value.textMiddleBold),
+    textMiddleItalic: Boolean(value.textMiddleItalic),
+    experimentalTitleColor: normalizeColor(value.experimentalTitleColor, "#111827"),
+  };
+}
+
+function normalizeFreestyleObjects(value) {
+  // Clean saved freestyle rectangles while preserving overlap and typed multiline content.
+  return (Array.isArray(value) ? value : [])
+    .map((entry, index) => {
+      const width = clampNumber(entry?.width, FREESTYLE_MIN_SIZE_PERCENT, 100);
+      const height = clampNumber(entry?.height, FREESTYLE_MIN_SIZE_PERCENT, 100);
+      const x = clampNumber(entry?.x, -100, 100);
+      const y = clampNumber(entry?.y, -100, 100);
+      const text = String(entry?.text || "");
+      const signs = normalizeMixedLabelSigns(entry?.signs || []);
+      const customSigns = parsecustomSigns(entry?.customSigns || "");
+      const imageSrc = String(entry?.imageSrc || "");
+      const imageName = String(entry?.imageName || "").trim();
+      if (!text.trim() && !signs.length && !customSigns.length && !imageSrc && !entry?.keepEmpty) {
+        return null;
+      }
+
+      return {
+        id: String(entry.id || `freestyle-${Date.now()}-${index}`),
+        x,
+        y,
+        width,
+        height,
+        rotation: clampNumber(entry?.rotation, -360, 360),
+        tool: normalizeFreestyleTool(entry?.tool),
+        text,
+        signs,
+        customSigns,
+        imageSrc,
+        imageName,
+        style: normalizeFreestyleStyle(entry?.style || entry || {}),
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeSheetQueue(value) {
+  // Clean temporary sheet queue entries without requiring them to be full catalog records.
+  return (Array.isArray(value) ? value : [])
+    .map((entry, index) => {
+      const title = String(entry.title || "").trim();
+      const codeType = normalizeCodeType(entry.codeType || "code128");
+      const code = normalizeCodeForType(entry.code || "", codeType);
+      const signs = normalizeMixedLabelSigns(entry.signs || []);
+      const customSigns = parsecustomSigns(entry.customSigns || "");
+      if (!title && !code && !signs.length && !customSigns.length) {
+        return null;
+      }
+
+      const queueEntry = {
+        id: String(entry.id || `sheet-entry-${Date.now()}-${index}`),
+        title,
+        code,
+        codeType,
+        labelMode: normalizeLabelMode(entry.labelMode, { code, signs, customSigns }),
+        signs,
+        customSigns,
+        signalWord: String(entry.signalWord || "").trim(),
+        color: normalizeColor(entry.color),
+        category: "",
+        presetId: "",
+        textAbove: String(entry.textAbove || "").trim(),
+        textBelow: String(entry.textBelow || "").trim(),
+        quantity: Math.max(1, Number.parseInt(entry.quantity, 10) || 1),
+        locked: Boolean(entry.locked),
+        lockedSettings: normalizeLockedSheetSettings(entry.lockedSettings),
+      };
+      return queueEntry;
+    })
+    .filter(Boolean);
+}
+
+function normalizeLockedSheetSettings(settings) {
+  // Keep only label style and sheet-layout values needed to render or warn for locked queue rows.
+  if (!settings || typeof settings !== "object") {
+    return null;
+  }
+
+  const allowedKeys = [
+    "measurementUnit",
+    "paperSize",
+    "paperOrientation",
+    "paperWidth",
+    "paperHeight",
+    "gridPreset",
+    "columns",
+    "rows",
+    "marginLeft",
+    "marginRight",
+    "marginTop",
+    "marginBottom",
+    "gapX",
+    "gapY",
+    "labelFont",
+    "textAlign",
+    "titleSize",
+    "codeTextSize",
+    "textAboveSize",
+    "textBelowSize",
+    "codePaddingLeft",
+    "codePaddingRight",
+    "codePaddingTop",
+    "codePaddingBottom",
+    "barcodeMaxHeight",
+    "qrMaxSize",
+    "signMaxSize",
+    "signPaddingLeft",
+    "signPaddingRight",
+    "signPaddingTop",
+    "signPaddingBottom",
+    "includeTitle",
+    "includeCodeNumber",
+    "includeTextAbove",
+    "includeTextBelow",
+    "titleBold",
+    "titleItalic",
+    "codeBold",
+    "codeItalic",
+    "textMiddleBold",
+    "textMiddleItalic",
+    "textAboveBold",
+    "textAboveItalic",
+    "textBelowBold",
+    "textBelowItalic",
+    "experimentalLabelBackground",
+    "experimentalBarcodeColor",
+    "experimentalTitleColor",
+    "experimentalCodeNumberColor",
+    "labelPartOrder",
+  ];
+  const snapshot = allowedKeys.reduce((cleanSettings, key) => {
+    if (settings[key] !== undefined) {
+      cleanSettings[key] = key === "labelPartOrder" ? normalizeLabelPartOrder(settings[key]) : settings[key];
+    }
+    return cleanSettings;
+  }, {});
+  snapshot.textAlign = normalizeTextAlign(snapshot.textAlign);
+  return snapshot;
+}
+
+function createGridId(name, columns, rows) {
+  // Create a stable favorite-grid id from its name and dimensions.
+  const slug = String(name || `${columns}x${rows}`)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `grid-${slug || "sheet"}-${columns}x${rows}`;
+}
+
+function normalizeFavoriteGrids(value) {
+  // Keep global favorite grids as small reusable column/row presets.
+  const gridsById = new Map();
+  (Array.isArray(value) ? value : []).forEach((grid) => {
+    const columns = Math.max(1, Number.parseInt(grid?.columns, 10) || 0);
+    const rows = Math.max(1, Number.parseInt(grid?.rows, 10) || 0);
+    const name = String(grid?.name || `${columns} x ${rows}`).trim();
+    if (!columns || !rows || !name) {
+      return;
+    }
+
+    const id = String(grid.id || createGridId(name, columns, rows));
+    gridsById.set(id, {
+      id,
+      name,
+      columns,
+      rows,
+      updatedAt: grid.updatedAt || new Date().toISOString(),
+    });
+  });
+  return [...gridsById.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function normalizeLabelSheet(rawSheet, index = Date.now()) {
+  // Normalize saved sheet entries without mixing them into single catalog items.
+  const name = String(rawSheet?.name || rawSheet?.title || "").trim();
+  const settings = rawSheet?.settings && typeof rawSheet.settings === "object" ? rawSheet.settings : null;
+  if (!name || !settings) {
+    return null;
+  }
+
+  const mode = normalizeSheetFillMode(rawSheet.mode || settings.sheetFillMode);
+  return {
+    id: String(rawSheet.id || createSheetId(name, index)),
+    name,
+    mode,
+    settings: {
+      ...settings,
+      sheetFillMode: mode,
+      sheetQueue: normalizeSheetQueue(settings.sheetQueue),
+      freestyleObjects: normalizeFreestyleObjects(settings.freestyleObjects),
+    },
+    updatedAt: rawSheet.updatedAt || new Date().toISOString(),
+  };
+}
+
+function normalizeLabelSheets(value) {
+  // Keep saved label sheets exportable and searchable by id.
+  const sheetsById = new Map();
+  (Array.isArray(value) ? value : []).forEach((sheet, index) => {
+    const normalized = normalizeLabelSheet(sheet, index);
+    if (normalized) {
+      sheetsById.set(normalized.id, normalized);
+    }
+  });
+  return [...sheetsById.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function normalizeLabelPartOrder(value) {
@@ -773,8 +1144,11 @@ function applyTranslations() {
   updateCatalogMeta();
   renderSelectedItem();
   renderPresetOptions();
+  renderGridPresetOptions();
   updateCategoryOptions();
+  renderSheetFillControls();
   rendersignPicker(el.newsignGrid, getSelectedsigns(el.newsignGrid));
+  rendersignPicker(el.mixsignGrid, getSelectedsigns(el.mixsignGrid));
   if (el.itemEditModal.classList.contains("is-open")) {
     rendersignPicker(el.editsignGrid, getSelectedsigns(el.editsignGrid));
   }
@@ -833,7 +1207,7 @@ function setupCollapsibleGroups() {
     group.dataset.collapseReady = "true";
     group.dataset.groupKey = key;
 
-    const collapsed = Boolean(state.collapsedGroups[key]);
+    const collapsed = state.hasSavedCollapsedGroups ? Boolean(state.collapsedGroups[key]) : true;
     group.classList.toggle("is-collapsed", collapsed);
     updateCollapseButton(toggle, collapsed);
 
@@ -851,6 +1225,9 @@ function normalizeCatalog(rawCatalog) {
   // Normalize imported data so the app always works with the same object shape.
   const rawCategories = Array.isArray(rawCatalog?.categories) ? rawCatalog.categories : [];
   const presets = Array.isArray(rawCatalog?.presets) ? rawCatalog.presets.map(normalizePreset).filter(Boolean) : [];
+  const favoriteGrids = normalizeFavoriteGrids(rawCatalog?.favoriteGrids || rawCatalog?.globalSettings?.favoriteGrids || []);
+  const labelSheets = normalizeLabelSheets(rawCatalog?.labelSheets || rawCatalog?.sheets || []);
+  const presetIdByName = new Map(presets.map((preset) => [preset.name.toLocaleLowerCase(), preset.id]));
   const categoriesByName = new Map();
   rawCategories.forEach((category) => {
     const name = normalizeCategoryName(category.name || category.title || category.category);
@@ -878,6 +1255,7 @@ function normalizeCatalog(rawCatalog) {
           color: normalizeCategoryColor(item.categoryColor),
         });
       }
+      const itemSettings = getItemPresetSettings(item.settings || item.itemSettings || item.labelSettings);
       return {
         id: String(item.id || createItemId(title, code, index)),
         title,
@@ -889,7 +1267,8 @@ function normalizeCatalog(rawCatalog) {
         signalWord: String(item.signalWord || "").trim(),
         color: normalizeColor(item.color),
         category,
-        presetId: String(item.presetId || "").trim(),
+        presetId: String(item.presetId || presetIdByName.get(String(item.presetName || item.preset || "").trim().toLocaleLowerCase()) || "").trim(),
+        settings: itemSettings || undefined,
         textAbove: String(item.textAbove || item.upperText || "").trim(),
         textBelow: String(item.textBelow || item.lowerText || "").trim(),
       };
@@ -903,6 +1282,12 @@ function normalizeCatalog(rawCatalog) {
     totalItems: cleanedItems.length,
     totalCategories: categories.length,
     totalPresets: presets.length,
+    totalSheets: labelSheets.length,
+    favoriteGrids,
+    globalSettings: {
+      favoriteGrids,
+    },
+    labelSheets,
     categories,
     presets,
     items: cleanedItems,
@@ -914,13 +1299,29 @@ function saveCatalog(options = {}) {
   if (options.touch !== false) {
     state.catalog.lastUpdate = new Date().toISOString();
   }
+  state.catalog.items.forEach((item) => {
+    // Strip sheet-composition data from catalog item setup before persisting/exporting.
+    const itemSettings = getItemPresetSettings(item.settings);
+    if (itemSettings) {
+      item.settings = itemSettings;
+    } else {
+      delete item.settings;
+    }
+  });
   state.catalog.totalItems = state.catalog.items.length;
   state.catalog.categories.sort((a, b) => a.name.localeCompare(b.name));
   state.catalog.totalCategories = state.catalog.categories.length;
   state.catalog.presets = Array.isArray(state.catalog.presets) ? state.catalog.presets.map(normalizePreset).filter(Boolean) : [];
   state.catalog.presets.sort((a, b) => a.name.localeCompare(b.name));
   state.catalog.totalPresets = state.catalog.presets.length;
+  state.catalog.labelSheets = normalizeLabelSheets(state.catalog.labelSheets);
+  state.catalog.totalSheets = state.catalog.labelSheets.length;
   state.presets = state.catalog.presets;
+  state.catalog.favoriteGrids = normalizeFavoriteGrids(state.favoriteGrids);
+  state.catalog.globalSettings = {
+    ...(state.catalog.globalSettings || {}),
+    favoriteGrids: state.catalog.favoriteGrids,
+  };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.catalog));
   updateCatalogMeta();
 }
@@ -942,6 +1343,7 @@ async function loadCatalog() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
     state.catalog = normalizeCatalog(JSON.parse(saved));
+    syncFavoriteGridsFromCatalog();
     saveCatalog({ touch: false });
     return;
   }
@@ -952,6 +1354,7 @@ async function loadCatalog() {
   }
 
   state.catalog = normalizeCatalog(await response.json());
+  syncFavoriteGridsFromCatalog();
   saveCatalog({ touch: false });
 }
 
@@ -959,6 +1362,21 @@ function syncPresetsFromCatalog() {
   // Keep the legacy in-memory preset reference pointed at the catalog-backed presets.
   state.catalog.presets = Array.isArray(state.catalog.presets) ? state.catalog.presets.map(normalizePreset).filter(Boolean) : [];
   state.presets = state.catalog.presets;
+  state.catalog.labelSheets = normalizeLabelSheets(state.catalog.labelSheets);
+}
+
+function syncFavoriteGridsFromCatalog() {
+  // Merge catalog-backed favorite grids into global settings so export/import carries them.
+  const gridsById = new Map(state.favoriteGrids.map((grid) => [grid.id, grid]));
+  normalizeFavoriteGrids(state.catalog.favoriteGrids || state.catalog.globalSettings?.favoriteGrids || []).forEach((grid) => {
+    gridsById.set(grid.id, grid);
+  });
+  state.favoriteGrids = normalizeFavoriteGrids([...gridsById.values()]);
+  state.catalog.favoriteGrids = state.favoriteGrids;
+  state.catalog.globalSettings = {
+    ...(state.catalog.globalSettings || {}),
+    favoriteGrids: state.favoriteGrids,
+  };
 }
 
 function normalizePreset(rawPreset) {
@@ -1048,6 +1466,9 @@ function renderPresetOptions() {
   el.presetSelect.value = state.presets.some((preset) => preset.id === currentValue) ? currentValue : "";
   el.newPresetSelect.value = state.presets.some((preset) => preset.id === currentNewPreset) ? currentNewPreset : "";
   el.editPresetSelect.value = state.presets.some((preset) => preset.id === currentEditPreset) ? currentEditPreset : "";
+  if (el.categoryEditModal.classList.contains("is-open")) {
+    populateCategoryPresetSelect();
+  }
 }
 
 function getSelectedPreset() {
@@ -1060,16 +1481,148 @@ function getPresetById(presetId) {
   return state.presets.find((preset) => preset.id === presetId) || null;
 }
 
-function applyItemPreset(item) {
-  // Apply the preset assigned to an item without changing catalog data.
-  const preset = getPresetById(item?.presetId);
-  if (preset) {
-    applySettingsSnapshot(preset.settings);
-    el.presetSelect.value = preset.id;
-    return true;
+function getItemPresetSettings(settings) {
+  // Keep catalog-item setup to repeat-label style/grid values, excluding sheet composition data.
+  if (!settings || typeof settings !== "object") {
+    return null;
   }
+
+  const {
+    locale,
+    theme,
+    sheetFillMode,
+    sheetQueue,
+    freestyleObjects,
+    sequenceStart,
+    sequenceEnd,
+    sequenceStep,
+    sequencePad,
+    sequencePrefix,
+    sequenceSuffix,
+    selectedItemKey,
+    selectedItemCode,
+    collapsedGroups,
+    collapsedCatalogCategories,
+    ...itemSettings
+  } = settings;
+  return Object.keys(itemSettings).length ? itemSettings : null;
+}
+
+function getCurrentItemSettingsSnapshot() {
+  // Capture only the settings that belong to a reusable catalog label setup.
+  return getItemPresetSettings(collectSettingsSnapshot()) || {};
+}
+
+function stableStringify(value) {
+  // Serialize settings with sorted keys so equivalent snapshots compare consistently.
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function captureSelectedItemSettingsBaseline() {
+  // Remember the setup currently shown for the selected item so switching can detect unsaved edits.
+  state.selectedItemSettingsBaseline = state.selectedItem ? stableStringify(getCurrentItemSettingsSnapshot()) : "";
+}
+
+function captureSelectedSheetSettingsBaseline() {
+  // Remember the setup currently shown for the selected saved sheet so the floating save action only appears after edits.
+  state.selectedSheetSettingsBaseline = state.selectedSheet ? stableStringify(collectSavedSheetSettings()) : "";
+}
+
+function isSavedCatalogItem(item) {
+  // Confirm the selected item exists in the editable catalog before saving item-level setup data.
+  return Boolean(item && state.catalog.items.some((catalogItem) => catalogItem === item || getItemKey(catalogItem) === getItemKey(item)));
+}
+
+function selectedItemHasUnsavedSetupChanges() {
+  // Compare the active controls to the setup shown when this catalog item was selected or saved.
+  return Boolean(isSavedCatalogItem(state.selectedItem) && state.selectedItemSettingsBaseline && stableStringify(getCurrentItemSettingsSnapshot()) !== state.selectedItemSettingsBaseline);
+}
+
+function selectedSheetHasUnsavedSetupChanges() {
+  // Compare the active controls to the setup shown when this saved sheet was selected or saved.
+  const activeMode = normalizeSheetFillMode(el.sheetFillMode.value);
+  return Boolean(
+    state.selectedSheet &&
+      normalizeSheetFillMode(state.selectedSheet.mode) === activeMode &&
+      state.selectedSheetSettingsBaseline &&
+      stableStringify(collectSavedSheetSettings()) !== state.selectedSheetSettingsBaseline,
+  );
+}
+
+function updateCurrentSaveButtonVisibility() {
+  // Show the floating save button only when a selected catalog label or saved sheet has unsaved setup changes.
+  el.saveItemSetupButton.classList.toggle(
+    "is-hidden",
+    !selectedSheetHasUnsavedSetupChanges() && !(selectedItemHasUnsavedSetupChanges() && !state.selectedSheet && !state.selectedCategory),
+  );
+}
+
+function applyItemPreset(item) {
+  // Apply the assigned preset first, then overlay any item-specific saved setup such as alignment.
+  const itemSettings = getItemPresetSettings(item?.settings);
+  const preset = getPresetById(item?.presetId);
+  let didApplySettings = false;
+  setTextAlign("center", false);
+  if (preset) {
+    applySettingsSnapshot(getItemPresetSettings(preset.settings));
+    el.presetSelect.value = preset.id;
+    didApplySettings = true;
+  } else {
+    el.presetSelect.value = "";
+  }
+
+  if (itemSettings) {
+    applySettingsSnapshot(itemSettings);
+    el.presetSelect.value = state.presets.some((savedPreset) => savedPreset.id === item?.presetId) ? item.presetId : "";
+    didApplySettings = true;
+  }
+  return didApplySettings;
+}
+
+function saveCurrentSetupToSelectedItem() {
+  // Store the current paper, grid, and label styling directly on the selected catalog item.
+  if (!isSavedCatalogItem(state.selectedItem)) {
+    alert(t("alert.selectItemForSetup"));
+    return;
+  }
+  if (!window.confirm(t("confirm.saveItemSetup", { title: state.selectedItem.title }))) {
+    return;
+  }
+
+  state.selectedItem.settings = getCurrentItemSettingsSnapshot();
+  saveCatalog();
+  captureSelectedItemSettingsBaseline();
+  updateCurrentSaveButtonVisibility();
+  showStatusToast(t("status.itemSetupSaved", { title: state.selectedItem.title }));
+  renderSearchOptions();
+}
+
+function saveCurrentWork() {
+  // Use one save action: saved sheets for sheet modes, item setup for normal repeat labels.
+  if (state.selectedSheet || normalizeSheetFillMode(el.sheetFillMode.value) !== "repeat") {
+    saveCurrentSheet();
+    return;
+  }
+
+  saveCurrentSetupToSelectedItem();
+}
+
+function clearSelectedCatalogItemContext() {
+  // Remove catalog item selection when the user starts building a non-repeat sheet.
+  state.selectedItem = null;
+  state.selectedCategory = null;
+  state.selectedItemSettingsBaseline = "";
+  state.selectedSheetSettingsBaseline = "";
   el.presetSelect.value = "";
-  return false;
 }
 
 function saveCurrentAsPreset() {
@@ -1101,10 +1654,13 @@ function applySelectedPreset() {
 
   if (state.selectedItem) {
     state.selectedItem.presetId = preset.id;
+    state.selectedItem.settings = getItemPresetSettings(preset.settings);
     saveCatalog();
   }
+  setTextAlign("center", false);
   applySettingsSnapshot(preset.settings);
   el.presetSelect.value = preset.id;
+  captureSelectedItemSettingsBaseline();
   renderLabels();
   saveSettings();
 }
@@ -1126,6 +1682,45 @@ function updateSelectedPreset() {
   savePresets();
   renderPresetOptions();
   el.presetSelect.value = preset.id;
+}
+
+function renameSelectedPreset() {
+  // Rename the selected preset while keeping its id stable for catalog item assignments.
+  const preset = getSelectedPreset();
+  if (!preset) {
+    alert(t("alert.selectPreset"));
+    return;
+  }
+
+  const oldName = preset.name;
+  const nextName = window.prompt(t("prompt.renamePreset"), oldName)?.trim();
+  if (!nextName || nextName === oldName) {
+    return;
+  }
+  const duplicate = state.presets.some((savedPreset) => savedPreset.id !== preset.id && savedPreset.name.toLocaleLowerCase() === nextName.toLocaleLowerCase());
+  if (duplicate) {
+    alert(t("alert.duplicatePresetName"));
+    return;
+  }
+  if (!window.confirm(t("confirm.renamePreset", { oldName, newName: nextName }))) {
+    return;
+  }
+
+  preset.name = nextName;
+  preset.updatedAt = new Date().toISOString();
+  state.catalog.items.forEach((item) => {
+    if (item.presetName === oldName || item.preset === oldName) {
+      item.presetName = nextName;
+      item.preset = nextName;
+      item.presetId = preset.id;
+    }
+  });
+  savePresets();
+  renderPresetOptions();
+  el.presetSelect.value = preset.id;
+  renderSearchOptions();
+  renderSelectedItem();
+  renderLabels();
 }
 
 function deleteSelectedPreset() {
@@ -1162,6 +1757,7 @@ function saveSettings() {
       paperWidth: readMeasurement(el.paperWidth, 210),
       paperHeight: readMeasurement(el.paperHeight, 297),
       gridPreset: el.gridPreset.value,
+      favoriteGrids: state.favoriteGrids,
       columns: el.columnsInput.value,
       rows: el.rowsInput.value,
       marginLeft: readMeasurement(el.marginLeft, 0),
@@ -1209,6 +1805,15 @@ function saveSettings() {
       experimentalCodeNumberColor: el.experimentalCodeNumberColor.value,
       experimentalPrintCount: Math.max(0, Number.parseInt(el.experimentalPrintCount.value, 10) || 0),
       labelPartOrder: state.labelPartOrder,
+      sheetFillMode: el.sheetFillMode.value,
+      sequenceStart: Number.parseInt(el.sequenceStart.value, 10) || 1,
+      sequenceEnd: Number.parseInt(el.sequenceEnd.value, 10) || 1,
+      sequenceStep: Number.parseInt(el.sequenceStep.value, 10) || 1,
+      sequencePad: Math.max(0, Number.parseInt(el.sequencePad.value, 10) || 0),
+      sequencePrefix: el.sequencePrefix.value,
+      sequenceSuffix: el.sequenceSuffix.value,
+      sheetQueue: normalizeSheetQueue(state.sheetQueue),
+      freestyleObjects: state.freestyleObjects,
       collapsedGroups: state.collapsedGroups,
       collapsedCatalogCategories: state.collapsedCatalogCategories,
     }),
@@ -1219,19 +1824,31 @@ function loadSettings() {
   // Apply saved settings or start with practical defaults.
   const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
   state.hasSavedPreviewZoom = saved.previewZoom !== undefined;
+  state.hasSavedCollapsedGroups = saved.collapsedGroups !== undefined;
   state.collapsedGroups = saved.collapsedGroups || {};
   state.collapsedCatalogCategories = saved.collapsedCatalogCategories || {};
   state.labelPartOrder = normalizeLabelPartOrder(saved.labelPartOrder);
+  state.sheetQueue = normalizeSheetQueue(saved.sheetQueue);
+  state.freestyleObjects = normalizeFreestyleObjects(saved.freestyleObjects);
+  state.favoriteGrids = normalizeFavoriteGrids(saved.favoriteGrids);
   state.measurementUnit = saved.measurementUnit || "metric";
   state.locale = saved.locale || DEFAULT_LOCALE;
   el.measurementUnit.value = state.measurementUnit;
   el.languageSelect.value = state.locale;
   updateUnitLabels();
+  renderGridPresetOptions(saved.gridPreset || "5x15");
   el.paperSize.value = saved.paperSize || "A4";
   el.paperOrientation.value = saved.paperOrientation || "portrait";
   applyPaperPreset(saved.paperWidth, saved.paperHeight);
   el.gridPreset.value = saved.gridPreset || "5x15";
   applyGridPreset(saved.columns, saved.rows);
+  el.sheetFillMode.value = normalizeSheetFillMode(saved.sheetFillMode);
+  el.sequenceStart.value = Number.isFinite(Number(saved.sequenceStart)) ? saved.sequenceStart : 1;
+  el.sequenceEnd.value = Number.isFinite(Number(saved.sequenceEnd)) ? saved.sequenceEnd : 15;
+  el.sequenceStep.value = Number.isFinite(Number(saved.sequenceStep)) ? saved.sequenceStep : 1;
+  el.sequencePad.value = Math.max(0, Number.parseInt(saved.sequencePad, 10) || 0);
+  el.sequencePrefix.value = String(saved.sequencePrefix || "");
+  el.sequenceSuffix.value = String(saved.sequenceSuffix || "");
 
   ["marginLeft", "marginRight", "marginTop", "marginBottom", "gapX", "gapY"].forEach((key) => {
     if (saved[key] !== undefined) {
@@ -1240,6 +1857,7 @@ function loadSettings() {
   });
 
   applySavedTypography(saved);
+  setTextAlign("center", false);
   setColorInputValue(el.experimentalLabelBackground, saved.experimentalLabelBackground ?? saved.experimentalListBackground, "#ffffff");
   setColorInputValue(el.experimentalBarcodeColor, saved.experimentalBarcodeColor ?? saved.experimentalCodeColor, "#111111");
   setColorInputValue(el.experimentalTitleColor, saved.experimentalTitleColor ?? saved.experimentalFontColor, "#111827");
@@ -1249,6 +1867,7 @@ function loadSettings() {
   state.previewZoom = clampZoom(Number.parseFloat(saved.previewZoom) || 1);
   const theme = saved.theme || (saved.dark ? "dark" : "light");
   applyTheme(theme);
+  renderSheetFillControls();
 }
 
 function applySavedTypography(saved) {
@@ -1371,6 +1990,9 @@ function applySettingsSnapshot(snapshot) {
     }
   });
   applySavedTypography(snapshot);
+  if (snapshot.textAlign !== undefined) {
+    setTextAlign(snapshot.textAlign, false);
+  }
   if (snapshot.experimentalLabelBackground !== undefined) {
     setColorInputValue(el.experimentalLabelBackground, snapshot.experimentalLabelBackground, "#ffffff");
   }
@@ -1389,17 +2011,120 @@ function applySettingsSnapshot(snapshot) {
   if (snapshot.labelPartOrder !== undefined) {
     state.labelPartOrder = normalizeLabelPartOrder(snapshot.labelPartOrder);
   }
+  if (snapshot.sheetFillMode !== undefined) {
+    el.sheetFillMode.value = normalizeSheetFillMode(snapshot.sheetFillMode);
+  }
+  if (snapshot.sequenceStart !== undefined) {
+    el.sequenceStart.value = Number.parseInt(snapshot.sequenceStart, 10) || 1;
+  }
+  if (snapshot.sequenceEnd !== undefined) {
+    el.sequenceEnd.value = Number.parseInt(snapshot.sequenceEnd, 10) || 1;
+  }
+  if (snapshot.sequenceStep !== undefined) {
+    el.sequenceStep.value = Number.parseInt(snapshot.sequenceStep, 10) || 1;
+  }
+  if (snapshot.sequencePad !== undefined) {
+    el.sequencePad.value = Math.max(0, Number.parseInt(snapshot.sequencePad, 10) || 0);
+  }
+  if (snapshot.sequencePrefix !== undefined) {
+    el.sequencePrefix.value = String(snapshot.sequencePrefix || "");
+  }
+  if (snapshot.sequenceSuffix !== undefined) {
+    el.sequenceSuffix.value = String(snapshot.sequenceSuffix || "");
+  }
+  if (snapshot.sheetQueue !== undefined) {
+    state.sheetQueue = normalizeSheetQueue(snapshot.sheetQueue);
+  }
+  if (snapshot.freestyleObjects !== undefined) {
+    state.freestyleObjects = normalizeFreestyleObjects(snapshot.freestyleObjects);
+    state.activeFreestyleObjectId = state.freestyleObjects[0]?.id || "";
+    if (state.activeFreestyleObjectId) {
+      applyFreestyleStyleToControls(state.freestyleObjects[0].style);
+    }
+  }
   applyExperimentalStyles();
-  applyTheme(snapshot.theme || (document.body.classList.contains("dark") ? "dark" : "light"));
+  renderSheetFillControls();
   state.measurementUnit = el.measurementUnit.value || previousUnit;
+}
+
+function findItemFromSheetSettings(settings) {
+  // Resolve a saved repeat sheet back to its catalog item by id first, then code.
+  if (!settings) {
+    return null;
+  }
+
+  return (
+    state.catalog.items.find((item) => getItemKey(item) === settings.selectedItemKey) ||
+    state.catalog.items.find((item) => item.code && item.code === settings.selectedItemCode) ||
+    null
+  );
+}
+
+function applySavedSheet(sheet) {
+  // Restore a saved repeat, sequence, or mixed label sheet from the catalog.
+  const previousMode = normalizeSheetFillMode(el.sheetFillMode.value);
+  state.selectedSheet = sheet;
+  state.selectedCategory = null;
+  setTextAlign("center", false);
+  applySettingsSnapshot(sheet.settings);
+  state.selectedItem = sheet.mode === "repeat" ? findItemFromSheetSettings(sheet.settings) : null;
+  captureSelectedSheetSettingsBaseline();
+  renderSelectedItem();
+  renderSearchOptions();
+  scrollSelectedCatalogOptionIntoView();
+  renderLabels();
+  const nextMode = normalizeSheetFillMode(el.sheetFillMode.value);
+  showModeChangedToast(previousMode, nextMode);
+  saveSettings();
+}
+
+function saveCurrentSheet() {
+  // Save the current sheet mode and settings as a reusable catalog sheet.
+  const mode = normalizeSheetFillMode(el.sheetFillMode.value);
+  const hasRepeatItem = mode === "repeat" && state.selectedItem;
+  const hasSequence = mode === "sequence";
+  const hasMixedLabels = mode === "queue" && state.sheetQueue.length;
+  const hasFreestyle = mode === "freestyle" && state.freestyleObjects.length;
+  if (!hasRepeatItem && !hasSequence && !hasMixedLabels && !hasFreestyle) {
+    alert(t("alert.noSheetToSave"));
+    return;
+  }
+
+  const currentName = state.selectedSheet?.name || getSheetMetaTitle(getLabelsToPrint(getLayout().columns * getLayout().rows));
+  const name = window.prompt(t("prompt.sheetName"), currentName)?.trim();
+  if (!name) {
+    return;
+  }
+
+  const existing = state.selectedSheet && state.catalog.labelSheets.find((sheet) => sheet.id === state.selectedSheet.id);
+  const savedSheet = normalizeLabelSheet({
+    id: existing?.id || createSheetId(name),
+    name,
+    mode,
+    settings: collectSavedSheetSettings(),
+    updatedAt: new Date().toISOString(),
+  });
+  if (!savedSheet) {
+    return;
+  }
+
+  if (existing) {
+    Object.assign(existing, savedSheet);
+    state.selectedSheet = existing;
+  } else {
+    state.catalog.labelSheets.push(savedSheet);
+    state.selectedSheet = savedSheet;
+  }
+  saveCatalog();
+  captureSelectedSheetSettingsBaseline();
+  renderSearchOptions();
+  renderSelectedItem();
 }
 
 function collectSettingsSnapshot() {
   // Capture the current label setup in millimeters so it can be restored in any unit mode.
   return {
     measurementUnit: state.measurementUnit,
-    locale: state.locale,
-    theme: document.body.classList.contains("dark") ? "dark" : "light",
     paperSize: el.paperSize.value,
     paperOrientation: el.paperOrientation.value,
     paperWidth: readMeasurement(el.paperWidth, 210),
@@ -1415,6 +2140,7 @@ function collectSettingsSnapshot() {
     gapY: readMeasurement(el.gapY, 0),
     codeType: el.codeType.value,
     labelFont: el.labelFont.value,
+    textAlign: normalizeTextAlign(el.textAlignGroup.dataset.value),
     titleSize: readMeasurement(el.titleSize, 2.4),
     codeTextSize: readMeasurement(el.codeTextSize, 2.1),
     textAboveSize: readMeasurement(el.textAboveSize, 2.1),
@@ -1450,7 +2176,34 @@ function collectSettingsSnapshot() {
     experimentalCodeNumberColor: el.experimentalCodeNumberColor.value,
     experimentalPrintCount: Math.max(0, Number.parseInt(el.experimentalPrintCount.value, 10) || 0),
     labelPartOrder: state.labelPartOrder,
+    sheetFillMode: el.sheetFillMode.value,
+    sequenceStart: Number.parseInt(el.sequenceStart.value, 10) || 1,
+    sequenceEnd: Number.parseInt(el.sequenceEnd.value, 10) || 1,
+    sequenceStep: Number.parseInt(el.sequenceStep.value, 10) || 1,
+    sequencePad: Math.max(0, Number.parseInt(el.sequencePad.value, 10) || 0),
+    sequencePrefix: el.sequencePrefix.value,
+    sequenceSuffix: el.sequenceSuffix.value,
+    sheetQueue: normalizeSheetQueue(state.sheetQueue),
+    freestyleObjects: state.freestyleObjects,
   };
+}
+
+function collectSavedSheetSettings() {
+  // Capture a reusable sheet setup plus the selected item needed for repeat sheets.
+  const settings = collectSettingsSnapshot();
+  if (state.selectedItem) {
+    settings.selectedItemKey = getItemKey(state.selectedItem);
+    settings.selectedItemCode = state.selectedItem.code || "";
+  }
+  return settings;
+}
+
+function collectSheetLockSettings() {
+  // Capture the current visual style for one queued label without embedding the queue inside itself.
+  return normalizeLockedSheetSettings({
+    ...collectSettingsSnapshot(),
+    textAlign: normalizeTextAlign(el.textAlignGroup.dataset.value),
+  });
 }
 
 function getOrientedPaperSize(preset) {
@@ -1492,9 +2245,56 @@ function applyOrientationChange() {
   el.paperHeight.value = currentWidth;
 }
 
+function getFavoriteGridOptionValue(id) {
+  // Namespace favorite-grid option values so they cannot collide with built-in presets.
+  return `favorite:${id}`;
+}
+
+function getSelectedFavoriteGrid() {
+  // Resolve the selected grid preset when it points to a saved favorite grid.
+  const value = el.gridPreset.value;
+  if (!value.startsWith("favorite:")) {
+    return null;
+  }
+
+  const id = value.slice("favorite:".length);
+  return state.favoriteGrids.find((grid) => grid.id === id) || null;
+}
+
+function renderGridPresetOptions(selectedValue = el.gridPreset.value) {
+  // Rebuild built-in, favorite, and custom grid choices without losing the active selection.
+  el.gridPreset.innerHTML = "";
+  BUILT_IN_GRID_PRESETS.forEach((preset) => {
+    const option = document.createElement("option");
+    option.value = preset;
+    option.textContent = preset.replace("x", " x ");
+    el.gridPreset.append(option);
+  });
+  state.favoriteGrids.forEach((grid) => {
+    const option = document.createElement("option");
+    option.value = getFavoriteGridOptionValue(grid.id);
+    option.textContent = `${grid.name} (${grid.columns} x ${grid.rows})`;
+    el.gridPreset.append(option);
+  });
+
+  const custom = document.createElement("option");
+  custom.value = "Custom";
+  custom.textContent = t("option.custom");
+  el.gridPreset.append(custom);
+  el.gridPreset.value = [...el.gridPreset.options].some((option) => option.value === selectedValue) ? selectedValue : "Custom";
+  renderFavoriteGridList();
+}
+
 function applyGridPreset(savedColumns, savedRows) {
   // Split presets like 5x15 into editable column and row controls.
   const preset = el.gridPreset.value;
+  const favoriteGrid = getSelectedFavoriteGrid();
+  if (favoriteGrid) {
+    el.columnsInput.value = favoriteGrid.columns;
+    el.rowsInput.value = favoriteGrid.rows;
+    return;
+  }
+
   if (preset !== "Custom") {
     const [columns, rows] = preset.split("x").map(Number);
     el.columnsInput.value = columns;
@@ -1504,6 +2304,92 @@ function applyGridPreset(savedColumns, savedRows) {
 
   el.columnsInput.value = savedColumns || 5;
   el.rowsInput.value = savedRows || 15;
+}
+
+function getCurrentGridPreset() {
+  // Capture the current sheet grid dimensions as a reusable favorite.
+  const columns = Math.max(1, Number.parseInt(el.columnsInput.value, 10) || 1);
+  const rows = Math.max(1, Number.parseInt(el.rowsInput.value, 10) || 1);
+  return { columns, rows };
+}
+
+function persistFavoriteGrids() {
+  // Save favorite grids both globally and inside the exportable catalog JSON.
+  state.favoriteGrids = normalizeFavoriteGrids(state.favoriteGrids);
+  renderGridPresetOptions(el.gridPreset.value);
+  saveSettings();
+  saveCatalog();
+}
+
+function saveCurrentGridAsFavorite() {
+  // Prompt for a name and save the current columns/rows as a reusable global grid.
+  const { columns, rows } = getCurrentGridPreset();
+  const name = window.prompt(t("prompt.gridName"), `${columns} x ${rows}`)?.trim();
+  if (!name) {
+    return;
+  }
+
+  const id = createGridId(name, columns, rows);
+  state.favoriteGrids = normalizeFavoriteGrids([
+    ...state.favoriteGrids.filter((grid) => grid.id !== id),
+    {
+      id,
+      name,
+      columns,
+      rows,
+      updatedAt: new Date().toISOString(),
+    },
+  ]);
+  renderGridPresetOptions(getFavoriteGridOptionValue(id));
+  persistFavoriteGrids();
+  renderLabels();
+}
+
+function removeSelectedFavoriteGrid() {
+  // Remove the active favorite grid preset after confirmation.
+  const favoriteGrid = getSelectedFavoriteGrid();
+  if (!favoriteGrid) {
+    alert(t("alert.selectFavoriteGrid"));
+    return;
+  }
+  if (!window.confirm(t("confirm.deleteFavoriteGrid", { name: favoriteGrid.name }))) {
+    return;
+  }
+
+  state.favoriteGrids = state.favoriteGrids.filter((grid) => grid.id !== favoriteGrid.id);
+  el.gridPreset.value = "Custom";
+  persistFavoriteGrids();
+  renderLabels();
+}
+
+function renderFavoriteGridList() {
+  // Show the saved favorite grids as a compact reminder below the grid controls.
+  if (!el.favoriteGridList) {
+    return;
+  }
+
+  el.favoriteGridList.innerHTML = "";
+  if (!state.favoriteGrids.length) {
+    const empty = document.createElement("p");
+    empty.className = "favorite-grid-empty";
+    empty.textContent = t("status.noFavoriteGrids");
+    el.favoriteGridList.append(empty);
+    return;
+  }
+
+  state.favoriteGrids.forEach((grid) => {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "favorite-grid-chip";
+    row.textContent = `${grid.name} (${grid.columns} x ${grid.rows})`;
+    row.addEventListener("click", () => {
+      // Selecting a favorite grid from the list applies its option and redraws the sheet.
+      el.gridPreset.value = getFavoriteGridOptionValue(grid.id);
+      applyGridPreset();
+      renderLabels();
+    });
+    el.favoriteGridList.append(row);
+  });
 }
 
 function fromMillimeters(mmValue) {
@@ -1624,7 +2510,10 @@ function getLayout() {
 
 function applyTypography() {
   // Push text style controls into CSS variables used by every rendered label.
+  const textAlign = normalizeTextAlign(el.textAlignGroup.dataset.value);
   el.paper.style.setProperty("--label-font", el.labelFont.value);
+  el.paper.style.setProperty("--text-align", textAlign);
+  el.paper.style.setProperty("--text-justify", getTextJustify(textAlign));
   el.paper.style.setProperty("--title-size", `${readMeasurement(el.titleSize, 2.4)}mm`);
   el.paper.style.setProperty("--code-text-size", `${readMeasurement(el.codeTextSize, 2.1)}mm`);
   el.paper.style.setProperty("--text-above-size", `${readMeasurement(el.textAboveSize, 2.1)}mm`);
@@ -1661,14 +2550,48 @@ function applyExperimentalStyles() {
 }
 
 function shouldWarnTextOnlyStyleControl() {
-  // Warn when text-only controls are used while the active work is a code/barcode label.
-  const pendingCode = normalizeCodeForType(el.newCode.value, el.codeType.value);
-  return Boolean(state.selectedItem?.code || pendingCode);
+  // Warn only in repeat-item editing when upper/lower text controls cannot affect the active label.
+  if (normalizeSheetFillMode(el.sheetFillMode.value) !== "repeat") {
+    return false;
+  }
+
+  const activeItem = state.selectedItem || {
+    code: normalizeCodeForType(el.newCode.value, el.codeType.value),
+    labelMode: el.newLabelMode.value,
+    signs: getSelectedsigns(el.newsignGrid),
+    customSigns: parsecustomSigns(el.newCustomSignInput.value),
+  };
+  return normalizeLabelMode(activeItem.labelMode, activeItem) === "code" && Boolean(activeItem.code);
 }
 
 function shouldWarnCodeStyleControl() {
-  // Warn when Code No. controls are used while the active work is a text-only label.
-  return Boolean(state.selectedItem && !state.selectedItem.code);
+  // Warn only in repeat-item editing when Code No. controls cannot affect the active label.
+  if (normalizeSheetFillMode(el.sheetFillMode.value) !== "repeat") {
+    return false;
+  }
+
+  const activeItem = state.selectedItem || {
+    code: normalizeCodeForType(el.newCode.value, el.codeType.value),
+    labelMode: el.newLabelMode.value,
+    signs: getSelectedsigns(el.newsignGrid),
+    customSigns: parsecustomSigns(el.newCustomSignInput.value),
+  };
+  return !(normalizeLabelMode(activeItem.labelMode, activeItem) === "code" && activeItem.code);
+}
+
+function shouldWarnTitleStyleControl() {
+  // Warn only when the active repeat label uses middle text instead of a separate title.
+  if (normalizeSheetFillMode(el.sheetFillMode.value) !== "repeat") {
+    return false;
+  }
+
+  const activeItem = state.selectedItem || {
+    code: normalizeCodeForType(el.newCode.value, el.codeType.value),
+    labelMode: el.newLabelMode.value,
+    signs: getSelectedsigns(el.newsignGrid),
+    customSigns: parsecustomSigns(el.newCustomSignInput.value),
+  };
+  return normalizeLabelMode(activeItem.labelMode, activeItem) === "text";
 }
 
 function warnTextOnlyStyleControl() {
@@ -1687,7 +2610,7 @@ function warnCodeStyleControl() {
 
 function warnTitleStyleControl() {
   // Explain that title styling is ignored for text-only labels.
-  if (shouldWarnCodeStyleControl()) {
+  if (shouldWarnTitleStyleControl()) {
     alert(t("alert.titleControls"));
   }
 }
@@ -1725,7 +2648,7 @@ function fitPreviewToWindow() {
 
 function startPaperPan(event) {
   // Start drag-panning the preview by remembering the pointer and current scroll position.
-  if (event.button !== 0) {
+  if (event.button !== 0 || normalizeSheetFillMode(el.sheetFillMode.value) === "freestyle" || event.target.closest?.(".freestyle-object, .freestyle-trash")) {
     return;
   }
 
@@ -1769,7 +2692,8 @@ function stopPaperPan(event) {
 function updateCatalogMeta() {
   // Show compact catalog status in the sidebar.
   const updated = state.catalog.lastUpdate ? new Date(state.catalog.lastUpdate).toLocaleString() : t("status.unknown");
-  el.catalogMeta.textContent = t("status.catalogMeta", { count: state.catalog.totalItems, updated });
+  const mode = t(getSheetModeLabelKey(normalizeSheetFillMode(el.sheetFillMode?.value)));
+  el.catalogMeta.textContent = `${t("status.catalogMeta", { count: state.catalog.totalItems, updated })} | ${t("status.catalogMode", { mode })}`;
 }
 
 function getCategory(name) {
@@ -1800,6 +2724,32 @@ function ensureCategory(name, color = null) {
   state.catalog.categories.push(category);
   state.catalog.categories.sort((a, b) => a.name.localeCompare(b.name));
   return category;
+}
+
+function createCatalogCategoryFromAction() {
+  // Create a standalone catalog category without requiring an item edit first.
+  if (selectedItemHasUnsavedSetupChanges() && !window.confirm(t("confirm.unsavedItemSetup", { title: state.selectedItem.title }))) {
+    return;
+  }
+
+  const name = normalizeCategoryName(window.prompt(t("prompt.categoryName"), ""));
+  if (!name) {
+    return;
+  }
+
+  const category = ensureCategory(name, DEFAULT_CATEGORY_COLOR);
+  state.selectedItem = null;
+  state.selectedSheet = null;
+  state.selectedCategory = category;
+  state.selectedItemSettingsBaseline = "";
+  state.selectedSheetSettingsBaseline = "";
+  saveCatalog();
+  el.searchInput.value = "";
+  updateCategoryOptions();
+  renderSearchOptions();
+  renderSelectedItem();
+  scrollSelectedCatalogOptionIntoView();
+  renderLabels();
 }
 
 function updateCategoryOptions() {
@@ -1874,6 +2824,9 @@ function groupCatalogMatches(matches, query) {
 function renderSearchOptions() {
   // Filter by title/category/code before grouping so saved category memberships stay visible.
   const query = el.searchInput.value.trim().toLowerCase();
+  const sheetMatches = state.catalog.labelSheets
+    .filter((sheet) => `${sheet.name} ${t(getSheetModeLabelKey(sheet.mode))}`.toLowerCase().includes(query))
+    .sort((a, b) => a.name.localeCompare(b.name));
   const matches = state.catalog.items
     .filter((item) => `${item.title} ${item.code} ${item.category}`.toLowerCase().includes(query))
     .sort((a, b) => (a.category || "").localeCompare(b.category || "") || a.title.localeCompare(b.title));
@@ -1890,6 +2843,31 @@ function renderSearchOptions() {
   emptyOption.innerHTML = `<span class="catalog-color"></span><span class="catalog-option-label">&nbsp;</span>`;
   emptyOption.addEventListener("click", () => selectItem(""));
   el.codeSelect.append(emptyOption);
+
+  if (sheetMatches.length) {
+    const header = document.createElement("div");
+    header.className = "catalog-category";
+    header.setAttribute("role", "presentation");
+    header.innerHTML = `<span class="catalog-category-select">${t("section.savedSheets")}</span>`;
+    el.codeSelect.append(header);
+    sheetMatches.forEach((sheet) => {
+      const option = document.createElement("button");
+      const isSelected = state.selectedSheet?.id === sheet.id;
+      const color = document.createElement("span");
+      const label = document.createElement("span");
+      option.type = "button";
+      option.className = `catalog-option catalog-sheet-option${isSelected ? " is-selected" : ""}`;
+      option.dataset.sheetId = sheet.id;
+      option.setAttribute("role", "option");
+      option.setAttribute("aria-selected", String(isSelected));
+      color.className = "catalog-color";
+      label.className = "catalog-option-label";
+      label.textContent = `${sheet.name} - ${t(getSheetModeLabelKey(sheet.mode))}`;
+      option.append(color, label);
+      option.addEventListener("click", () => applySavedSheet(sheet));
+      el.codeSelect.append(option);
+    });
+  }
 
   groupCatalogMatches(matches, query).forEach(([categoryName, items]) => {
     const category = getCategory(categoryName);
@@ -1966,7 +2944,9 @@ function scrollSelectedCatalogOptionIntoView() {
   }
 
   requestAnimationFrame(() => {
-    const selectedOption = state.selectedCategory
+    const selectedOption = state.selectedSheet
+      ? [...el.codeSelect.querySelectorAll(".catalog-sheet-option")].find((option) => option.dataset.sheetId === state.selectedSheet.id)
+      : state.selectedCategory
       ? [...el.codeSelect.querySelectorAll(".catalog-category")].find((option) => option.dataset.category === state.selectedCategory.name)
       : [...el.codeSelect.querySelectorAll(".catalog-option")].find((option) => option.dataset.itemKey === getItemKey(state.selectedItem));
     selectedOption?.scrollIntoView({ block: "center", inline: "nearest" });
@@ -1975,6 +2955,17 @@ function scrollSelectedCatalogOptionIntoView() {
 
 function renderSelectedItem() {
   // Refresh the selected item display and enable actions only when an item exists.
+  updateCurrentSaveButtonVisibility();
+  if (state.selectedSheet) {
+    el.selectedCode.classList.remove("is-empty");
+    el.selectedTitle.textContent = state.selectedSheet.name;
+    el.selectedCodeValue.textContent = t(getSheetModeLabelKey(state.selectedSheet.mode));
+    el.selectedCodeValue.className = "selected-category-meta";
+    el.editCodeButton.disabled = true;
+    el.deleteCodeButton.disabled = true;
+    return;
+  }
+
   if (state.selectedCategory) {
     const color = normalizeCategoryColor(state.selectedCategory.color);
     const count = state.catalog.items.filter((item) => normalizeCategoryName(item.category) === state.selectedCategory.name).length;
@@ -2010,25 +3001,47 @@ function renderSelectedItem() {
 }
 
 function selectItem(itemKey) {
-  // Store the chosen item and redraw every label with the same barcode.
+  // Store the chosen catalog item as a normal repeat sheet and redraw it for printing.
+  const nextItem = itemKey ? state.catalog.items.find((item) => getItemKey(item) === itemKey || item.code === itemKey) || null : null;
+  const currentKey = state.selectedItem ? getItemKey(state.selectedItem) : "";
+  const nextKey = nextItem ? getItemKey(nextItem) : "";
+  const previousMode = normalizeSheetFillMode(el.sheetFillMode.value);
+  if (currentKey !== nextKey && selectedItemHasUnsavedSetupChanges()) {
+    const shouldSwitch = window.confirm(t("confirm.unsavedItemSetup", { title: state.selectedItem.title }));
+    if (!shouldSwitch) {
+      return;
+    }
+  }
+
+  state.selectedSheet = null;
   state.selectedCategory = null;
-  state.selectedItem = itemKey ? state.catalog.items.find((item) => getItemKey(item) === itemKey || item.code === itemKey) || null : null;
+  state.selectedSheetSettingsBaseline = "";
+  state.selectedItem = nextItem;
   if (state.selectedItem) {
+    el.sheetFillMode.value = "repeat";
     const didApplyPreset = applyItemPreset(state.selectedItem);
     if (!didApplyPreset) {
       el.codeType.value = state.selectedItem.codeType;
     }
   }
+  captureSelectedItemSettingsBaseline();
   renderSelectedItem();
   renderSearchOptions();
   scrollSelectedCatalogOptionIntoView();
   renderLabels();
+  const nextMode = normalizeSheetFillMode(el.sheetFillMode.value);
+  if (state.selectedItem) {
+    showModeChangedToast(previousMode, nextMode);
+  }
 }
 
 function selectCategory(name) {
   // Select a category row so edit/delete actions operate on the category instead of an item.
+  state.selectedSheet = null;
   state.selectedItem = null;
   state.selectedCategory = getCategory(name);
+  state.selectedItemSettingsBaseline = "";
+  state.selectedSheetSettingsBaseline = "";
   renderSelectedItem();
   renderSearchOptions();
   scrollSelectedCatalogOptionIntoView();
@@ -2101,9 +3114,779 @@ function renderCustomSignPreview(input, preview) {
   });
 }
 
+function getFreestyleObject(id) {
+  // Find one drawn object by id so pointer and catalog actions can update it.
+  return state.freestyleObjects.find((object) => object.id === id) || null;
+}
+
+function getFreestyleObjectSelector(id) {
+  // Build an attribute selector for generated and imported object ids without relying on CSS.escape.
+  const escapedId = String(id || "").replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+  return `.freestyle-object[data-id="${escapedId}"]`;
+}
+
+function getPaperPointerPoint(event) {
+  // Convert a pointer location into paper-relative percentages that survive paper size changes.
+  const rect = el.paper.getBoundingClientRect();
+  return {
+    x: clampNumber(((event.clientX - rect.left) / Math.max(1, rect.width)) * 100, -100, 200),
+    y: clampNumber(((event.clientY - rect.top) / Math.max(1, rect.height)) * 100, -100, 200),
+  };
+}
+
+function getCurrentFreestyleStyle() {
+  // Capture only the text controls that should be independent per freestyle object.
+  return normalizeFreestyleStyle({
+    labelFont: el.labelFont.value,
+    textAlign: el.textAlignGroup.dataset.value,
+    titleSize: readMeasurement(el.titleSize, 2.4),
+    textMiddleBold: el.textMiddleBold.checked,
+    textMiddleItalic: el.textMiddleItalic.checked,
+    experimentalTitleColor: el.experimentalTitleColor.value,
+  });
+}
+
+function applyFreestyleStyleToControls(style) {
+  // Load the selected freestyle object's style into the shared Text Style controls.
+  const normalized = normalizeFreestyleStyle(style);
+  el.labelFont.value = normalized.labelFont;
+  setTextAlign(normalized.textAlign, false);
+  setMeasurementValue(el.titleSize, normalized.titleSize);
+  el.textMiddleBold.checked = Boolean(normalized.textMiddleBold);
+  el.textMiddleItalic.checked = Boolean(normalized.textMiddleItalic);
+  setColorInputValue(el.experimentalTitleColor, normalized.experimentalTitleColor, "#111827");
+}
+
+function syncActiveFreestyleStyleFromControls() {
+  // Save Text Style control changes to the active object instead of every freestyle object.
+  if (normalizeSheetFillMode(el.sheetFillMode.value) !== "freestyle" || !state.activeFreestyleObjectId) {
+    return;
+  }
+
+  const object = getFreestyleObject(state.activeFreestyleObjectId);
+  if (object) {
+    object.style = getCurrentFreestyleStyle();
+  }
+}
+
+function applyFreestyleObjectStyle(objectEl, object) {
+  // Apply one freestyle object's private text style as CSS variables on that object only.
+  const style = normalizeFreestyleStyle(object.style || {});
+  object.style = style;
+  objectEl.style.setProperty("--label-font", style.labelFont);
+  objectEl.style.setProperty("--text-align", style.textAlign);
+  objectEl.style.setProperty("--text-justify", getTextJustify(style.textAlign));
+  objectEl.style.setProperty("--title-size", `${style.titleSize}mm`);
+  objectEl.style.setProperty("--text-middle-weight", style.textMiddleBold ? "700" : "400");
+  objectEl.style.setProperty("--text-middle-style", style.textMiddleItalic ? "italic" : "normal");
+  objectEl.style.setProperty("--experimental-title-color", style.experimentalTitleColor);
+}
+
+function isAllowedFreestyleImageFile(file) {
+  // Accept only browser-renderable image files that can be safely embedded in a saved freestyle sheet.
+  return Boolean(file && FREESTYLE_IMAGE_TYPES.includes(file.type) && file.size <= FREESTYLE_IMAGE_MAX_BYTES);
+}
+
+function readFreestyleImageFile(file) {
+  // Convert a selected or dropped image file into a data URL that can be saved with the sheet.
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(String(reader.result || "")));
+    reader.addEventListener("error", () => reject(reader.error));
+    reader.readAsDataURL(file);
+  });
+}
+
+function getFreestyleDefaultObject() {
+  // Create a practical starting rectangle for catalog/sign insertion when none is active yet.
+  return {
+    id: `freestyle-${Date.now()}`,
+    x: 8,
+    y: 8,
+    width: FREESTYLE_DEFAULT_WIDTH_PERCENT,
+    height: FREESTYLE_DEFAULT_HEIGHT_PERCENT,
+    rotation: 0,
+    tool: "resize",
+    text: "",
+    signs: [],
+    customSigns: [],
+    style: getCurrentFreestyleStyle(),
+  };
+}
+
+function ensureActiveFreestyleObject() {
+  // Reuse the current rectangle or create one so catalog content has a visible target.
+  let object = getFreestyleObject(state.activeFreestyleObjectId);
+  if (!object) {
+    object = getFreestyleDefaultObject();
+    state.freestyleObjects.push(object);
+    state.activeFreestyleObjectId = object.id;
+  }
+  return object;
+}
+
+function setActiveFreestyleObject(id, shouldFocus = false) {
+  // Mark one rectangle as active and optionally put the text caret inside it.
+  state.activeFreestyleObjectId = id || "";
+  el.paper.querySelectorAll(".freestyle-object").forEach((objectEl) => {
+    objectEl.classList.toggle("is-active", objectEl.dataset.id === state.activeFreestyleObjectId);
+  });
+  const activeObject = getFreestyleObject(state.activeFreestyleObjectId);
+  if (activeObject) {
+    applyFreestyleStyleToControls(activeObject.style);
+  }
+  if (!shouldFocus || !id) {
+    return;
+  }
+
+  window.setTimeout(() => {
+    const textEl = el.paper.querySelector(`${getFreestyleObjectSelector(id)} .freestyle-text`);
+    if (!textEl) {
+      return;
+    }
+    textEl.focus();
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(textEl);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }, 0);
+}
+
+function syncFreestyleObjectElement(object) {
+  // Push one object's percentage geometry into its live preview node.
+  const objectEl = el.paper.querySelector(getFreestyleObjectSelector(object.id));
+  if (!objectEl) {
+    return;
+  }
+  objectEl.style.left = `${object.x}%`;
+  objectEl.style.top = `${object.y}%`;
+  objectEl.style.width = `${object.width}%`;
+  objectEl.style.height = `${object.height}%`;
+  objectEl.style.transform = `rotate(${object.rotation}deg)`;
+}
+
+function getFreestyleToolLabel(tool) {
+  // Give the compact corner handle a recognizable symbol for its current behavior.
+  if (tool === "rotate") {
+    return "⟳";
+  }
+  if (tool === "move") {
+    return "✥";
+  }
+  return "↔";
+}
+
+function cycleFreestyleTool(object) {
+  // Rotate the corner handle between resize, rotate, and move modes.
+  const currentIndex = FREESTYLE_TOOLS.indexOf(normalizeFreestyleTool(object.tool));
+  object.tool = FREESTYLE_TOOLS[(currentIndex + 1) % FREESTYLE_TOOLS.length];
+  renderFreestyleObjects();
+  setActiveFreestyleObject(object.id, false);
+  saveSettings();
+}
+
+function renderFreestyleSigns(object, signsEl) {
+  // Reuse the normal sign renderers inside freeform paper objects.
+  signsEl.innerHTML = "";
+  normalizesigns(object.signs || []).forEach((id) => {
+    const sign = getsign(id);
+    if (sign) {
+      signsEl.append(createsignMark(sign));
+    }
+  });
+  parsecustomSigns(object.customSigns || "").forEach((symbol) => {
+    signsEl.append(createCustomSignMark(symbol));
+  });
+  signsEl.classList.toggle("is-hidden", !signsEl.children.length);
+}
+
+function createFreestyleObjectElement(object) {
+  // Build one editable rectangle that can be typed into and transformed from its corner handle.
+  const objectEl = document.createElement("div");
+  const handle = document.createElement("button");
+  const imageEl = document.createElement("img");
+  const signsEl = document.createElement("div");
+  const textEl = document.createElement("div");
+  objectEl.className = `freestyle-object${object.id === state.activeFreestyleObjectId ? " is-active" : ""}`;
+  objectEl.dataset.id = object.id;
+  handle.type = "button";
+  handle.className = "freestyle-handle";
+  handle.textContent = getFreestyleToolLabel(object.tool);
+  handle.setAttribute("aria-label", t("aria.freestyleHandle"));
+  imageEl.className = "freestyle-image";
+  imageEl.src = object.imageSrc || "";
+  imageEl.alt = object.imageName || "";
+  imageEl.draggable = false;
+  signsEl.className = "freestyle-signs";
+  textEl.className = "freestyle-text";
+  textEl.contentEditable = "true";
+  textEl.spellcheck = false;
+  textEl.textContent = object.text || "";
+  textEl.addEventListener("input", () => {
+    // Persist typed multiline text without redrawing and losing the caret.
+    object.text = textEl.innerText.replace(/\n$/, "");
+    saveSettings();
+  });
+  textEl.addEventListener("focus", () => setActiveFreestyleObject(object.id));
+  handle.addEventListener("click", (event) => {
+    // Keep button clicks from entering text editing; handle taps are processed on pointerup.
+    event.preventDefault();
+    event.stopPropagation();
+  });
+  renderFreestyleSigns(object, signsEl);
+  if (object.imageSrc) {
+    objectEl.classList.add("has-image");
+    objectEl.append(imageEl);
+  }
+  objectEl.append(handle, signsEl, textEl);
+  applyFreestyleObjectStyle(objectEl, object);
+  syncFreestyleObjectElement(object);
+  return objectEl;
+}
+
+function renderFreestyleObjects() {
+  // Draw all freeform objects over the paper while preserving their overlap order.
+  el.paper.querySelectorAll(".freestyle-object").forEach((objectEl) => objectEl.remove());
+  state.freestyleObjects.forEach((object) => {
+    el.paper.append(createFreestyleObjectElement(object));
+    syncFreestyleObjectElement(object);
+  });
+  setActiveFreestyleObject(state.activeFreestyleObjectId, false);
+}
+
+function insertFreestyleContent({ text = "", signs = [], customSigns = [] }) {
+  // Add catalog, Unicode, emoji, and sign content to the active freeform rectangle.
+  el.sheetFillMode.value = "freestyle";
+  const object = ensureActiveFreestyleObject();
+  const nextText = String(text || "").trim();
+  if (nextText) {
+    object.text = [object.text, nextText].filter((value) => String(value || "").trim()).join("\n");
+  }
+  object.signs = [...new Set([...(object.signs || []), ...normalizeMixedLabelSigns(signs)])];
+  object.customSigns = [...new Set([...parsecustomSigns(object.customSigns || ""), ...parsecustomSigns(customSigns || "")])];
+  object.style = object.style || getCurrentFreestyleStyle();
+  state.activeFreestyleObjectId = object.id;
+}
+
+function insertCatalogItemIntoFreestyleObject(item) {
+  // Convert a catalog item into editable freestyle text plus any associated signs.
+  const textParts = [item.title, item.code].filter(Boolean);
+  insertFreestyleContent({
+    text: textParts.join("\n"),
+    signs: item.signs || [],
+    customSigns: item.customSigns || "",
+  });
+}
+
+function isPointerOverFreestyleTrash(event) {
+  // Check whether a moved object was released over the floating delete target.
+  if (!el.freestyleTrash || el.freestyleTrash.classList.contains("is-hidden")) {
+    return false;
+  }
+  const rect = el.freestyleTrash.getBoundingClientRect();
+  return event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+}
+
+function updateFreestyleTrashState(event) {
+  // Highlight the delete target only while a movable object is hovering above it.
+  el.freestyleTrash.classList.toggle("is-hot", Boolean(event && isPointerOverFreestyleTrash(event)));
+}
+
+function startFreestyleDraw(event) {
+  // Draw a new freeform rectangle directly on blank paper in freestyle mode.
+  if (normalizeSheetFillMode(el.sheetFillMode.value) !== "freestyle" || event.button !== 0 || event.target !== el.paper) {
+    return;
+  }
+
+  const point = getPaperPointerPoint(event);
+  const object = {
+    ...getFreestyleDefaultObject(),
+    id: `freestyle-${Date.now()}`,
+    x: point.x,
+    y: point.y,
+    width: FREESTYLE_MIN_SIZE_PERCENT,
+    height: FREESTYLE_MIN_SIZE_PERCENT,
+    keepEmpty: true,
+  };
+  state.freestyleObjects.push(object);
+  state.activeFreestyleObjectId = object.id;
+  state.freestylePointer = {
+    action: "draw",
+    pointerId: event.pointerId,
+    id: object.id,
+    startX: point.x,
+    startY: point.y,
+  };
+  el.paper.setPointerCapture(event.pointerId);
+  renderFreestyleObjects();
+  setActiveFreestyleObject(object.id, true);
+  event.preventDefault();
+}
+
+function startFreestyleObjectPointer(event) {
+  // Start moving, resizing, or rotating an existing rectangle from its active handle mode.
+  if (normalizeSheetFillMode(el.sheetFillMode.value) !== "freestyle" || event.button !== 0) {
+    return;
+  }
+
+  const objectEl = event.target.closest(".freestyle-object");
+  if (!objectEl) {
+    return;
+  }
+
+  const object = getFreestyleObject(objectEl.dataset.id);
+  if (!object) {
+    return;
+  }
+
+  const isHandle = Boolean(event.target.closest(".freestyle-handle"));
+  setActiveFreestyleObject(object.id, !isHandle);
+  if (!isHandle && normalizeFreestyleTool(object.tool) !== "move") {
+    return;
+  }
+
+  const point = getPaperPointerPoint(event);
+  state.freestyleHandleMoved = false;
+  state.freestylePointer = {
+    action: isHandle ? normalizeFreestyleTool(object.tool) : "move",
+    fromHandle: isHandle,
+    pointerId: event.pointerId,
+    id: object.id,
+    startX: point.x,
+    startY: point.y,
+    objectX: object.x,
+    objectY: object.y,
+    objectWidth: object.width,
+    objectHeight: object.height,
+    objectRotation: object.rotation,
+  };
+  el.paper.setPointerCapture(event.pointerId);
+  event.preventDefault();
+}
+
+function moveFreestylePointer(event) {
+  // Update live freestyle geometry while dragging without rebuilding the whole sheet.
+  const pointer = state.freestylePointer;
+  if (!pointer || pointer.pointerId !== event.pointerId) {
+    return;
+  }
+
+  const object = getFreestyleObject(pointer.id);
+  if (!object) {
+    return;
+  }
+
+  const point = getPaperPointerPoint(event);
+  const deltaX = point.x - pointer.startX;
+  const deltaY = point.y - pointer.startY;
+  if (Math.abs(deltaX) > 0.3 || Math.abs(deltaY) > 0.3) {
+    state.freestyleHandleMoved = true;
+  }
+
+  if (pointer.action === "draw") {
+    object.x = Math.min(pointer.startX, point.x);
+    object.y = Math.min(pointer.startY, point.y);
+    object.width = Math.max(FREESTYLE_MIN_SIZE_PERCENT, Math.abs(deltaX));
+    object.height = Math.max(FREESTYLE_MIN_SIZE_PERCENT, Math.abs(deltaY));
+  } else if (pointer.action === "resize") {
+    object.width = Math.max(FREESTYLE_MIN_SIZE_PERCENT, pointer.objectWidth + deltaX);
+    object.height = Math.max(FREESTYLE_MIN_SIZE_PERCENT, pointer.objectHeight + deltaY);
+  } else if (pointer.action === "move") {
+    object.x = pointer.objectX + deltaX;
+    object.y = pointer.objectY + deltaY;
+    updateFreestyleTrashState(event);
+  } else if (pointer.action === "rotate") {
+    const rect = el.paper.querySelector(getFreestyleObjectSelector(object.id))?.getBoundingClientRect();
+    if (rect) {
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      object.rotation = Math.round((Math.atan2(event.clientY - centerY, event.clientX - centerX) * 180) / Math.PI + 90);
+    }
+  }
+
+  syncFreestyleObjectElement(object);
+  event.preventDefault();
+}
+
+function stopFreestylePointer(event) {
+  // Finish the drag operation, delete if dropped on the bin, then persist the sheet.
+  const pointer = state.freestylePointer;
+  if (!pointer || pointer.pointerId !== event.pointerId) {
+    return;
+  }
+
+  if (pointer.action === "move" && isPointerOverFreestyleTrash(event)) {
+    state.freestyleObjects = state.freestyleObjects.filter((object) => object.id !== pointer.id);
+    state.activeFreestyleObjectId = "";
+    renderFreestyleObjects();
+  } else if (pointer.fromHandle && !state.freestyleHandleMoved) {
+    const object = getFreestyleObject(pointer.id);
+    if (object) {
+      cycleFreestyleTool(object);
+    }
+  } else {
+    const object = getFreestyleObject(pointer.id);
+    if (object) {
+      delete object.keepEmpty;
+      setActiveFreestyleObject(object.id, pointer.action === "draw");
+    }
+  }
+
+  if (el.paper.hasPointerCapture(event.pointerId)) {
+    el.paper.releasePointerCapture(event.pointerId);
+  }
+  state.freestylePointer = null;
+  updateFreestyleTrashState(null);
+  saveSettings();
+  event.preventDefault();
+}
+
+function getSheetQueueExpandedItems() {
+  // Expand queue quantities into the concrete label cells to print.
+  return state.sheetQueue.flatMap((entry) =>
+    Array.from({ length: Math.max(1, Number.parseInt(entry.quantity, 10) || 1) }, () => ({
+      ...entry,
+      customSigns: [...parsecustomSigns(entry.customSigns || "")],
+      signs: normalizesigns(entry.signs || []),
+    })),
+  );
+}
+
+function getSequenceSheetItems(limit) {
+  // Generate temporary text labels such as 1-15 or Fuse 01-Fuse 15 without saving catalog items.
+  const start = Number.parseInt(el.sequenceStart.value, 10) || 1;
+  const end = Number.parseInt(el.sequenceEnd.value, 10) || start;
+  const rawStep = Number.parseInt(el.sequenceStep.value, 10) || 1;
+  const step = rawStep === 0 ? 1 : Math.abs(rawStep);
+  const direction = start <= end ? 1 : -1;
+  const pad = Math.max(0, Number.parseInt(el.sequencePad.value, 10) || 0);
+  const prefix = el.sequencePrefix.value || "";
+  const suffix = el.sequenceSuffix.value || "";
+  const items = [];
+
+  for (let value = start; direction > 0 ? value <= end : value >= end; value += step * direction) {
+    const numberText = String(Math.abs(value)).padStart(pad, "0");
+    const signedNumberText = value < 0 ? `-${numberText}` : numberText;
+    const title = `${prefix}${signedNumberText}${suffix}`;
+    items.push({
+      id: `sequence-${value}`,
+      title,
+      code: "",
+      codeType: "code128",
+      labelMode: "text",
+      signs: [],
+      customSigns: [],
+      signalWord: "",
+      color: normalizeColor(el.newColor.value),
+      category: "",
+      presetId: "",
+      textAbove: "",
+      textBelow: "",
+    });
+    if (items.length >= limit) {
+      break;
+    }
+  }
+
+  return items;
+}
+
+function getSheetCellItem(index, totalCells) {
+  // Return the item that belongs in one sheet cell for the selected fill mode.
+  const mode = normalizeSheetFillMode(el.sheetFillMode.value);
+  if (mode === "freestyle") {
+    return null;
+  }
+  if (mode === "sequence") {
+    return getSequenceSheetItems(totalCells)[index] || null;
+  }
+  if (mode === "queue") {
+    return getSheetQueueExpandedItems()[index] || null;
+  }
+  return state.selectedItem;
+}
+
+function getSheetMetaTitle(totalCells) {
+  // Summarize the sheet fill mode in the preview toolbar.
+  const mode = normalizeSheetFillMode(el.sheetFillMode.value);
+  if (mode === "sequence") {
+    const items = getSequenceSheetItems(totalCells);
+    return items.length ? `${items[0].title} - ${items[items.length - 1].title}` : t("status.noItemSelected");
+  }
+  if (mode === "queue") {
+    const count = getSheetQueueExpandedItems().length;
+    return count ? t("status.sheetQueueMeta", { count }) : t("status.noItemSelected");
+  }
+  if (mode === "freestyle") {
+    return t("status.freestyleMeta", { count: state.freestyleObjects.length });
+  }
+  return state.selectedItem?.title || t("status.noItemSelected");
+}
+
+function getSheetQueueDisplayTitle(entry) {
+  // Show a queue row label without adding fallback text to the printed label itself.
+  const customSigns = parsecustomSigns(entry.customSigns || "");
+  const imageSigns = normalizesigns(entry.signs || [])
+    .map((id) => getsign(id)?.name)
+    .filter(Boolean);
+  return entry.title || [...customSigns, ...imageSigns].join(" ") || entry.code || t("option.labelModeSign");
+}
+
+function hasLockedSheetLayoutMismatch(entry) {
+  // Warn when a locked row was captured with a different sheet grid or paper geometry.
+  const locked = normalizeLockedSheetSettings(entry.lockedSettings);
+  if (!entry.locked || !locked) {
+    return false;
+  }
+
+  const current = collectSheetLockSettings();
+  const layoutKeys = [
+    "paperSize",
+    "paperOrientation",
+    "paperWidth",
+    "paperHeight",
+    "gridPreset",
+    "columns",
+    "rows",
+    "marginLeft",
+    "marginRight",
+    "marginTop",
+    "marginBottom",
+    "gapX",
+    "gapY",
+  ];
+  return layoutKeys.some((key) => String(locked[key] ?? "") !== String(current[key] ?? ""));
+}
+
+function renderSheetQueueList() {
+  // Draw the manual queue rows and per-row quantity/remove controls.
+  el.sheetQueueList.innerHTML = "";
+  if (!state.sheetQueue.length) {
+    const empty = document.createElement("p");
+    empty.className = "sheet-queue-empty";
+    empty.textContent = t("status.emptySheetQueue");
+    el.sheetQueueList.append(empty);
+    return;
+  }
+
+  state.sheetQueue.forEach((entry, index) => {
+    const row = document.createElement("div");
+    const text = document.createElement("div");
+    const title = document.createElement("span");
+    const warning = document.createElement("span");
+    const quantity = document.createElement("input");
+    const lock = document.createElement("button");
+    const remove = document.createElement("button");
+    row.className = "sheet-queue-row";
+    text.className = "sheet-queue-text";
+    title.className = "sheet-queue-title";
+    title.textContent = getSheetQueueDisplayTitle(entry);
+    warning.className = "sheet-queue-warning";
+    warning.textContent = hasLockedSheetLayoutMismatch(entry) ? t("status.sheetQueueLayoutMismatch") : "";
+    quantity.type = "number";
+    quantity.min = "1";
+    quantity.step = "1";
+    quantity.value = String(entry.quantity || 1);
+    quantity.setAttribute("aria-label", t("label.queueQuantity"));
+    quantity.addEventListener("input", () => {
+      // Update queue row count and immediately refresh the sheet.
+      entry.quantity = Math.max(1, Number.parseInt(quantity.value, 10) || 1);
+      saveSettings();
+      renderLabels();
+    });
+    lock.type = "button";
+    lock.className = `secondary-button compact-button${entry.locked ? " is-active" : ""}`;
+    lock.textContent = entry.locked ? "🔒" : "🔓";
+    lock.setAttribute("aria-label", entry.locked ? t("action.unlockQueueItem") : t("action.lockQueueItem"));
+    lock.addEventListener("click", () => {
+      // Toggle whether this queued label keeps its own captured style while the sheet controls change.
+      entry.locked = !entry.locked;
+      entry.lockedSettings = entry.locked ? collectSheetLockSettings() : null;
+      renderSheetQueueList();
+      renderLabels();
+    });
+    remove.type = "button";
+    remove.className = "secondary-button compact-button";
+    remove.textContent = "×";
+    remove.setAttribute("aria-label", t("action.removeQueueItem"));
+    remove.addEventListener("click", () => {
+      // Remove this queued label from the temporary sheet composition.
+      state.sheetQueue.splice(index, 1);
+      renderSheetQueueList();
+      renderLabels();
+    });
+    text.append(title);
+    if (warning.textContent) {
+      text.append(warning);
+    }
+    row.append(text, quantity, lock, remove);
+    el.sheetQueueList.append(row);
+  });
+}
+
+function renderSheetFillControls() {
+  // Show only the controls needed for the active sheet fill mode.
+  const mode = normalizeSheetFillMode(el.sheetFillMode.value);
+  const showMixedTools = mode === "queue" || mode === "freestyle";
+  el.sequenceSheetControls.classList.toggle("is-hidden", mode !== "sequence");
+  el.queueSheetControls.classList.toggle("is-hidden", !showMixedTools);
+  el.clearQueueButton.classList.toggle("is-hidden", !showMixedTools);
+  el.clearQueueButton.textContent = mode === "freestyle" ? t("action.clearFreestyle") : t("action.clearQueue");
+  el.selectFreestyleImageButton.classList.toggle("is-hidden", mode !== "freestyle");
+  el.sheetQueueList.classList.toggle("is-hidden", mode !== "queue");
+  el.paperWrap.classList.toggle("is-freestyle-mode", mode === "freestyle");
+  el.freestyleTrash.classList.toggle("is-hidden", mode !== "freestyle");
+  renderSheetQueueList();
+  updateCatalogMeta();
+}
+
+function addSelectedItemToSheetQueue() {
+  // Queue a copy of the current catalog item so a mixed sheet can include it once or many times.
+  if (!state.selectedItem) {
+    alert(t("alert.selectItemForQueue"));
+    return;
+  }
+  if (normalizeSheetFillMode(el.sheetFillMode.value) === "freestyle") {
+    insertCatalogItemIntoFreestyleObject(state.selectedItem);
+    renderLabels();
+    return;
+  }
+
+  state.sheetQueue.push(
+    normalizeSheetQueue([
+      {
+        ...state.selectedItem,
+        id: `sheet-${getItemKey(state.selectedItem)}-${Date.now()}`,
+        locked: false,
+        lockedSettings: null,
+        quantity: 1,
+      },
+    ])[0],
+  );
+  el.sheetFillMode.value = "queue";
+  renderSheetFillControls();
+  renderLabels();
+}
+
+async function insertFreestyleImageFile(file, point = null) {
+  // Add one selected or dropped image as its own movable freestyle object.
+  if (normalizeSheetFillMode(el.sheetFillMode.value) !== "freestyle") {
+    return;
+  }
+  if (!isAllowedFreestyleImageFile(file)) {
+    alert(t("alert.unsupportedFreestyleImage"));
+    return;
+  }
+
+  const imageSrc = await readFreestyleImageFile(file);
+  const object = {
+    ...getFreestyleDefaultObject(),
+    id: `freestyle-image-${Date.now()}`,
+    x: point ? point.x : 8,
+    y: point ? point.y : 8,
+    width: point ? 28 : FREESTYLE_DEFAULT_WIDTH_PERCENT,
+    height: point ? 20 : Math.max(FREESTYLE_DEFAULT_HEIGHT_PERCENT, 18),
+    text: "",
+    imageSrc,
+    imageName: file.name || "",
+  };
+  state.freestyleObjects.push(object);
+  state.activeFreestyleObjectId = object.id;
+  renderLabels();
+}
+
+async function insertFreestyleImageFiles(files, point = null) {
+  // Import every allowed dropped or selected image, offsetting additional files slightly.
+  for (const [index, file] of [...files].entries()) {
+    const offsetPoint = point ? { x: point.x + index * 2, y: point.y + index * 2 } : null;
+    await insertFreestyleImageFile(file, offsetPoint);
+  }
+}
+
+function addCustomItemToSheetQueue() {
+  // Queue a one-off text or sign label without creating a catalog item.
+  const title = el.queueCustomTitle.value.trim();
+  const signs = getSelectedsigns(el.mixsignGrid);
+  const customSigns = parsecustomSigns(el.queueCustomSigns.value);
+  const labelMode = signs.length || customSigns.length ? "sign" : "text";
+  if (!title && !customSigns.length && !signs.length) {
+    alert(t("alert.queueCustomLabel"));
+    return;
+  }
+  if (normalizeSheetFillMode(el.sheetFillMode.value) === "freestyle") {
+    insertFreestyleContent({ text: title, signs, customSigns });
+    el.queueCustomTitle.value = "";
+    el.queueCustomSigns.value = "";
+    el.mixSignSearch.value = "";
+    rendersignPicker(el.mixsignGrid, []);
+    renderSheetFillControls();
+    renderLabels();
+    return;
+  }
+
+  state.sheetQueue.push(
+    normalizeSheetQueue([
+      {
+        id: `sheet-custom-${Date.now()}`,
+        title,
+        code: "",
+        codeType: "code128",
+        labelMode,
+        signs,
+        customSigns,
+        signalWord: "",
+        color: normalizeColor(el.newColor.value),
+        textAbove: "",
+        textBelow: "",
+        locked: false,
+        lockedSettings: null,
+        quantity: 1,
+      },
+    ])[0],
+  );
+  el.sheetFillMode.value = "queue";
+  el.queueCustomTitle.value = "";
+  el.queueCustomSigns.value = "";
+  el.mixSignSearch.value = "";
+  rendersignPicker(el.mixsignGrid, []);
+  renderSheetFillControls();
+  renderLabels();
+}
+
+function clearSheetQueue() {
+  // Empty the active temporary sheet composition after a confirmation prompt.
+  if (normalizeSheetFillMode(el.sheetFillMode.value) === "freestyle") {
+    if (state.freestyleObjects.length && !window.confirm(t("confirm.clearFreestyle"))) {
+      return;
+    }
+
+    state.freestyleObjects = [];
+    state.activeFreestyleObjectId = "";
+    renderSheetFillControls();
+    renderLabels();
+    return;
+  }
+
+  if (state.sheetQueue.length && !window.confirm(t("confirm.clearMixedLabels"))) {
+    return;
+  }
+
+  state.sheetQueue = [];
+  renderSheetFillControls();
+  renderLabels();
+}
+
 function getSignSearchInput(container) {
   // Pair each sign picker with its local dictionary search field.
-  return container === el.newsignGrid ? el.newSignSearch : el.editSignSearch;
+  if (container === el.newsignGrid) {
+    return el.newSignSearch;
+  }
+  if (container === el.mixsignGrid) {
+    return el.mixSignSearch;
+  }
+  return el.editSignSearch;
 }
 
 function signMatchesQuery(sign, query) {
@@ -2118,7 +3901,7 @@ function signMatchesQuery(sign, query) {
 
 function getDefaultSignPickerSigns(allSigns, container) {
   // Use the full dictionary for lazy scrolling while pinning GHS pictograms near the new label grid start.
-  if (container !== el.newsignGrid) {
+  if (![el.newsignGrid, el.mixsignGrid].includes(container)) {
     return allSigns;
   }
 
@@ -2349,50 +4132,190 @@ function closeItemEditModal() {
   el.editCodeButton.focus();
 }
 
-function renderCategoryItemChecklist(categoryName) {
-  // Show every catalog item with membership checkboxes for the selected category.
-  el.categoryItemList.innerHTML = "";
-  state.catalog.items
+function populateCategoryPresetSelect() {
+  // Build the category bulk-preset dropdown from saved presets.
+  const currentValue = el.categoryPresetSelect.value;
+  el.categoryPresetSelect.innerHTML = "";
+  const emptyOption = document.createElement("option");
+  emptyOption.value = "";
+  emptyOption.textContent = t("option.noPreset");
+  el.categoryPresetSelect.append(emptyOption);
+  state.presets
     .slice()
-    .sort((a, b) => a.title.localeCompare(b.title))
-    .forEach((item) => {
-      const row = document.createElement("label");
-      const text = document.createElement("span");
-      const title = document.createElement("span");
-      const meta = document.createElement("span");
-      const code = document.createElement("span");
-      const tag = document.createElement("span");
-      const checkbox = document.createElement("input");
-      const itemCategory = normalizeCategoryName(item.category);
-      const category = getCategory(itemCategory);
-      row.className = "category-item-row";
-      text.className = "category-item-text";
-      title.textContent = item.title;
-      meta.className = "category-item-meta";
-      code.className = "category-item-code";
-      code.textContent = normalizeLabelMode(item.labelMode, item) === "sign" ? t("option.labelModeSign") : item.code || t("status.textOnly");
-      tag.className = "category-item-tag";
-      tag.textContent = itemCategory || t("status.uncategorized");
-      tag.style.setProperty("--tag-color", normalizeCategoryColor(category?.color));
-      checkbox.type = "checkbox";
-      checkbox.dataset.itemKey = getItemKey(item);
-      checkbox.checked = itemCategory === categoryName;
-      meta.append(code, tag);
-      text.append(title, meta);
-      row.append(text, checkbox);
-      el.categoryItemList.append(row);
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .forEach((preset) => {
+      const option = document.createElement("option");
+      option.value = preset.id;
+      option.textContent = preset.name;
+      el.categoryPresetSelect.append(option);
     });
+  el.categoryPresetSelect.value = state.presets.some((preset) => preset.id === currentValue) ? currentValue : "";
+}
+
+function getCategoryItemPreset(item) {
+  // Resolve an item's saved preset so rows can show whether styling is already assigned.
+  return state.presets.find((preset) => preset.id === item.presetId) || null;
+}
+
+function getCategoryItemModeLabel(item) {
+  // Convert each item's mode into the same user-facing labels used elsewhere in the UI.
+  const mode = normalizeLabelMode(item.labelMode, item);
+  if (mode === "sign") {
+    return t("option.labelModeSign");
+  }
+  if (mode === "text") {
+    return t("option.labelModeText");
+  }
+  return t("option.labelModeCode");
+}
+
+function categoryItemMatchesPresetFilter(item) {
+  // Keep bulk editing focused by filtering on preset assignment or label type.
+  const filter = state.categoryPresetFilter;
+  const mode = normalizeLabelMode(item.labelMode, item);
+  if (filter === "no-preset") {
+    return !getCategoryItemPreset(item);
+  }
+  if (filter === "has-preset") {
+    return Boolean(getCategoryItemPreset(item));
+  }
+  if (["code", "text", "sign"].includes(filter)) {
+    return mode === filter;
+  }
+  return true;
+}
+
+function syncCategoryPresetFilters() {
+  // Mark the active filter button after rendering or when the user changes filters.
+  el.categoryPresetFilters.querySelectorAll("[data-filter]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.filter === state.categoryPresetFilter);
+  });
+}
+
+function getCheckedCategoryItems() {
+  // Read the category editor's checked item keys and map them back to catalog items.
+  const itemByKey = new Map(state.catalog.items.map((item) => [getItemKey(item), item]));
+  return [...state.categoryEditCheckedKeys]
+    .map((itemKey) => itemByKey.get(itemKey))
+    .filter(Boolean);
+}
+
+function setVisibleCategoryItemSelection(checked) {
+  // Toggle every currently visible category row checkbox and preserve the pending category assignment.
+  el.categoryItemList.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
+    checkbox.checked = checked;
+    if (checked) {
+      state.categoryEditCheckedKeys.add(checkbox.dataset.itemKey);
+    } else {
+      state.categoryEditCheckedKeys.delete(checkbox.dataset.itemKey);
+    }
+  });
+}
+
+function appendCategorySelectionToolbar() {
+  // Keep select and clear controls pinned inside the scrollable category item list.
+  const toolbar = document.createElement("div");
+  const selectAllButton = document.createElement("button");
+  const clearAllButton = document.createElement("button");
+  toolbar.className = "category-item-toolbar";
+  selectAllButton.className = "secondary-button";
+  selectAllButton.type = "button";
+  selectAllButton.dataset.categorySelect = "all";
+  selectAllButton.textContent = t("action.selectVisible");
+  clearAllButton.className = "secondary-button";
+  clearAllButton.type = "button";
+  clearAllButton.dataset.categorySelect = "none";
+  clearAllButton.textContent = t("action.clearSelection");
+  toolbar.append(selectAllButton, clearAllButton);
+  el.categoryItemList.append(toolbar);
+}
+
+function refreshCategoryBulkPresetView() {
+  // Re-render the open category modal after preset changes or filter changes.
+  if (state.selectedCategory) {
+    populateCategoryPresetSelect();
+    renderCategoryItemChecklist(state.selectedCategory.name);
+  }
+}
+
+function renderCategoryItemChecklist(categoryName) {
+  // Show catalog items with checkboxes that assign membership to the edited category.
+  el.categoryItemList.innerHTML = "";
+  syncCategoryPresetFilters();
+  appendCategorySelectionToolbar();
+  const items = state.catalog.items
+    .slice()
+    .filter(categoryItemMatchesPresetFilter)
+    .sort((a, b) => a.title.localeCompare(b.title));
+  if (!items.length) {
+    const empty = document.createElement("p");
+    empty.className = "category-item-empty";
+    empty.textContent = t("status.noCategoryItems");
+    el.categoryItemList.append(empty);
+    return;
+  }
+
+  items.forEach((item) => {
+    const itemKey = getItemKey(item);
+    const itemCategoryName = normalizeCategoryName(item.category);
+    const itemCategory = getCategory(itemCategoryName);
+    const row = document.createElement("label");
+    const text = document.createElement("span");
+    const title = document.createElement("span");
+    const meta = document.createElement("span");
+    const code = document.createElement("span");
+    const mode = document.createElement("span");
+    const categoryTag = document.createElement("span");
+    const presetTag = document.createElement("span");
+    const checkbox = document.createElement("input");
+    const itemPreset = getCategoryItemPreset(item);
+    row.className = "category-item-row";
+    text.className = "category-item-text";
+    title.textContent = item.title;
+    meta.className = "category-item-meta";
+    code.className = "category-item-code";
+    code.textContent = normalizeLabelMode(item.labelMode, item) === "sign" ? t("option.labelModeSign") : item.code || t("status.textOnly");
+    mode.className = "category-item-tag";
+    mode.textContent = getCategoryItemModeLabel(item);
+    mode.style.setProperty("--tag-color", normalizeCategoryColor(state.selectedCategory?.color));
+    categoryTag.className = "category-item-tag";
+    categoryTag.textContent = itemCategoryName || t("status.uncategorized");
+    categoryTag.style.setProperty("--tag-color", normalizeCategoryColor(itemCategory?.color || state.selectedCategory?.color));
+    presetTag.className = `category-preset-badge${itemPreset ? "" : " is-empty"}`;
+    presetTag.textContent = itemPreset ? itemPreset.name : t("status.noPresetAssigned");
+    checkbox.type = "checkbox";
+    checkbox.checked = state.categoryEditCheckedKeys.has(itemKey);
+    checkbox.dataset.itemKey = itemKey;
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) {
+        state.categoryEditCheckedKeys.add(itemKey);
+      } else {
+        state.categoryEditCheckedKeys.delete(itemKey);
+      }
+    });
+    meta.append(code, mode, categoryTag, presetTag);
+    text.append(title, meta);
+    row.append(checkbox, text);
+    el.categoryItemList.append(row);
+  });
 }
 
 function openCategoryEditModal() {
-  // Fill the category editor with name, color, and item membership checkboxes.
+  // Fill the category editor with category details and the bulk preset workspace.
   if (!state.selectedCategory) {
     return;
   }
 
   el.categoryModalError.textContent = "";
+  state.categoryPresetFilter = "all";
+  state.categoryEditCheckedKeys = new Set(
+    state.catalog.items
+      .filter((item) => categoriesMatch(item.category, state.selectedCategory.name))
+      .map(getItemKey)
+  );
   el.categoryNameInput.value = state.selectedCategory.name;
   el.categoryColorInput.value = normalizeCategoryColor(state.selectedCategory.color);
+  populateCategoryPresetSelect();
   renderCategoryItemChecklist(state.selectedCategory.name);
   el.categoryEditModal.classList.add("is-open");
   el.categoryEditModal.setAttribute("aria-hidden", "false");
@@ -2405,11 +4328,12 @@ function closeCategoryEditModal() {
   el.categoryEditModal.classList.remove("is-open");
   el.categoryEditModal.setAttribute("aria-hidden", "true");
   el.categoryModalError.textContent = "";
+  state.categoryEditCheckedKeys = new Set();
   el.editCodeButton.focus();
 }
 
 function saveCategoryEditFromModal() {
-  // Persist category rename, color, and checkbox membership changes.
+  // Persist category details and apply the checked catalog item membership.
   if (!state.selectedCategory) {
     closeCategoryEditModal();
     return;
@@ -2424,33 +4348,24 @@ function saveCategoryEditFromModal() {
   }
 
   const oldColor = normalizeCategoryColor(state.selectedCategory.color);
-  const checkedCodes = new Set(
-    [...el.categoryItemList.querySelectorAll("input[type='checkbox']:checked")].map((checkbox) => checkbox.dataset.itemKey),
-  );
-  const movedItems = state.catalog.items.filter((item) => {
-    // Detect checked items that would be moved from another existing category into this category.
+  const checkedKeys = new Set(state.categoryEditCheckedKeys);
+  const shouldAbortMove = state.catalog.items.some((item) => {
+    const itemKey = getItemKey(item);
     const currentCategory = normalizeCategoryName(item.category);
-    return checkedCodes.has(getItemKey(item)) && currentCategory && !categoriesMatch(currentCategory, oldName) && !categoriesMatch(currentCategory, nextName);
+    if (!checkedKeys.has(itemKey) || !currentCategory || categoriesMatch(currentCategory, oldName) || categoriesMatch(currentCategory, nextName)) {
+      return false;
+    }
+    return !window.confirm(t("confirm.moveItemCategory", { title: item.title, category: currentCategory, nextCategory: nextName }));
   });
-  const canMoveItems = movedItems.every((item) =>
-    window.confirm(
-      t("confirm.moveItemCategory", {
-        title: item.title,
-        category: normalizeCategoryName(item.category),
-        nextCategory: nextName,
-      }),
-    ),
-  );
-  if (!canMoveItems) {
+  if (shouldAbortMove) {
     return;
   }
 
   state.catalog.items.forEach((item) => {
-    if (checkedCodes.has(getItemKey(item))) {
+    const itemKey = getItemKey(item);
+    if (checkedKeys.has(itemKey)) {
       item.category = nextName;
-      return;
-    }
-    if (normalizeCategoryName(item.category) === oldName) {
+    } else if (categoriesMatch(item.category, oldName)) {
       item.category = "";
     }
   });
@@ -2477,6 +4392,56 @@ function saveCategoryEditFromModal() {
   scrollSelectedCatalogOptionIntoView();
   renderLabels();
   closeCategoryEditModal();
+}
+
+function applyPresetToSelectedCategoryItems() {
+  // Assign one saved preset only to checked rows in the category editor.
+  const preset = state.presets.find((savedPreset) => savedPreset.id === el.categoryPresetSelect.value) || null;
+  const items = getCheckedCategoryItems();
+  if (!preset) {
+    el.categoryModalError.textContent = t("alert.selectPreset");
+    return;
+  }
+  if (!items.length) {
+    el.categoryModalError.textContent = t("alert.selectCategoryItems");
+    return;
+  }
+  if (!window.confirm(t("confirm.applyPresetToItems", { preset: preset.name, count: items.length }))) {
+    return;
+  }
+
+  items.forEach((item) => {
+    item.presetId = preset.id;
+    item.settings = getItemPresetSettings(preset.settings);
+  });
+  el.categoryModalError.textContent = "";
+  saveCatalog();
+  refreshCategoryBulkPresetView();
+  renderSearchOptions();
+  renderSelectedItem();
+  renderLabels();
+}
+
+function clearPresetFromSelectedCategoryItems() {
+  // Clear saved preset links only from checked rows in the category editor.
+  const items = getCheckedCategoryItems();
+  if (!items.length) {
+    el.categoryModalError.textContent = t("alert.selectCategoryItems");
+    return;
+  }
+  if (!window.confirm(t("confirm.clearPresetFromItems", { count: items.length }))) {
+    return;
+  }
+
+  items.forEach((item) => {
+    item.presetId = "";
+  });
+  el.categoryModalError.textContent = "";
+  saveCatalog();
+  refreshCategoryBulkPresetView();
+  renderSearchOptions();
+  renderSelectedItem();
+  renderLabels();
 }
 
 function saveItemEditFromModal() {
@@ -3082,7 +5047,7 @@ function createQrSvg(value) {
 
 function getCodePayload(item) {
   // Choose the value printed and encoded for the currently selected symbol type.
-  const codeType = normalizeCodeType(el.codeType.value || item.codeType);
+  const codeType = normalizeCodeType(item === state.selectedItem ? el.codeType.value || item.codeType : item.codeType || el.codeType.value);
   const rawCode = normalizeCodeForType(item.code || "", codeType);
 
   switch (codeType) {
@@ -3128,13 +5093,91 @@ function getCodePayload(item) {
   }
 }
 
+function getLabelSetting(settings, key, fallback) {
+  // Read a locked queue style value while falling back to the live controls for unlocked labels.
+  return settings && settings[key] !== undefined ? settings[key] : fallback;
+}
+
+function getLabelBoolean(settings, key, fallback) {
+  // Normalize stored checkbox values before rendering a locked queue label.
+  return Boolean(getLabelSetting(settings, key, fallback));
+}
+
+function applyLockedLabelStyles(label, settings) {
+  // Apply captured style variables to one locked queue label instead of the whole sheet.
+  if (!settings) {
+    return;
+  }
+
+  const mmVariables = {
+    titleSize: "--title-size",
+    codeTextSize: "--code-text-size",
+    textAboveSize: "--text-above-size",
+    textBelowSize: "--text-below-size",
+    codePaddingLeft: "--code-padding-left",
+    codePaddingRight: "--code-padding-right",
+    codePaddingTop: "--code-padding-top",
+    codePaddingBottom: "--code-padding-bottom",
+    barcodeMaxHeight: "--barcode-max-height",
+    qrMaxSize: "--qr-max-size",
+    signMaxSize: "--sign-max-size",
+    signPaddingLeft: "--sign-padding-left",
+    signPaddingRight: "--sign-padding-right",
+    signPaddingTop: "--sign-padding-top",
+    signPaddingBottom: "--sign-padding-bottom",
+  };
+  Object.entries(mmVariables).forEach(([key, variable]) => {
+    if (settings[key] !== undefined) {
+      label.style.setProperty(variable, `${Number(settings[key]) || 0}mm`);
+    }
+  });
+
+  if (settings.labelFont) {
+    label.style.setProperty("--label-font", settings.labelFont);
+  }
+  if (settings.textAlign) {
+    const textAlign = normalizeTextAlign(settings.textAlign);
+    label.style.setProperty("--text-align", textAlign);
+    label.style.setProperty("--text-justify", getTextJustify(textAlign));
+  }
+  label.style.setProperty("--title-weight", settings.titleBold ? "700" : "400");
+  label.style.setProperty("--title-style", settings.titleItalic ? "italic" : "normal");
+  label.style.setProperty("--code-text-weight", settings.codeBold ? "700" : "400");
+  label.style.setProperty("--code-text-style", settings.codeItalic ? "italic" : "normal");
+  label.style.setProperty("--text-middle-weight", settings.textMiddleBold ? "700" : "400");
+  label.style.setProperty("--text-middle-style", settings.textMiddleItalic ? "italic" : "normal");
+  label.style.setProperty("--text-above-weight", settings.textAboveBold ? "700" : "400");
+  label.style.setProperty("--text-above-style", settings.textAboveItalic ? "italic" : "normal");
+  label.style.setProperty("--text-below-weight", settings.textBelowBold ? "700" : "400");
+  label.style.setProperty("--text-below-style", settings.textBelowItalic ? "italic" : "normal");
+  label.style.setProperty("--experimental-label-bg", normalizeColor(settings.experimentalLabelBackground, "#ffffff"));
+  label.style.setProperty("--experimental-barcode-color", normalizeColor(settings.experimentalBarcodeColor, "#111111"));
+  label.style.setProperty("--experimental-title-color", normalizeColor(settings.experimentalTitleColor, "#111827"));
+  label.style.setProperty("--experimental-code-number-color", normalizeColor(settings.experimentalCodeNumberColor, "#111827"));
+}
+
+function getQueueLabelStyleSettings(item) {
+  // Apply locked queue row styling while leaving unlocked rows on the live global style.
+  if (item?.locked) {
+    return normalizeLockedSheetSettings(item.lockedSettings);
+  }
+  return null;
+}
+
 function createLabel(item) {
   // Build one label cell with title, selected code symbol, and readable code number.
+  const styleSettings = getQueueLabelStyleSettings(item);
+  const includeTitle = getLabelBoolean(styleSettings, "includeTitle", el.includeTitle.checked);
+  const includeCodeNumber = getLabelBoolean(styleSettings, "includeCodeNumber", el.includeCodeNumber.checked);
+  const includeTextAbove = getLabelBoolean(styleSettings, "includeTextAbove", el.includeTextAbove.checked);
+  const includeTextBelow = getLabelBoolean(styleSettings, "includeTextBelow", el.includeTextBelow.checked);
+  const labelPartOrder = normalizeLabelPartOrder(getLabelSetting(styleSettings, "labelPartOrder", state.labelPartOrder));
   const label = document.createElement("article");
   label.className = "label";
   label.classList.add("has-custom-order");
-  label.classList.toggle("without-title", !el.includeTitle.checked);
-  label.classList.toggle("without-code-number", !el.includeCodeNumber.checked);
+  label.classList.toggle("without-title", !includeTitle);
+  label.classList.toggle("without-code-number", !includeCodeNumber);
+  applyLockedLabelStyles(label, styleSettings);
 
   if (!item) {
     const empty = document.createElement("span");
@@ -3170,7 +5213,7 @@ function createLabel(item) {
     parsecustomSigns(item.customSigns || "").forEach((symbol) => {
       signGrid.append(createCustomSignMark(symbol));
     });
-    if (el.includeTitle.checked) {
+    if (includeTitle && item.title) {
       topGroup.append(title);
     }
     if (item.signalWord) {
@@ -3179,14 +5222,14 @@ function createLabel(item) {
       signalWord.textContent = item.signalWord;
       topGroup.append(signalWord);
     }
-    if (el.includeTextAbove.checked && item.textAbove) {
+    if (includeTextAbove && item.textAbove) {
       topGroup.append(upperText);
     }
     appendOrderedLabelParts(signLabel, {
       top: topGroup.children.length ? topGroup : null,
       main: signGrid,
-      bottom: el.includeTextBelow.checked && item.textBelow ? lowerText : null,
-    });
+      bottom: includeTextBelow && item.textBelow ? lowerText : null,
+    }, labelPartOrder);
     label.classList.add("sign-label");
     label.append(signLabel);
     return label;
@@ -3205,10 +5248,10 @@ function createLabel(item) {
     lowerText.className = "text-only-extra text-only-below label-part-bottom";
     lowerText.textContent = item.textBelow;
     appendOrderedLabelParts(textOnly, {
-      top: el.includeTextAbove.checked && item.textAbove ? upperText : null,
+      top: includeTextAbove && item.textAbove ? upperText : null,
       main: centerText,
-      bottom: el.includeTextBelow.checked && item.textBelow ? lowerText : null,
-    });
+      bottom: includeTextBelow && item.textBelow ? lowerText : null,
+    }, labelPartOrder);
     label.classList.add("text-only");
     label.append(textOnly);
     return label;
@@ -3229,10 +5272,10 @@ function createLabel(item) {
   barcode.classList.add("label-part-main");
 
   appendOrderedLabelParts(label, {
-    top: el.includeTitle.checked ? title : null,
+    top: includeTitle ? title : null,
     main: barcode,
-    bottom: el.includeCodeNumber.checked ? number : null,
-  });
+    bottom: includeCodeNumber ? number : null,
+  }, labelPartOrder);
   return label;
 }
 
@@ -3290,9 +5333,9 @@ function getVisibleLabelParts(item = state.selectedItem) {
   return parts;
 }
 
-function appendOrderedLabelParts(container, parts) {
+function appendOrderedLabelParts(container, parts, order = state.labelPartOrder) {
   // Append only the visible label part nodes using the global drag-sorted order.
-  state.labelPartOrder.forEach((part) => {
+  normalizeLabelPartOrder(order).forEach((part) => {
     if (parts[part]) {
       container.append(parts[part]);
     }
@@ -3388,6 +5431,10 @@ function renderLabels() {
   const layout = getLayout();
   const count = layout.columns * layout.rows;
   const labelsToPrint = getLabelsToPrint(count);
+  const sheetMode = normalizeSheetFillMode(el.sheetFillMode.value);
+  if (sheetMode === "freestyle") {
+    syncActiveFreestyleStyleFromControls();
+  }
   const innerWidth = layout.width - layout.marginLeft - layout.marginRight - layout.gapX * (layout.columns - 1);
   const innerHeight = layout.height - layout.marginTop - layout.marginBottom - layout.gapY * (layout.rows - 1);
   const labelWidth = Math.max(1, innerWidth / layout.columns);
@@ -3395,31 +5442,40 @@ function renderLabels() {
 
   el.paper.style.width = `${layout.width}mm`;
   el.paper.style.height = `${layout.height}mm`;
-  el.paper.style.padding = `${layout.marginTop}mm ${layout.marginRight}mm ${layout.marginBottom}mm ${layout.marginLeft}mm`;
-  el.paper.style.gap = `${layout.gapY}mm ${layout.gapX}mm`;
-  el.paper.style.gridTemplateColumns = `repeat(${layout.columns}, ${labelWidth}mm)`;
-  el.paper.style.gridTemplateRows = `repeat(${layout.rows}, ${labelHeight}mm)`;
+  el.paper.classList.toggle("is-freestyle", sheetMode === "freestyle");
+  el.paper.style.padding =
+    sheetMode === "freestyle" ? "0" : `${layout.marginTop}mm ${layout.marginRight}mm ${layout.marginBottom}mm ${layout.marginLeft}mm`;
+  el.paper.style.gap = sheetMode === "freestyle" ? "0" : `${layout.gapY}mm ${layout.gapX}mm`;
+  el.paper.style.gridTemplateColumns = sheetMode === "freestyle" ? "1fr" : `repeat(${layout.columns}, ${labelWidth}mm)`;
+  el.paper.style.gridTemplateRows = sheetMode === "freestyle" ? "1fr" : `repeat(${layout.rows}, ${labelHeight}mm)`;
   applyTypography();
   applyExperimentalStyles();
   el.paper.innerHTML = "";
   el.experimentalPrintCount.max = String(count);
 
-  for (let index = 0; index < count; index += 1) {
-    el.paper.append(index < labelsToPrint ? createLabel(state.selectedItem) : createBlankLabel());
+  if (sheetMode === "freestyle") {
+    renderFreestyleObjects();
+  } else {
+    for (let index = 0; index < count; index += 1) {
+      const sheetItem = index < labelsToPrint ? getSheetCellItem(index, labelsToPrint) : null;
+      el.paper.append(sheetItem ? createLabel(sheetItem) : createBlankLabel());
+    }
   }
 
   renderLabelSortControls();
+  renderSheetFillControls();
   applyPreviewZoom();
   const unitLabel = state.measurementUnit === "imperial" ? "in" : "mm";
-  // Show the selected catalog title in the preview toolbar metadata.
-  const labelTitle = state.selectedItem?.title || t("status.noItemSelected");
+  // Show the active sheet fill content in the preview toolbar metadata.
+  const labelTitle = getSheetMetaTitle(labelsToPrint);
   renderLayoutMeta({
-    count,
+    count: sheetMode === "freestyle" ? state.freestyleObjects.length : count,
     title: labelTitle,
-    width: formatMeasurement(labelWidth),
-    height: formatMeasurement(labelHeight),
+    width: formatMeasurement(sheetMode === "freestyle" ? layout.width : labelWidth),
+    height: formatMeasurement(sheetMode === "freestyle" ? layout.height : labelHeight),
     unit: unitLabel,
   });
+  updateCurrentSaveButtonVisibility();
   updatePrintPageSize(layout);
   saveSettings();
 }
@@ -3520,6 +5576,7 @@ function upsertSharedItem(item, shouldSave) {
     color: normalizeColor(item.color),
     category: normalizeCategoryName(item.category),
     presetId: String(item.presetId || "").trim(),
+    settings: getItemPresetSettings(item.settings || item.itemSettings || item.labelSettings) || undefined,
     textAbove: String(item.textAbove || "").trim(),
     textBelow: String(item.textBelow || "").trim(),
   };
@@ -3572,6 +5629,7 @@ function buildCurrentLabelPayload() {
       category: normalizeCategoryName(state.selectedItem.category),
       categoryColor: normalizeCategoryColor(getCategory(state.selectedItem.category)?.color),
       presetId: String(state.selectedItem.presetId || "").trim(),
+      settings: getItemPresetSettings(state.selectedItem.settings) || undefined,
       textAbove: String(state.selectedItem.textAbove || "").trim(),
       textBelow: String(state.selectedItem.textBelow || "").trim(),
     },
@@ -3611,6 +5669,13 @@ function closeShareModal() {
   el.shareModal.classList.remove("is-open");
   el.shareModal.setAttribute("aria-hidden", "true");
   el.shareButton.focus();
+}
+
+function printWithBorderChoice() {
+  // Ask whether dashed cut borders should be included only for the upcoming print job.
+  const includeBorders = window.confirm(t("confirm.printLabelBorders"));
+  document.body.classList.toggle("print-with-label-borders", includeBorders);
+  window.print();
 }
 
 async function copyCurrentLabelShareLink() {
@@ -3653,7 +5718,7 @@ function saveCurrentLabelFile() {
 function printCurrentLabelFromShareModal() {
   // Let the browser print dialog handle PDF output without changing the existing paper layout.
   closeShareModal();
-  window.print();
+  printWithBorderChoice();
 }
 
 function resetDirectionControls(button) {
@@ -3772,12 +5837,7 @@ function showCopyToast(type, address) {
 
 function showGenericCopyToast(message) {
   // Slide the same top banner for non-wallet copy messages.
-  el.copyToast.textContent = message;
-  el.copyToast.classList.add("is-visible");
-  window.clearTimeout(showCopyToast.timeoutId);
-  showCopyToast.timeoutId = window.setTimeout(() => {
-    el.copyToast.classList.remove("is-visible");
-  }, 2600);
+  showStatusToast(message);
 }
 
 async function copyDonationAddress(address, type) {
@@ -3983,6 +6043,8 @@ function renderImportSummary() {
       t("status.replaceSummary", {
         removedItems: summary.removedByReplace,
         removedCategories: summary.categoriesRemovedByReplace,
+        importedItems: summary.importedItems,
+        importedCategories: summary.importedCategories,
       }),
     ],
   ].forEach(([labelKey, value]) => {
@@ -4016,11 +6078,19 @@ function mergeCatalogs(currentCatalog, importedCatalog) {
   // Merge imported data by appending only missing items and missing categories.
   const categoriesByName = new Map();
   const presetsById = new Map();
+  const sheetsById = new Map();
+  const favoriteGridsById = new Map();
   currentCatalog.categories.forEach((category) => {
     categoriesByName.set(normalizeCategoryName(category.name).toLowerCase(), { ...category });
   });
   currentCatalog.presets.forEach((preset) => {
     presetsById.set(preset.id, { ...preset });
+  });
+  normalizeLabelSheets(currentCatalog.labelSheets).forEach((sheet) => {
+    sheetsById.set(sheet.id, { ...sheet });
+  });
+  normalizeFavoriteGrids(currentCatalog.favoriteGrids || currentCatalog.globalSettings?.favoriteGrids || []).forEach((grid) => {
+    favoriteGridsById.set(grid.id, { ...grid });
   });
   importedCatalog.categories.forEach((category) => {
     const key = normalizeCategoryName(category.name).toLowerCase();
@@ -4032,6 +6102,16 @@ function mergeCatalogs(currentCatalog, importedCatalog) {
   importedCatalog.presets.forEach((preset) => {
     if (!presetsById.has(preset.id)) {
       presetsById.set(preset.id, { ...preset });
+    }
+  });
+  normalizeLabelSheets(importedCatalog.labelSheets).forEach((sheet) => {
+    if (!sheetsById.has(sheet.id)) {
+      sheetsById.set(sheet.id, { ...sheet });
+    }
+  });
+  normalizeFavoriteGrids(importedCatalog.favoriteGrids || importedCatalog.globalSettings?.favoriteGrids || []).forEach((grid) => {
+    if (!favoriteGridsById.has(grid.id)) {
+      favoriteGridsById.set(grid.id, { ...grid });
     }
   });
 
@@ -4049,11 +6129,18 @@ function mergeCatalogs(currentCatalog, importedCatalog) {
 
   const categories = [...categoriesByName.values()].sort((a, b) => a.name.localeCompare(b.name));
   const presets = [...presetsById.values()].sort((a, b) => a.name.localeCompare(b.name));
+  const labelSheets = normalizeLabelSheets([...sheetsById.values()]);
+  const favoriteGrids = normalizeFavoriteGrids([...favoriteGridsById.values()]);
   const items = [...itemsByKey.values()].sort((a, b) => (a.category || "").localeCompare(b.category || "") || a.title.localeCompare(b.title));
   return normalizeCatalog({
     lastUpdate: new Date().toISOString(),
     categories,
     presets,
+    labelSheets,
+    favoriteGrids,
+    globalSettings: {
+      favoriteGrids,
+    },
     items,
   });
 }
@@ -4066,10 +6153,17 @@ function finishCatalogImport(mode) {
 
   saveCatalogBackup(mode);
   state.catalog = mode === "merge" ? mergeCatalogs(state.catalog, state.pendingImport.catalog) : state.pendingImport.catalog;
+  state.catalog.labelSheets = normalizeLabelSheets(state.catalog.labelSheets);
+  state.favoriteGrids = normalizeFavoriteGrids(state.catalog.favoriteGrids || state.catalog.globalSettings?.favoriteGrids || []);
+  renderGridPresetOptions(el.gridPreset.value);
   state.selectedItem = null;
   state.selectedCategory = null;
+  state.selectedSheet = null;
+  state.selectedItemSettingsBaseline = "";
+  state.selectedSheetSettingsBaseline = "";
   closeImportReviewModal();
   saveCatalog();
+  saveSettings();
   renderSearchOptions();
   renderLabels();
 }
@@ -4081,12 +6175,16 @@ function bindEvents() {
   el.scanCodeButton.addEventListener("click", openScannerModal);
   el.editCodeButton.addEventListener("click", editSelectedCode);
   el.deleteCodeButton.addEventListener("click", deleteSelectedCode);
+  el.createCategoryButton.addEventListener("click", createCatalogCategoryFromAction);
+  el.saveSheetButton.addEventListener("click", saveCurrentWork);
   el.applyPresetButton.addEventListener("click", applySelectedPreset);
   el.savePresetButton.addEventListener("click", saveCurrentAsPreset);
   el.updatePresetButton.addEventListener("click", updateSelectedPreset);
+  el.renamePresetButton.addEventListener("click", renameSelectedPreset);
   el.deletePresetButton.addEventListener("click", deleteSelectedPreset);
   el.exportButton.addEventListener("click", exportJson);
-  el.printButton.addEventListener("click", () => window.print());
+  el.printButton.addEventListener("click", printWithBorderChoice);
+  el.saveItemSetupButton.addEventListener("click", saveCurrentWork);
   el.shareButton.addEventListener("click", openShareModal);
   el.shareCloseButton.addEventListener("click", closeShareModal);
   el.copyShareLinkButton.addEventListener("click", copyCurrentLabelShareLink);
@@ -4106,6 +6204,25 @@ function bindEvents() {
     // Save category edits without reloading the static page.
     event.preventDefault();
     saveCategoryEditFromModal();
+  });
+  el.applyCategoryPresetButton.addEventListener("click", applyPresetToSelectedCategoryItems);
+  el.clearCategoryPresetButton.addEventListener("click", clearPresetFromSelectedCategoryItems);
+  el.categoryItemList.addEventListener("click", (event) => {
+    // Handle the sticky selection toolbar rendered inside the scrollable category list.
+    const button = event.target.closest("[data-category-select]");
+    if (!button) {
+      return;
+    }
+    setVisibleCategoryItemSelection(button.dataset.categorySelect === "all");
+  });
+  el.categoryPresetFilters.addEventListener("click", (event) => {
+    // Switch the category bulk-preset row filter from the filter button group.
+    const button = event.target.closest("[data-filter]");
+    if (!button) {
+      return;
+    }
+    state.categoryPresetFilter = button.dataset.filter || "all";
+    renderCategoryItemChecklist(state.selectedCategory?.name || "");
   });
   el.itemEditCancelButton.addEventListener("click", closeItemEditModal);
   el.itemEditCloseButton.addEventListener("click", closeItemEditModal);
@@ -4203,6 +6320,31 @@ function bindEvents() {
   el.paperWrap.addEventListener("pointermove", movePaperPan);
   el.paperWrap.addEventListener("pointerup", stopPaperPan);
   el.paperWrap.addEventListener("pointercancel", stopPaperPan);
+  el.paper.addEventListener("pointerdown", (event) => {
+    // Route freestyle pointer starts to either drawing a new rectangle or transforming an existing one.
+    if (event.target.closest(".freestyle-object")) {
+      startFreestyleObjectPointer(event);
+      return;
+    }
+    startFreestyleDraw(event);
+  });
+  el.paper.addEventListener("pointermove", moveFreestylePointer);
+  el.paper.addEventListener("pointerup", stopFreestylePointer);
+  el.paper.addEventListener("pointercancel", stopFreestylePointer);
+  el.paper.addEventListener("dragover", (event) => {
+    // Allow image files to be dropped directly onto the freestyle paper surface.
+    if (normalizeSheetFillMode(el.sheetFillMode.value) === "freestyle") {
+      event.preventDefault();
+    }
+  });
+  el.paper.addEventListener("drop", (event) => {
+    // Convert dropped image files into saved freestyle image objects at the drop point.
+    if (normalizeSheetFillMode(el.sheetFillMode.value) !== "freestyle") {
+      return;
+    }
+    event.preventDefault();
+    insertFreestyleImageFiles(event.dataTransfer?.files || [], getPaperPointerPoint(event));
+  });
   el.measurementUnit.addEventListener("change", () => {
     convertMeasurementInputs(el.measurementUnit.value);
     renderLabels();
@@ -4218,8 +6360,8 @@ function bindEvents() {
   el.paperWrap.addEventListener(
     "wheel",
     (event) => {
-      // Hold Ctrl while scrolling over the preview to zoom without changing label geometry.
-      if (!event.ctrlKey) {
+      // Zoom with the mouse wheel directly over the paper, or anywhere in the preview when Ctrl is held.
+      if (!event.ctrlKey && !event.target.closest("#paper")) {
         return;
       }
 
@@ -4246,9 +6388,62 @@ function bindEvents() {
     renderLabels();
   });
 
+  el.saveGridButton.addEventListener("click", saveCurrentGridAsFavorite);
+  el.removeGridButton.addEventListener("click", removeSelectedFavoriteGrid);
   el.gridPreset.addEventListener("change", () => {
     applyGridPreset();
     renderLabels();
+  });
+  el.sheetFillMode.addEventListener("change", () => {
+    // Switch between repeat, sequence, and manual queue sheet composition modes.
+    const nextMode = normalizeSheetFillMode(el.sheetFillMode.value);
+    let didRefreshSelection = false;
+    const shouldClearSelectedSheet = Boolean(state.selectedSheet && nextMode !== normalizeSheetFillMode(state.selectedSheet.mode));
+    if (nextMode !== "repeat" && state.selectedItem) {
+      if (selectedItemHasUnsavedSetupChanges() && !window.confirm(t("confirm.unsavedItemSetup", { title: state.selectedItem.title }))) {
+        el.sheetFillMode.value = "repeat";
+        renderSheetFillControls();
+        renderLabels();
+        return;
+      }
+    }
+    if (shouldClearSelectedSheet) {
+      state.selectedSheet = null;
+      state.selectedSheetSettingsBaseline = "";
+    }
+    if (nextMode !== "repeat" && state.selectedItem) {
+      clearSelectedCatalogItemContext();
+      renderSelectedItem();
+      renderSearchOptions();
+      didRefreshSelection = true;
+    }
+    if (!didRefreshSelection) {
+      renderSelectedItem();
+      renderSearchOptions();
+    }
+    renderSheetFillControls();
+    renderLabels();
+  });
+  [el.sequenceStart, el.sequenceEnd, el.sequenceStep, el.sequencePad, el.sequencePrefix, el.sequenceSuffix].forEach((input) => {
+    input.addEventListener("input", renderLabels);
+  });
+  el.addSelectedToQueueButton.addEventListener("click", addSelectedItemToSheetQueue);
+  el.addCustomToQueueButton.addEventListener("click", addCustomItemToSheetQueue);
+  el.selectFreestyleImageButton.addEventListener("click", () => {
+    // Open the native file picker for adding raster or SVG images to freestyle sheets.
+    el.freestyleImageInput.click();
+  });
+  el.freestyleImageInput.addEventListener("change", () => {
+    // Import selected image files and clear the input so the same file can be picked again.
+    insertFreestyleImageFiles(el.freestyleImageInput.files || []);
+    el.freestyleImageInput.value = "";
+  });
+  el.clearQueueButton.addEventListener("click", clearSheetQueue);
+  el.textAlignGroup.querySelectorAll("[data-text-align]").forEach((button) => {
+    button.addEventListener("click", () => {
+      // Change text alignment for labels and the active freestyle caret position.
+      setTextAlign(button.dataset.textAlign);
+    });
   });
 
   [
@@ -4377,6 +6572,7 @@ function bindEvents() {
   el.newCustomSignInput.addEventListener("input", () => renderCustomSignPreview(el.newCustomSignInput, el.newCustomSignPreview));
   el.editCustomSignInput.addEventListener("input", () => renderCustomSignPreview(el.editCustomSignInput, el.editCustomSignPreview));
   el.newSignSearch.addEventListener("input", () => rendersignPicker(el.newsignGrid, getSelectedsigns(el.newsignGrid)));
+  el.mixSignSearch.addEventListener("input", () => rendersignPicker(el.mixsignGrid, getSelectedsigns(el.mixsignGrid)));
   el.editSignSearch.addEventListener("input", () => rendersignPicker(el.editsignGrid, getSelectedsigns(el.editsignGrid)));
   [el.newUnicodeHelpButton, el.editUnicodeHelpButton].forEach((button) => {
     button.addEventListener("click", () => {
@@ -4406,6 +6602,10 @@ function bindEvents() {
   window.addEventListener("resize", () => {
     applyPreviewZoom();
   });
+  window.addEventListener("afterprint", () => {
+    // Remove the one-print border preference so the next print asks again.
+    document.body.classList.remove("print-with-label-borders");
+  });
 }
 
 async function init() {
@@ -4419,15 +6619,19 @@ async function init() {
   try {
     await loadCatalog();
     loadPresets();
+    syncFavoriteGridsFromCatalog();
   } catch (error) {
     state.catalog = normalizeCatalog({ items: [] });
     syncPresetsFromCatalog();
+    syncFavoriteGridsFromCatalog();
     el.catalogMeta.textContent = t("status.importCodesToStart");
     console.error(error);
   }
 
   await loadMessages(state.locale);
   applyTranslations();
+  renderGridPresetOptions(el.gridPreset.value);
+  rendersignPicker(el.mixsignGrid, []);
   updateCatalogMeta();
   handleSharedLabelFromUrl();
   renderSearchOptions();

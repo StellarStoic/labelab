@@ -354,6 +354,9 @@
       "color": "#38bdf8",
       "category": "",
       "presetId": "preset-cozy-barcode",
+      "settings": {
+        "textAlign": "center"
+      },
       "textAbove": "Owner unknown",
       "textBelow": "Probably important"
     },
@@ -372,6 +375,9 @@
       "color": "#0f766e",
       "category": "",
       "presetId": "preset-bucket-hazard-1779057747363",
+      "settings": {
+        "textAlign": "center"
+      },
       "textAbove": "",
       "textBelow": ""
     },
@@ -389,6 +395,9 @@
       "color": "#7c3aed",
       "category": "",
       "presetId": "preset-tiny-qr-tag",
+      "settings": {
+        "textAlign": "center"
+      },
       "textAbove": "Contains 3 grams of drama",
       "textBelow": "Do not dry clean with dragons"
     },
@@ -406,6 +415,9 @@
       "color": "#92400e",
       "category": "Fluffy Creatures",
       "presetId": "preset-cozy-barcode",
+      "settings": {
+        "textAlign": "center"
+      },
       "textAbove": "Authorized snack inspector",
       "textBelow": "Do not leave near pancakes"
     },
@@ -423,6 +435,9 @@
       "color": "#f59e0b",
       "category": "Fluffy Creatures",
       "presetId": "preset-cozy-barcode",
+      "settings": {
+        "textAlign": "center"
+      },
       "textAbove": "Softness level: suspicious",
       "textBelow": "May shed on important documents"
     },
@@ -440,6 +455,9 @@
       "color": "#f9a8d4",
       "category": "Fluffy Creatures",
       "presetId": "preset-cozy-barcode",
+      "settings": {
+        "textAlign": "center"
+      },
       "textAbove": "Nap rights reserved",
       "textBelow": "Approach with tiny carrots"
     },
@@ -455,6 +473,9 @@
       "color": "#0f766e",
       "category": "packages",
       "presetId": "preset-packaging-1779056954887",
+      "settings": {
+        "textAlign": "center"
+      },
       "textAbove": "",
       "textBelow": ""
     },
@@ -472,6 +493,9 @@
       "color": "#65a30d",
       "category": "Questionable Snacks",
       "presetId": "preset-cozy-barcode",
+      "settings": {
+        "textAlign": "center"
+      },
       "textAbove": "Crunch probability: unstable",
       "textBelow": "Contains dramatic vinegar"
     },
@@ -489,6 +513,9 @@
       "color": "#a78bfa",
       "category": "Questionable Snacks",
       "presetId": "preset-tiny-qr-tag",
+      "settings": {
+        "textAlign": "center"
+      },
       "textAbove": "Tiny orbiting snack bits",
       "textBelow": "Scan before midnight"
     },
@@ -508,6 +535,9 @@
       "color": "#eab308",
       "category": "Questionable Snacks",
       "presetId": "preset-snack-warning-sign",
+      "settings": {
+        "textAlign": "center"
+      },
       "textAbove": "Open windows first",
       "textBelow": "Aged past polite conversation"
     }

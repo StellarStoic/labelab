@@ -40,10 +40,10 @@ body {
 }
 
 .copy-toast {
-  background: var(--accent);
+  background: #f97316;
   border-radius: 0 0 8px 8px;
   box-shadow: var(--shadow);
-  color: #ffffff;
+  color: #111111;
   font-size: 14px;
   left: 50%;
   max-width: min(760px, calc(100vw - 32px));
@@ -505,6 +505,116 @@ button:hover,
   grid-template-columns: 1fr 1fr;
 }
 
+/* Groups mutually exclusive text alignment choices into one compact control. */
+.segmented-control {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(3, 1fr);
+  overflow: hidden;
+}
+
+.segmented-control button {
+  background: transparent;
+  border-radius: 0;
+  color: var(--text);
+  min-height: 34px;
+}
+
+.segmented-control button + button {
+  border-left: 1px solid var(--border);
+}
+
+.segmented-control button.is-active {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.sheet-fill-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.sheet-fill-panel.is-hidden {
+  display: none;
+}
+
+.favorite-grid-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.favorite-grid-empty {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+.favorite-grid-chip {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  min-height: 32px;
+  padding: 6px 10px;
+}
+
+.sheet-queue-list {
+  display: grid;
+  gap: 8px;
+}
+
+#clearQueueButton.is-hidden,
+.sheet-queue-list.is-hidden {
+  display: none;
+}
+
+.sheet-queue-empty {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.sheet-queue-row {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 64px 38px 38px;
+  padding: 8px;
+}
+
+.sheet-queue-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sheet-queue-title {
+  color: var(--text);
+  font-size: 13px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sheet-queue-warning {
+  color: var(--accent);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.sheet-queue-row .compact-button.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .category-picker-row {
   display: grid;
   gap: 8px;
@@ -609,6 +719,11 @@ button:hover,
 .selected-actions {
   display: flex;
   gap: 8px;
+  width: 100%;
+}
+
+.selected-actions .create-category-action {
+  margin-left: auto;
 }
 
 .preview-area {
@@ -617,6 +732,7 @@ button:hover,
   height: 100vh;
   min-width: 0;
   overflow: hidden;
+  position: relative;
 }
 
 .preview-toolbar {
@@ -672,6 +788,7 @@ button:hover,
   justify-items: center;
   overflow: auto;
   padding: 28px;
+  position: relative;
   scrollbar-color: color-mix(in srgb, var(--muted) 42%, transparent) transparent;
   scrollbar-width: thin;
   touch-action: none;
@@ -680,6 +797,24 @@ button:hover,
 
 .paper-wrap.is-panning {
   cursor: grabbing;
+}
+
+/* Switches the preview from panning to drawing when the freestyle sheet mode is active. */
+.paper-wrap.is-freestyle-mode {
+  cursor: crosshair;
+}
+
+.save-item-setup-button {
+  bottom: 16px;
+  box-shadow: var(--shadow);
+  left: 16px;
+  min-height: 38px;
+  position: absolute;
+  z-index: 5;
+}
+
+.save-item-setup-button.is-hidden {
+  display: none;
 }
 
 .paper-wrap::-webkit-scrollbar {
@@ -711,6 +846,7 @@ button:hover,
   display: grid;
   height: var(--stage-height, auto);
   place-items: center;
+  position: relative;
   width: var(--stage-width, auto);
 }
 
@@ -725,6 +861,135 @@ button:hover,
   transform-origin: top left;
 }
 
+/* Turns the sheet into a blank drawing surface for freeform mixer layouts. */
+.paper.is-freestyle {
+  display: block;
+  overflow: visible;
+}
+
+/* Draws one editable freestyle rectangle using the active text style controls. */
+.freestyle-object {
+  background: transparent;
+  border: 1px dashed var(--label-border);
+  color: var(--experimental-title-color, #111827);
+  display: grid;
+  font-family: var(--label-font, Arial, Helvetica, sans-serif);
+  grid-template-rows: auto 1fr;
+  line-height: 1.12;
+  min-height: 10mm;
+  min-width: 10mm;
+  padding: 1.4mm;
+  position: absolute;
+  text-align: var(--text-align, center);
+  transform-origin: center;
+  user-select: text;
+  z-index: 2;
+}
+
+.freestyle-object.is-active {
+  border-color: var(--label-border);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 42%, transparent);
+}
+
+.freestyle-object.has-image {
+  grid-template-rows: 1fr auto auto;
+}
+
+.freestyle-image {
+  align-self: stretch;
+  height: 100%;
+  justify-self: stretch;
+  max-height: 100%;
+  max-width: 100%;
+  min-height: 0;
+  object-fit: contain;
+  pointer-events: none;
+  width: 100%;
+}
+
+/* Keeps the corner control compact while it cycles resize, rotate, and move behavior. */
+.freestyle-handle {
+  align-items: center;
+  background: var(--accent);
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: grab;
+  display: inline-grid;
+  font-size: 12px;
+  height: 22px;
+  justify-self: end;
+  line-height: 1;
+  min-height: 22px;
+  min-width: 22px;
+  padding: 0;
+  place-items: center;
+  position: absolute;
+  right: -9px;
+  top: -9px;
+  width: 22px;
+  z-index: 3;
+}
+
+.freestyle-signs {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1mm;
+  justify-content: center;
+  margin-bottom: 1mm;
+  pointer-events: none;
+}
+
+.freestyle-signs.is-hidden {
+  display: none;
+}
+
+/* Provides the actual editable text area and keeps Enter-created lines visible. */
+.freestyle-text {
+  align-self: center;
+  color: var(--experimental-title-color, #111827);
+  font-size: var(--title-size, 2.4mm);
+  font-style: var(--text-middle-style, normal);
+  font-weight: var(--text-middle-weight, 700);
+  min-height: 100%;
+  outline: 0;
+  overflow-wrap: anywhere;
+  text-align: var(--text-align, center);
+  white-space: pre-wrap;
+}
+
+/* Floats the delete target over the preview only while freestyle mode is enabled. */
+.freestyle-trash {
+  align-items: center;
+  background: #dc2626;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  color: #ffffff;
+  display: grid;
+  font-size: 18px;
+  height: 46px;
+  min-height: 46px;
+  min-width: 46px;
+  padding: 0;
+  place-items: center;
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 46px;
+  z-index: 5;
+}
+
+.freestyle-trash.is-hidden {
+  display: none;
+}
+
+.freestyle-trash.is-hot {
+  background: #991b1b;
+  transform: scale(1.08);
+}
+
 .label {
   align-items: center;
   background: var(--experimental-label-bg, transparent);
@@ -735,7 +1000,7 @@ button:hover,
   justify-items: center;
   overflow: hidden;
   padding: 1.2mm 1mm;
-  text-align: center;
+  text-align: var(--text-align, center);
 }
 
 .label.without-title {
@@ -774,6 +1039,14 @@ button:hover,
   max-width: 100%;
 }
 
+/* Lets text alignment move label text while non-text graphics stay centered. */
+.label-part-top,
+.label-part-bottom {
+  justify-self: var(--text-justify, center);
+  text-align: var(--text-align, center);
+  width: 100%;
+}
+
 .label-part-main {
   justify-self: center;
 }
@@ -782,8 +1055,9 @@ button:hover,
   align-self: center;
   display: grid;
   gap: 1mm;
-  justify-items: center;
+  justify-items: var(--text-justify, center);
   max-width: 100%;
+  width: 100%;
 }
 
 .label-title {
@@ -794,8 +1068,10 @@ button:hover,
   line-height: 1.1;
   max-width: 100%;
   overflow: hidden;
+  text-align: var(--text-align, center);
   text-overflow: ellipsis;
   white-space: nowrap;
+  width: 100%;
 }
 
 .text-only-label {
@@ -806,6 +1082,8 @@ button:hover,
   line-height: 1.1;
   max-width: 100%;
   overflow-wrap: anywhere;
+  text-align: var(--text-align, center);
+  width: 100%;
 }
 
 .text-only-extra {
@@ -815,6 +1093,8 @@ button:hover,
   line-height: 1.1;
   max-width: 100%;
   overflow-wrap: anywhere;
+  text-align: var(--text-align, center);
+  width: 100%;
 }
 
 .text-only-above {
@@ -834,14 +1114,16 @@ button:hover,
   display: grid;
   gap: 0.8mm;
   height: 100%;
-  justify-items: center;
+  justify-items: stretch;
   max-width: 100%;
+  width: 100%;
 }
 
 .sign-top-group {
   display: grid;
   gap: 0.6mm;
-  justify-items: center;
+  justify-items: var(--text-justify, center);
+  width: 100%;
 }
 
 .sign-signal-word {
@@ -850,16 +1132,19 @@ button:hover,
   font-weight: 800;
   letter-spacing: 0;
   line-height: 1;
+  text-align: var(--text-align, center);
   text-transform: uppercase;
+  width: 100%;
 }
 
 .sign-label-grid {
   align-items: center;
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 1mm;
-  grid-template-columns: repeat(auto-fit, minmax(min(8mm, var(--sign-max-size, 24mm)), 1fr));
-  justify-items: center;
-  width: min(100%, calc(var(--sign-max-size, 24mm) * 3));
+  justify-content: var(--text-justify, center);
+  justify-self: stretch;
+  width: 100%;
 }
 
 .sign-mark {
@@ -902,15 +1187,15 @@ button:hover,
 
 .sign-image,
 .sign-custom {
-  background: #ffffff;
-  border: 0.35mm solid #111827;
-  border-radius: 1mm;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .sign-img {
   height: 100%;
   object-fit: contain;
-  padding: 0.6mm;
+  padding: 0;
   width: 100%;
 }
 
@@ -1132,6 +1417,29 @@ button:hover,
 
 .color-preset.is-selected {
   box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent);
+}
+
+.category-preset-tools {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.category-preset-actions,
+.category-preset-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-preset-filters button {
+  min-height: 30px;
+  padding: 6px 10px;
+}
+
+.category-preset-filters button.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .label-sort-list {
@@ -1455,6 +1763,25 @@ button:hover,
   scrollbar-width: thin;
 }
 
+.category-item-toolbar {
+  align-items: center;
+  background: var(--panel-strong);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -6px -6px 4px;
+  padding: 6px;
+  position: sticky;
+  top: -6px;
+  z-index: 2;
+}
+
+.category-item-toolbar button {
+  min-height: 30px;
+  padding: 6px 10px;
+}
+
 .category-item-row {
   align-items: center;
   border-radius: 5px;
@@ -1462,7 +1789,7 @@ button:hover,
   display: grid;
   font-size: 13px;
   gap: 10px;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr;
   padding: 7px 8px;
 }
 
@@ -1504,6 +1831,33 @@ button:hover,
   max-width: 100%;
   overflow-wrap: anywhere;
   padding: 4px 7px;
+}
+
+.category-preset-badge {
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  border-radius: 999px;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 4px 7px;
+}
+
+.category-preset-badge.is-empty {
+  background: var(--panel);
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+.category-item-empty {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+  padding: 8px;
 }
 
 .donation-modal::-webkit-scrollbar {
@@ -1722,8 +2076,14 @@ button:hover,
   }
 
   .controls-panel,
-  .preview-toolbar {
-    display: none;
+  .copy-toast,
+  .preview-toolbar,
+  .save-item-setup-button,
+  .freestyle-handle,
+  .freestyle-trash,
+  .donate-button,
+  .share-button {
+    display: none !important;
   }
 
   .app-shell,
@@ -1756,5 +2116,19 @@ button:hover,
     page-break-before: avoid;
     page-break-inside: avoid;
     transform: none !important;
+  }
+
+  .paper.is-freestyle {
+    overflow: hidden;
+  }
+
+  .freestyle-object {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  body:not(.print-with-label-borders) .label,
+  body:not(.print-with-label-borders) .freestyle-object {
+    border-color: transparent !important;
   }
 }

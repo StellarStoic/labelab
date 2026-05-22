@@ -67,6 +67,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
             <div class="selected-actions">
               <button id="editCodeButton" type="button" data-i18n="action.edit">Edit</button>
               <button id="deleteCodeButton" class="danger-button" type="button" data-i18n="action.delete">Delete</button>
+              <button id="createCategoryButton" class="create-category-action" type="button" data-i18n="label.newCategory">New category</button>
             </div>
           </div>
         </section>
@@ -81,7 +82,62 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
           </div>
           <div class="button-row">
             <button id="updatePresetButton" class="secondary-button" type="button" data-i18n="action.updatePreset">Update</button>
+            <button id="renamePresetButton" class="secondary-button" type="button" data-i18n="action.renamePreset">Rename</button>
             <button id="deletePresetButton" class="secondary-button" type="button" data-i18n="action.deletePreset">Delete</button>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2 data-i18n="section.mixer">Modes</h2>
+          <button id="saveSheetButton" type="button" data-i18n="action.saveCurrentWork">Save current</button>
+          <label for="sheetFillMode" data-i18n="label.sheetFillMode">Mode</label>
+          <select id="sheetFillMode">
+            <option value="repeat" data-i18n="option.sheetFillRepeat">Repeated</option>
+            <option value="sequence" data-i18n="option.sheetFillSequence">Number sequence</option>
+            <option value="queue" data-i18n="option.sheetFillQueue">Mixed labels</option>
+            <option value="freestyle" data-i18n="option.sheetFillFreestyle">Freestyle sheet</option>
+          </select>
+          <div id="sequenceSheetControls" class="sheet-fill-panel">
+            <div class="two-col">
+              <label for="sequenceStart">
+                <span data-i18n="label.sequenceStart">Start</span>
+                <input id="sequenceStart" type="number" step="1" value="1" />
+              </label>
+              <label for="sequenceEnd">
+                <span data-i18n="label.sequenceEnd">End</span>
+                <input id="sequenceEnd" type="number" step="1" value="15" />
+              </label>
+              <label for="sequenceStep">
+                <span data-i18n="label.sequenceStep">Step</span>
+                <input id="sequenceStep" type="number" step="1" value="1" />
+              </label>
+              <label for="sequencePad">
+                <span data-i18n="label.sequencePad">Pad digits</span>
+                <input id="sequencePad" type="number" min="0" max="8" step="1" value="0" />
+              </label>
+            </div>
+            <label for="sequencePrefix" data-i18n="label.sequencePrefix">Prefix</label>
+            <input id="sequencePrefix" type="text" placeholder="Fuse " data-i18n-placeholder="placeholder.sequencePrefix" />
+            <label for="sequenceSuffix" data-i18n="label.sequenceSuffix">Suffix</label>
+            <input id="sequenceSuffix" type="text" placeholder="A" data-i18n-placeholder="placeholder.sequenceSuffix" />
+          </div>
+          <div id="queueSheetControls" class="sheet-fill-panel">
+            <div class="button-row">
+              <button id="addSelectedToQueueButton" type="button" data-i18n="action.addSelectedToQueue">Add selected item</button>
+              <button id="clearQueueButton" class="secondary-button" type="button" data-i18n="action.clearQueue">Clear mixed labels</button>
+            </div>
+            <label for="queueCustomTitle" data-i18n="label.queueCustomTitle">Custom label</label>
+            <input id="queueCustomTitle" type="text" placeholder="Fuse 1, Main breaker, Ground..." data-i18n-placeholder="placeholder.queueCustomTitle" />
+            <label for="queueCustomSigns" data-i18n="label.queueCustomSigns">Custom signs</label>
+            <input id="queueCustomSigns" type="text" placeholder="⚡, ⏚, U+26A0" data-i18n-placeholder="placeholder.queueCustomSigns" />
+            <label for="mixSignSearch" data-i18n="label.signSearch">Search signs</label>
+            <input id="mixSignSearch" type="search" placeholder="Search sign dictionary..." data-i18n-placeholder="placeholder.signSearch" />
+            <span class="field-label" data-i18n="label.signs">Signs</span>
+            <div id="mixsignGrid" class="sign-picker" aria-label="signs" data-i18n-aria-label="label.signs"></div>
+            <input id="freestyleImageInput" class="is-hidden" type="file" accept="image/svg+xml,image/png,image/jpeg,image/webp,image/gif" />
+            <button id="selectFreestyleImageButton" class="secondary-button is-hidden" type="button" data-i18n="action.selectFreestyleImage">Select image file</button>
+            <button id="addCustomToQueueButton" type="button" data-i18n="action.addCustomToQueue">Add custom label</button>
+            <div id="sheetQueueList" class="sheet-queue-list" aria-live="polite"></div>
           </div>
         </section>
 
@@ -189,6 +245,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
               <option value="'Copperplate', 'Copperplate Gothic Light', serif">Copperplate</option>
             </optgroup>
           </select>
+          <span class="field-label" data-i18n="label.textAlign">Text align</span>
+          <!-- Provides one-click text alignment without changing barcode or sign positioning. -->
+          <div id="textAlignGroup" class="segmented-control" role="group" aria-label="Text align" data-i18n-aria-label="label.textAlign">
+            <button class="text-align-button" type="button" data-text-align="left" aria-label="Align text left" data-i18n-aria-label="aria.alignTextLeft">L</button>
+            <button class="text-align-button is-active" type="button" data-text-align="center" aria-label="Align text center" data-i18n-aria-label="aria.alignTextCenter">C</button>
+            <button class="text-align-button" type="button" data-text-align="right" aria-label="Align text right" data-i18n-aria-label="aria.alignTextRight">R</button>
+          </div>
           <div class="two-col">
             <label>
               <span class="label-line"><span data-i18n="label.titleSize">Title size</span> <span data-unit-label></span></span>
@@ -414,8 +477,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
         </section>
 
         <section class="control-group">
-          <h2 data-i18n="section.labels">Labels</h2>
-          <label for="gridPreset" data-i18n="label.quantitySeparation">Quantity separation</label>
+          <h2 data-i18n="section.labels">Sheet grid</h2>
+          <label for="gridPreset" data-i18n="label.quantitySeparation">Grid preset</label>
           <select id="gridPreset">
             <option value="5x15">5 x 15</option>
             <option value="4x16">4 x 16</option>
@@ -433,6 +496,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
               <input id="rowsInput" type="number" min="1" max="60" step="1" />
             </label>
           </div>
+          <div class="button-row">
+            <button id="saveGridButton" type="button" data-i18n="action.saveGrid">Save grid</button>
+            <button id="removeGridButton" class="secondary-button" type="button" data-i18n="action.removeGrid">Remove grid</button>
+          </div>
+          <div id="favoriteGridList" class="favorite-grid-list" aria-live="polite"></div>
         </section>
 
         <section class="control-group">
@@ -556,6 +624,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
             <div id="paper" class="paper"></div>
           </div>
         </div>
+        <button id="saveItemSetupButton" class="save-item-setup-button is-hidden" type="button" data-i18n="action.saveCurrentWork">Save current</button>
+        <button id="freestyleTrash" class="freestyle-trash is-hidden" type="button" aria-label="Delete freestyle object" data-i18n-aria-label="aria.deleteFreestyleObject" title="Drag and drop the object into trash to remove it">🗑</button>
       </section>
     </main>
 
@@ -676,6 +746,24 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
           </div>
           <div>
             <span class="field-label" data-i18n="label.categoryItems">Category items</span>
+            <div class="category-preset-tools">
+              <label for="categoryPresetSelect">
+                <span data-i18n="label.bulkPreset">Preset to apply</span>
+                <select id="categoryPresetSelect"></select>
+              </label>
+              <div class="category-preset-actions">
+                <button id="applyCategoryPresetButton" type="button" data-i18n="action.applyPresetToSelected">Apply to selected</button>
+                <button id="clearCategoryPresetButton" class="secondary-button" type="button" data-i18n="action.clearPresetFromSelected">Clear selected presets</button>
+              </div>
+              <div id="categoryPresetFilters" class="category-preset-filters" role="group" aria-label="Category item filters">
+                <button class="secondary-button is-active" type="button" data-filter="all" data-i18n="filter.all">All</button>
+                <button class="secondary-button" type="button" data-filter="no-preset" data-i18n="filter.noPreset">No preset</button>
+                <button class="secondary-button" type="button" data-filter="has-preset" data-i18n="filter.hasPreset">Has preset</button>
+                <button class="secondary-button" type="button" data-filter="code" data-i18n="filter.code">Code</button>
+                <button class="secondary-button" type="button" data-filter="text" data-i18n="filter.text">Text</button>
+                <button class="secondary-button" type="button" data-filter="sign" data-i18n="filter.sign">Sign</button>
+              </div>
+            </div>
             <div id="categoryItemList" class="category-item-list"></div>
           </div>
           <p id="categoryModalError" class="modal-error" role="alert"></p>
