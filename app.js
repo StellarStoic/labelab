@@ -3358,7 +3358,7 @@ function getCurrentFreestyleStyle() {
 }
 
 function applyFreestyleStyleToControls(style) {
-  // Load the selected freestyle object's style into the shared Text Style controls.
+  // Load the selected freestyle object's style into the shared Style controls.
   const normalized = normalizeFreestyleStyle(style);
   el.labelFont.value = normalized.labelFont;
   setTextAlign(normalized.textAlign, false);
@@ -3369,7 +3369,7 @@ function applyFreestyleStyleToControls(style) {
 }
 
 function syncActiveFreestyleStyleFromControls() {
-  // Save Text Style control changes to the active object instead of every freestyle object.
+  // Save Style control changes to the active object instead of every freestyle object.
   if (normalizeSheetFillMode(el.sheetFillMode.value) !== "freestyle" || !state.activeFreestyleObjectId) {
     return;
   }
@@ -5962,15 +5962,52 @@ function upsertSharedItem(item, shouldSave) {
   return sharedItem;
 }
 
+function getShareableSheetTitle() {
+  // Name sheet-only shares from the active saved sheet or current sheet mode.
+  const mode = normalizeSheetFillMode(el.sheetFillMode.value);
+  if (state.selectedSheet?.name) {
+    return state.selectedSheet.name;
+  }
+  return t(getSheetModeLabelKey(mode));
+}
+
+function currentSheetCanBeSharedWithoutCatalogItem() {
+  // Allow generated sheet modes to be shared without forcing a catalog item first.
+  const mode = normalizeSheetFillMode(el.sheetFillMode.value);
+  return (
+    Boolean(state.selectedSheet) ||
+    mode === "sequence" ||
+    (mode === "queue" && state.sheetQueue.length > 0) ||
+    (mode === "freestyle" && state.freestyleObjects.length > 0)
+  );
+}
+
+function getPayloadTitle(payload) {
+  // Pick a stable human-readable name for link files and fallback print titles.
+  return payload?.item?.title || payload?.sheet?.name || getShareableSheetTitle();
+}
+
 function buildCurrentLabelPayload() {
   // Build the shared label package used by links and downloadable label files.
-  if (!state.selectedItem) {
+  if (!state.selectedItem && !currentSheetCanBeSharedWithoutCatalogItem()) {
     alert(t("alert.selectItemToShare"));
     return null;
   }
 
-  return {
+  const payload = {
     version: 1,
+    settings: collectSettingsSnapshot(),
+  };
+  if (!state.selectedItem) {
+    payload.sheet = {
+      name: getShareableSheetTitle(),
+      mode: normalizeSheetFillMode(el.sheetFillMode.value),
+    };
+    return payload;
+  }
+
+  return {
+    ...payload,
     item: {
       id: getItemKey(state.selectedItem),
       title: state.selectedItem.title,
@@ -5988,7 +6025,6 @@ function buildCurrentLabelPayload() {
       textAbove: String(state.selectedItem.textAbove || "").trim(),
       textBelow: String(state.selectedItem.textBelow || "").trim(),
     },
-    settings: collectSettingsSnapshot(),
   };
 }
 
@@ -6022,10 +6058,14 @@ function getPrintFilenameTitle() {
   return `labelab_${createFileSafeName(itemName)}_${getPrintTimestampForFilename()}`;
 }
 
+function createTimestampedLabelFilename(title) {
+  // Reuse the print/PDF naming pattern for downloadable Labelab files.
+  return `labelab_${createFileSafeName(title)}_${getPrintTimestampForFilename()}`;
+}
+
 function openShareModal() {
   // Open the share/save chooser while keeping the current URL share behavior available.
-  if (!state.selectedItem) {
-    alert(t("alert.selectItemToShare"));
+  if (!buildCurrentLabelPayload()) {
     return;
   }
   el.shareModal.classList.add("is-open");
@@ -6087,7 +6127,7 @@ function saveCurrentLabelFile() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${createFileSafeName(payload.item.title)}.label.json`;
+  link.download = `${createTimestampedLabelFilename(getPayloadTitle(payload))}.label.json`;
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -6125,21 +6165,28 @@ function handleSharedLabelFromUrl() {
   try {
     const payload = decodeSharePayload(match[1]);
     applySettingsSnapshot(payload.settings);
-    const sharedCode = String(payload.item?.code || "").trim();
-    const sharedId = String(payload.item?.id || "").trim();
-    const exists = sharedCode
-      ? state.catalog.items.some((item) => item.code === sharedCode)
-      : state.catalog.items.some((item) => getItemKey(item) === sharedId);
-    const shouldSave = exists || window.confirm(t("confirm.saveSharedItem", { title: payload.item?.title || "" }));
-    const sharedItem = upsertSharedItem(payload.item, shouldSave);
-
-    if (sharedItem) {
+    if (payload.item) {
+      const sharedCode = String(payload.item?.code || "").trim();
+      const sharedId = String(payload.item?.id || "").trim();
+      const exists = sharedCode
+        ? state.catalog.items.some((item) => item.code === sharedCode)
+        : state.catalog.items.some((item) => getItemKey(item) === sharedId);
+      const shouldSave = exists || window.confirm(t("confirm.saveSharedItem", { title: payload.item?.title || "" }));
+      const sharedItem = upsertSharedItem(payload.item, shouldSave);
+      if (!sharedItem) {
+        throw new Error("Invalid shared item");
+      }
       el.searchInput.value = sharedItem.title;
-      renderSearchOptions();
-      renderSelectedItem();
-      renderLabels();
-      saveSettings();
+    } else {
+      state.selectedItem = null;
+      state.selectedSheet = null;
+      state.selectedCategory = null;
+      el.searchInput.value = "";
     }
+    renderSearchOptions();
+    renderSelectedItem();
+    renderLabels();
+    saveSettings();
 
     history.replaceState(null, document.title, `${location.pathname}${location.search}`);
   } catch (error) {
