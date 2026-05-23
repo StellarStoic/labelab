@@ -1428,20 +1428,29 @@ button:hover,
 
 .lock-edit-row {
   align-items: center;
+  background-color: rosybrown;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background-color: rosybrown;
+  color: #000;
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(0, 1fr) 42px;
   padding: 10px;
 }
 
+.lock-edit-row.is-unlocked {
+  background-color: #9abca0;
+}
+
 .lock-help {
-  color: var(--muted);
   display: block;
   font-size: 12px;
   line-height: 1.35;
+}
+
+.lock-edit-row .field-label,
+.lock-edit-row .lock-help {
+  color: #000;
 }
 
 .lock-toggle-button {

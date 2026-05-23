@@ -751,6 +751,7 @@ function updateLockButton(button, entry) {
   }
 
   const locked = isCatalogEntryLocked(entry);
+  button.closest(".lock-edit-row")?.classList.toggle("is-unlocked", !locked);
   button.textContent = getLockIcon(entry);
   button.title = locked ? t("action.unlockPinLock") : t("action.lockPinLock");
   button.setAttribute("aria-label", locked ? t("action.unlockPinLock") : t("action.lockPinLock"));
