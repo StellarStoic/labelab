@@ -558,10 +558,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
               <span data-i18n="label.language">Language</span>
               <select id="languageSelect">
                 <option value="en">English</option>
+                <option value="de">Deutsch</option>
+                <option value="es">Español</option>
                 <option value="sl">Slovenščina</option>
                 <option value="fr">Français</option>
+                <option value="ru">Русский</option>
                 <option value="zh">中文</option>
               </select>
+              <a class="translator-link" href="https://crowdin.com/project/labelab" target="_blank" rel="noopener noreferrer" data-i18n="action.translatorsClickHere">Translators click here</a>
             </label>
           </div>
         </section>
@@ -723,6 +727,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
           <p id="editModalError" class="modal-error" role="alert"></p>
           <div class="modal-actions">
             <button id="itemEditSaveButton" type="submit" data-i18n="action.save">Save</button>
+            <button id="itemEditIgnoreDuplicateButton" class="secondary-button is-hidden" type="button" data-i18n="action.ignoreAndSave">Ignore and save</button>
             <button id="itemEditCancelButton" class="secondary-button" type="button" data-i18n="action.cancel">Cancel</button>
           </div>
         </form>

@@ -210,6 +210,17 @@ label {
   font-size: 13px;
 }
 
+.translator-link {
+  color: var(--accent);
+  font-size: 11px;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.translator-link:hover {
+  text-decoration: underline;
+}
+
 /* Keeps label text and measurement units together above compact inputs. */
 .label-line {
   display: inline-flex;

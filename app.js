@@ -461,6 +461,7 @@ const el = {
   itemEditCloseButton: document.querySelector("#itemEditCloseButton"),
   itemEditForm: document.querySelector("#itemEditForm"),
   itemEditCancelButton: document.querySelector("#itemEditCancelButton"),
+  itemEditIgnoreDuplicateButton: document.querySelector("#itemEditIgnoreDuplicateButton"),
   editTitleInput: document.querySelector("#editTitleInput"),
   editLabelModeInput: document.querySelector("#editLabelModeInput"),
   editCodeInput: document.querySelector("#editCodeInput"),
@@ -2071,7 +2072,6 @@ function applySavedSheet(sheet) {
   captureSelectedSheetSettingsBaseline();
   renderSelectedItem();
   renderSearchOptions();
-  scrollSelectedCatalogOptionIntoView();
   renderLabels();
   const nextMode = normalizeSheetFillMode(el.sheetFillMode.value);
   showModeChangedToast(previousMode, nextMode);
@@ -2748,7 +2748,6 @@ function createCatalogCategoryFromAction() {
   updateCategoryOptions();
   renderSearchOptions();
   renderSelectedItem();
-  scrollSelectedCatalogOptionIntoView();
   renderLabels();
 }
 
@@ -2937,22 +2936,6 @@ function renderSearchOptions() {
   }
 }
 
-function scrollSelectedCatalogOptionIntoView() {
-  // Center the selected catalog row after filtering or editing changes rebuild the list.
-  if (!state.selectedItem && !state.selectedCategory) {
-    return;
-  }
-
-  requestAnimationFrame(() => {
-    const selectedOption = state.selectedSheet
-      ? [...el.codeSelect.querySelectorAll(".catalog-sheet-option")].find((option) => option.dataset.sheetId === state.selectedSheet.id)
-      : state.selectedCategory
-      ? [...el.codeSelect.querySelectorAll(".catalog-category")].find((option) => option.dataset.category === state.selectedCategory.name)
-      : [...el.codeSelect.querySelectorAll(".catalog-option")].find((option) => option.dataset.itemKey === getItemKey(state.selectedItem));
-    selectedOption?.scrollIntoView({ block: "center", inline: "nearest" });
-  });
-}
-
 function renderSelectedItem() {
   // Refresh the selected item display and enable actions only when an item exists.
   updateCurrentSaveButtonVisibility();
@@ -3027,7 +3010,6 @@ function selectItem(itemKey) {
   captureSelectedItemSettingsBaseline();
   renderSelectedItem();
   renderSearchOptions();
-  scrollSelectedCatalogOptionIntoView();
   renderLabels();
   const nextMode = normalizeSheetFillMode(el.sheetFillMode.value);
   if (state.selectedItem) {
@@ -3044,7 +3026,6 @@ function selectCategory(name) {
   state.selectedSheetSettingsBaseline = "";
   renderSelectedItem();
   renderSearchOptions();
-  scrollSelectedCatalogOptionIntoView();
   renderLabels();
 }
 
@@ -4100,6 +4081,7 @@ function openItemEditModal() {
 
   const color = normalizeColor(state.selectedItem.color);
   el.editModalError.textContent = "";
+  el.itemEditIgnoreDuplicateButton.classList.add("is-hidden");
   el.editTitleInput.value = state.selectedItem.title;
   el.editLabelModeInput.value = normalizeLabelMode(state.selectedItem.labelMode, state.selectedItem);
   el.editCodeInput.value = state.selectedItem.code;
@@ -4129,6 +4111,7 @@ function closeItemEditModal() {
   el.itemEditModal.classList.remove("is-open");
   el.itemEditModal.setAttribute("aria-hidden", "true");
   el.editModalError.textContent = "";
+  el.itemEditIgnoreDuplicateButton.classList.add("is-hidden");
   el.editCodeButton.focus();
 }
 
@@ -4277,10 +4260,10 @@ function renderCategoryItemChecklist(categoryName) {
     code.textContent = normalizeLabelMode(item.labelMode, item) === "sign" ? t("option.labelModeSign") : item.code || t("status.textOnly");
     mode.className = "category-item-tag";
     mode.textContent = getCategoryItemModeLabel(item);
-    mode.style.setProperty("--tag-color", normalizeCategoryColor(state.selectedCategory?.color));
+    mode.style.setProperty("--tag-color", DEFAULT_CATEGORY_COLOR);
     categoryTag.className = "category-item-tag";
     categoryTag.textContent = itemCategoryName || t("status.uncategorized");
-    categoryTag.style.setProperty("--tag-color", normalizeCategoryColor(itemCategory?.color || state.selectedCategory?.color));
+    categoryTag.style.setProperty("--tag-color", normalizeCategoryColor(itemCategory?.color || DEFAULT_CATEGORY_COLOR));
     presetTag.className = `category-preset-badge${itemPreset ? "" : " is-empty"}`;
     presetTag.textContent = itemPreset ? itemPreset.name : t("status.noPresetAssigned");
     checkbox.type = "checkbox";
@@ -4389,7 +4372,6 @@ function saveCategoryEditFromModal() {
   el.searchInput.value = "";
   renderSearchOptions();
   renderSelectedItem();
-  scrollSelectedCatalogOptionIntoView();
   renderLabels();
   closeCategoryEditModal();
 }
@@ -4444,7 +4426,7 @@ function clearPresetFromSelectedCategoryItems() {
   renderLabels();
 }
 
-function saveItemEditFromModal() {
+function saveItemEditFromModal(options = {}) {
   // Validate and persist changes made in the standalone catalog item editor.
   if (!state.selectedItem) {
     closeItemEditModal();
@@ -4475,10 +4457,12 @@ function saveItemEditFromModal() {
   }
 
   const duplicate = nextCode ? state.catalog.items.find((item) => item.code === nextCode && item !== currentItem) : null;
-  if (duplicate) {
-    el.editModalError.textContent = t("alert.duplicateCode");
+  if (duplicate && !options.allowDuplicateCode) {
+    el.editModalError.textContent = t("alert.duplicateCodeWithItem", { title: duplicate.title, code: nextCode });
+    el.itemEditIgnoreDuplicateButton.classList.remove("is-hidden");
     return;
   }
+  el.itemEditIgnoreDuplicateButton.classList.add("is-hidden");
 
   currentItem.title = nextTitle;
   currentItem.code = nextCode;
@@ -5653,6 +5637,20 @@ function createFileSafeName(value) {
   return slug || fallback;
 }
 
+function getPrintTimestampForFilename(date = new Date()) {
+  // Format the local print timestamp without seconds so PDF filenames stay readable.
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}`;
+}
+
+function getPrintFilenameTitle() {
+  // Build the temporary document title used by browsers as the default print-to-PDF filename.
+  const layout = getLayout();
+  const count = layout.columns * layout.rows;
+  const itemName = state.selectedItem?.title || state.selectedSheet?.name || getSheetMetaTitle(getLabelsToPrint(count));
+  return `labelab_${createFileSafeName(itemName)}_${getPrintTimestampForFilename()}`;
+}
+
 function openShareModal() {
   // Open the share/save chooser while keeping the current URL share behavior available.
   if (!state.selectedItem) {
@@ -5674,8 +5672,16 @@ function closeShareModal() {
 function printWithBorderChoice() {
   // Ask whether dashed cut borders should be included only for the upcoming print job.
   const includeBorders = window.confirm(t("confirm.printLabelBorders"));
+  const previousTitle = document.title;
+  const restoreTitle = () => {
+    document.title = previousTitle;
+    window.removeEventListener("afterprint", restoreTitle);
+  };
   document.body.classList.toggle("print-with-label-borders", includeBorders);
+  document.title = getPrintFilenameTitle();
+  window.addEventListener("afterprint", restoreTitle);
   window.print();
+  window.setTimeout(restoreTitle, 1000);
 }
 
 async function copyCurrentLabelShareLink() {
@@ -6199,6 +6205,10 @@ function bindEvents() {
     // Save modal edits without reloading the static page.
     event.preventDefault();
     saveItemEditFromModal();
+  });
+  el.itemEditIgnoreDuplicateButton.addEventListener("click", () => {
+    // Save only after the user explicitly accepts keeping a duplicate code.
+    saveItemEditFromModal({ allowDuplicateCode: true });
   });
   el.categoryEditForm.addEventListener("submit", (event) => {
     // Save category edits without reloading the static page.
