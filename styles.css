@@ -291,7 +291,7 @@ select[size] {
   color: var(--text);
   display: grid;
   font-size: 13px;
-  grid-template-columns: 4px 1fr;
+  grid-template-columns: 4px minmax(0, 1fr) 26px;
   justify-content: stretch;
   min-height: 30px;
   padding: 5px 7px;
@@ -300,7 +300,8 @@ select[size] {
 }
 
 .catalog-option:hover,
-.catalog-option.is-selected {
+.catalog-option.is-selected,
+.catalog-option:focus-visible {
   background: var(--panel-strong);
 }
 
@@ -321,7 +322,7 @@ select[size] {
   font-size: 12px;
   font-weight: 700;
   gap: 8px;
-  grid-template-columns: 1fr 26px;
+  grid-template-columns: minmax(0, 1fr) 26px 26px;
   margin: 6px 2px 2px;
   min-height: 28px;
   padding: 3px 4px 3px 8px;
@@ -366,11 +367,32 @@ select[size] {
 }
 
 .catalog-category-toggle {
+  grid-column: -1;
   border: 1px solid color-mix(in srgb, var(--category-color, #e5e7eb) 55%, var(--border));
   border-radius: 999px;
   font-size: 14px;
   line-height: 1;
   min-width: 22px;
+}
+
+.catalog-lock-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--muted) 26%, transparent);
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-grid;
+  font-size: 13px;
+  justify-content: center;
+  line-height: 1;
+  min-height: 22px;
+  min-width: 22px;
+  padding: 0;
+}
+
+.catalog-lock-button:hover {
+  background: var(--panel-strong);
+  color: var(--text);
 }
 
 .catalog-option-label {
@@ -434,6 +456,11 @@ button:hover,
 .secondary-button:hover {
   background: var(--panel);
   color: var(--accent);
+}
+
+.is-hidden {
+  /* Hide optional controls until the matching user action makes them relevant. */
+  display: none !important;
 }
 
 .file-button input {
@@ -1399,6 +1426,31 @@ button:hover,
   grid-template-columns: 110px 1fr;
 }
 
+.lock-edit-row {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: rosybrown;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  padding: 10px;
+}
+
+.lock-help {
+  color: var(--muted);
+  display: block;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.lock-toggle-button {
+  font-size: 16px;
+  min-height: 34px;
+  min-width: 34px;
+  padding: 0;
+}
+
 .field-label {
   color: var(--muted);
   display: block;
@@ -1500,11 +1552,11 @@ button:hover,
 }
 
 .label-sort-item.is-drop-before {
-  margin-top: 22px;
+  margin-top: 30px;
 }
 
 .label-sort-item.is-drop-after {
-  margin-bottom: 22px;
+  margin-bottom: 30px;
 }
 
 .label-sort-item.is-drop-before::before,
@@ -1519,11 +1571,11 @@ button:hover,
 }
 
 .label-sort-item.is-drop-before::before {
-  top: -14px;
+  top: -17px;
 }
 
 .label-sort-item.is-drop-after::after {
-  bottom: -14px;
+  bottom: -17px;
 }
 
 .label-sort-number {
@@ -1807,6 +1859,10 @@ button:hover,
 
 .category-item-row:hover {
   background: var(--panel);
+}
+
+.category-item-row.is-locked {
+  opacity: 0.72;
 }
 
 .category-item-row input {

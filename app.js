@@ -338,6 +338,7 @@ const state = {
   scannerDetector: null,
   imageSigns: [],
   labelPartOrder: ["top", "main", "bottom"],
+  labelSortDrop: null,
   sheetQueue: [],
   freestyleObjects: [],
   activeFreestyleObjectId: "",
@@ -462,6 +463,7 @@ const el = {
   itemEditForm: document.querySelector("#itemEditForm"),
   itemEditCancelButton: document.querySelector("#itemEditCancelButton"),
   itemEditIgnoreDuplicateButton: document.querySelector("#itemEditIgnoreDuplicateButton"),
+  itemEditLockButton: document.querySelector("#itemEditLockButton"),
   editTitleInput: document.querySelector("#editTitleInput"),
   editLabelModeInput: document.querySelector("#editLabelModeInput"),
   editCodeInput: document.querySelector("#editCodeInput"),
@@ -487,6 +489,7 @@ const el = {
   categoryEditCloseButton: document.querySelector("#categoryEditCloseButton"),
   categoryEditForm: document.querySelector("#categoryEditForm"),
   categoryEditCancelButton: document.querySelector("#categoryEditCancelButton"),
+  categoryEditLockButton: document.querySelector("#categoryEditLockButton"),
   categoryNameInput: document.querySelector("#categoryNameInput"),
   categoryColorInput: document.querySelector("#categoryColorInput"),
   categoryPresetSelect: document.querySelector("#categoryPresetSelect"),
@@ -586,9 +589,27 @@ function showModeChangedToast(previousMode, nextMode) {
   showStatusToast(t("status.modeChanged", { mode: t(getSheetModeLabelKey(nextMode)) }), 5000);
 }
 
+function stripPinFieldsForShare(value) {
+  // Remove PIN lock secrets from any object before it is encoded into a share link.
+  if (Array.isArray(value)) {
+    return value.map(stripPinFieldsForShare);
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  return Object.entries(value).reduce((cleanValue, [key, entryValue]) => {
+    if (key === "lockPin" || key === "pin") {
+      return cleanValue;
+    }
+    cleanValue[key] = stripPinFieldsForShare(entryValue);
+    return cleanValue;
+  }, {});
+}
+
 function encodeSharePayload(payload) {
   // Encode JSON safely for a URL hash without requiring a server.
-  const json = JSON.stringify(payload);
+  const json = JSON.stringify(stripPinFieldsForShare(payload));
   const bytes = new TextEncoder().encode(json);
   let binary = "";
   bytes.forEach((byte) => {
@@ -702,6 +723,68 @@ function getCatalogCategoryKey(name) {
 function normalizeCategoryColor(value) {
   // Keep category background colors as simple hex values.
   return normalizeColor(value, DEFAULT_CATEGORY_COLOR);
+}
+
+function normalizePinLock(rawEntry) {
+  // Normalize optional PIN lock fields from imported or older catalog data.
+  const pin = String(rawEntry?.lockPin || rawEntry?.pin || "").trim();
+  return {
+    locked: Boolean(rawEntry?.locked && pin),
+    lockPin: pin,
+  };
+}
+
+function isCatalogEntryLocked(entry) {
+  // Treat entries as locked only when both the flag and PIN are present.
+  return Boolean(entry?.locked && entry?.lockPin);
+}
+
+function getLockIcon(entry) {
+  // Return the compact icon used by catalog item and category lock buttons.
+  return isCatalogEntryLocked(entry) ? "🔒" : "🔓";
+}
+
+function updateLockButton(button, entry) {
+  // Keep lock buttons visually and semantically aligned with the entry state.
+  if (!button) {
+    return;
+  }
+
+  const locked = isCatalogEntryLocked(entry);
+  button.textContent = getLockIcon(entry);
+  button.title = locked ? t("action.unlockPinLock") : t("action.lockPinLock");
+  button.setAttribute("aria-label", locked ? t("action.unlockPinLock") : t("action.lockPinLock"));
+}
+
+function togglePinLock(entry, name) {
+  // Add or remove the lightweight PIN lock after prompting for the matching code.
+  if (!entry) {
+    return false;
+  }
+
+  if (isCatalogEntryLocked(entry)) {
+    const pin = window.prompt(t("prompt.unlockPin", { name }), "");
+    if (pin !== entry.lockPin) {
+      alert(t("alert.invalidPin"));
+      return false;
+    }
+    entry.locked = false;
+    delete entry.lockPin;
+    return true;
+  }
+
+  const pin = String(window.prompt(t("prompt.setPin", { name }), "") || "").trim();
+  if (!pin) {
+    return false;
+  }
+  entry.locked = true;
+  entry.lockPin = pin;
+  return true;
+}
+
+function alertLockedEntry(name) {
+  // Explain why a catalog change was blocked by a PIN lock.
+  alert(t("alert.lockedEntry", { name }));
 }
 
 function normalizeLabelMode(value, item = {}) {
@@ -1045,6 +1128,11 @@ function normalizeLabelPartOrder(value) {
   return [...new Set([...cleanParts, "top", "main", "bottom"])];
 }
 
+function resetLabelPartOrder() {
+  // Reset sortable label regions before applying item-specific or preset-specific order.
+  state.labelPartOrder = normalizeLabelPartOrder();
+}
+
 function decodeUnicodeToken(token) {
   // Convert common user-entered Unicode formats into the visible symbol.
   const trimmed = String(token || "").trim();
@@ -1239,6 +1327,7 @@ function normalizeCatalog(rawCatalog) {
     categoriesByName.set(key, {
       name,
       color: normalizeCategoryColor(category.color),
+      ...normalizePinLock(category),
     });
   });
 
@@ -1272,6 +1361,7 @@ function normalizeCatalog(rawCatalog) {
         settings: itemSettings || undefined,
         textAbove: String(item.textAbove || item.upperText || "").trim(),
         textBelow: String(item.textBelow || item.lowerText || "").trim(),
+        ...normalizePinLock(item),
       };
     })
     .filter((item) => item.title);
@@ -1303,10 +1393,27 @@ function saveCatalog(options = {}) {
   state.catalog.items.forEach((item) => {
     // Strip sheet-composition data from catalog item setup before persisting/exporting.
     const itemSettings = getItemPresetSettings(item.settings);
+    const pinLock = normalizePinLock(item);
     if (itemSettings) {
       item.settings = itemSettings;
     } else {
       delete item.settings;
+    }
+    item.locked = pinLock.locked;
+    if (pinLock.locked) {
+      item.lockPin = pinLock.lockPin;
+    } else {
+      delete item.lockPin;
+    }
+  });
+  state.catalog.categories.forEach((category) => {
+    // Keep category locks exportable without leaving partial lock state behind.
+    const pinLock = normalizePinLock(category);
+    category.locked = pinLock.locked;
+    if (pinLock.locked) {
+      category.lockPin = pinLock.lockPin;
+    } else {
+      delete category.lockPin;
     }
   });
   state.catalog.totalItems = state.catalog.items.length;
@@ -1563,7 +1670,8 @@ function updateCurrentSaveButtonVisibility() {
   // Show the floating save button only when a selected catalog label or saved sheet has unsaved setup changes.
   el.saveItemSetupButton.classList.toggle(
     "is-hidden",
-    !selectedSheetHasUnsavedSetupChanges() && !(selectedItemHasUnsavedSetupChanges() && !state.selectedSheet && !state.selectedCategory),
+    !selectedSheetHasUnsavedSetupChanges() &&
+      !(selectedItemHasUnsavedSetupChanges() && !isCatalogEntryLocked(state.selectedItem) && !state.selectedSheet && !state.selectedCategory),
   );
 }
 
@@ -1573,6 +1681,7 @@ function applyItemPreset(item) {
   const preset = getPresetById(item?.presetId);
   let didApplySettings = false;
   setTextAlign("center", false);
+  resetLabelPartOrder();
   if (preset) {
     applySettingsSnapshot(getItemPresetSettings(preset.settings));
     el.presetSelect.value = preset.id;
@@ -1593,6 +1702,10 @@ function saveCurrentSetupToSelectedItem() {
   // Store the current paper, grid, and label styling directly on the selected catalog item.
   if (!isSavedCatalogItem(state.selectedItem)) {
     alert(t("alert.selectItemForSetup"));
+    return;
+  }
+  if (isCatalogEntryLocked(state.selectedItem)) {
+    alertLockedEntry(state.selectedItem.title);
     return;
   }
   if (!window.confirm(t("confirm.saveItemSetup", { title: state.selectedItem.title }))) {
@@ -1654,11 +1767,16 @@ function applySelectedPreset() {
   }
 
   if (state.selectedItem) {
+    if (isCatalogEntryLocked(state.selectedItem)) {
+      alertLockedEntry(state.selectedItem.title);
+      return;
+    }
     state.selectedItem.presetId = preset.id;
     state.selectedItem.settings = getItemPresetSettings(preset.settings);
     saveCatalog();
   }
   setTextAlign("center", false);
+  resetLabelPartOrder();
   applySettingsSnapshot(preset.settings);
   el.presetSelect.value = preset.id;
   captureSelectedItemSettingsBaseline();
@@ -2067,6 +2185,7 @@ function applySavedSheet(sheet) {
   state.selectedSheet = sheet;
   state.selectedCategory = null;
   setTextAlign("center", false);
+  resetLabelPartOrder();
   applySettingsSnapshot(sheet.settings);
   state.selectedItem = sheet.mode === "repeat" ? findItemFromSheetSettings(sheet.settings) : null;
   captureSelectedSheetSettingsBaseline();
@@ -2175,7 +2294,7 @@ function collectSettingsSnapshot() {
     experimentalTitleColor: el.experimentalTitleColor.value,
     experimentalCodeNumberColor: el.experimentalCodeNumberColor.value,
     experimentalPrintCount: Math.max(0, Number.parseInt(el.experimentalPrintCount.value, 10) || 0),
-    labelPartOrder: state.labelPartOrder,
+    labelPartOrder: normalizeLabelPartOrder(state.labelPartOrder),
     sheetFillMode: el.sheetFillMode.value,
     sequenceStart: Number.parseInt(el.sequenceStart.value, 10) || 1,
     sequenceEnd: Number.parseInt(el.sequenceEnd.value, 10) || 1,
@@ -2629,10 +2748,46 @@ function applyPreviewZoom() {
   el.zoomMeta.textContent = `${Math.round(state.previewZoom * 100)}%`;
 }
 
-function setPreviewZoom(nextZoom) {
+function getPreviewZoomAnchor(event) {
+  // Convert the mouse position into unscaled paper coordinates before zoom changes.
+  if (!event) {
+    return null;
+  }
+
+  const paperRect = el.paper.getBoundingClientRect();
+  const zoom = state.previewZoom || 1;
+  return {
+    clientX: event.clientX,
+    clientY: event.clientY,
+    paperX: (event.clientX - paperRect.left) / zoom,
+    paperY: (event.clientY - paperRect.top) / zoom,
+  };
+}
+
+function restorePreviewZoomAnchor(anchor) {
+  // Scroll the preview so the anchored paper coordinate remains under the mouse.
+  if (!anchor) {
+    return;
+  }
+
+  const paperRect = el.paper.getBoundingClientRect();
+  const anchoredClientX = paperRect.left + anchor.paperX * state.previewZoom;
+  const anchoredClientY = paperRect.top + anchor.paperY * state.previewZoom;
+  el.paperWrap.scrollLeft += anchoredClientX - anchor.clientX;
+  el.paperWrap.scrollTop += anchoredClientY - anchor.clientY;
+}
+
+function setPreviewZoom(nextZoom, anchorEvent = null) {
   // Update preview zoom from controls or the mouse wheel and persist the value.
-  state.previewZoom = clampZoom(nextZoom);
+  const zoom = clampZoom(nextZoom);
+  if (zoom === state.previewZoom) {
+    return;
+  }
+
+  const anchor = getPreviewZoomAnchor(anchorEvent);
+  state.previewZoom = zoom;
   applyPreviewZoom();
+  restorePreviewZoomAnchor(anchor);
   saveSettings();
 }
 
@@ -2720,6 +2875,7 @@ function ensureCategory(name, color = null) {
   const category = {
     name: categoryName,
     color: normalizeCategoryColor(color),
+    locked: false,
   };
   state.catalog.categories.push(category);
   state.catalog.categories.sort((a, b) => a.name.localeCompare(b.name));
@@ -2820,6 +2976,63 @@ function groupCatalogMatches(matches, query) {
   return [...groups.entries()].sort(([nameA], [nameB]) => nameA.localeCompare(nameB));
 }
 
+function toggleCatalogItemLock(item) {
+  // Toggle an item's PIN lock from the catalog list or item editor.
+  if (!item || !togglePinLock(item, item.title)) {
+    return;
+  }
+
+  saveCatalog();
+  renderSearchOptions();
+  renderSelectedItem();
+  if (el.itemEditModal.classList.contains("is-open") && state.selectedItem === item) {
+    syncItemEditLockState();
+  }
+}
+
+function toggleCatalogCategoryLock(category) {
+  // Toggle a category PIN lock and cascade that state to every item currently inside it.
+  if (!category || !togglePinLock(category, category.name)) {
+    return;
+  }
+
+  const categoryLocked = isCatalogEntryLocked(category);
+  state.catalog.items.forEach((item) => {
+    if (!categoriesMatch(item.category, category.name)) {
+      return;
+    }
+
+    item.locked = categoryLocked;
+    if (categoryLocked) {
+      item.lockPin = category.lockPin;
+    } else {
+      delete item.lockPin;
+    }
+  });
+  saveCatalog();
+  renderSearchOptions();
+  renderSelectedItem();
+  if (el.itemEditModal.classList.contains("is-open") && categoriesMatch(state.selectedItem?.category, category.name)) {
+    syncItemEditLockState();
+  }
+  if (el.categoryEditModal.classList.contains("is-open") && state.selectedCategory === category) {
+    syncCategoryEditLockState();
+  }
+}
+
+function createCatalogLockButton(entry, onToggle) {
+  // Build the right-side lock control used by item and category rows.
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "catalog-lock-button";
+  updateLockButton(button, entry);
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    onToggle();
+  });
+  return button;
+}
+
 function renderSearchOptions() {
   // Filter by title/category/code before grouping so saved category memberships stay visible.
   const query = el.searchInput.value.trim().toLowerCase();
@@ -2876,6 +3089,7 @@ function renderSearchOptions() {
     const header = document.createElement("div");
     const selectButton = document.createElement("button");
     const toggleButton = document.createElement("button");
+    const lockButton = category ? createCatalogLockButton(category, () => toggleCatalogCategoryLock(category)) : null;
     header.className = `catalog-category${isSelectedCategory ? " is-selected" : ""}`;
     header.dataset.category = categoryName;
     header.setAttribute("role", "option");
@@ -2900,7 +3114,11 @@ function renderSearchOptions() {
       saveSettings();
       renderSearchOptions();
     });
-    header.append(selectButton, toggleButton);
+    if (lockButton) {
+      header.append(selectButton, lockButton, toggleButton);
+    } else {
+      header.append(selectButton, toggleButton);
+    }
     el.codeSelect.append(header);
 
     if (isCollapsed) {
@@ -2908,14 +3126,14 @@ function renderSearchOptions() {
     }
 
     items.forEach((item) => {
-      const option = document.createElement("button");
+      const option = document.createElement("div");
       const isSelected = getItemKey(state.selectedItem) === getItemKey(item);
-      option.type = "button";
       option.className = `catalog-option${isSelected ? " is-selected" : ""}`;
       option.dataset.code = item.code;
       option.dataset.itemKey = getItemKey(item);
       option.setAttribute("role", "option");
       option.setAttribute("aria-selected", String(isSelected));
+      option.tabIndex = 0;
       option.style.setProperty("--item-color", normalizeColor(item.color));
 
       const color = document.createElement("span");
@@ -2924,8 +3142,19 @@ function renderSearchOptions() {
       label.className = "catalog-option-label";
       const itemMeta = normalizeLabelMode(item.labelMode, item) === "sign" ? t("option.labelModeSign") : item.code || t("status.textOnly");
       label.textContent = `${item.title} - ${itemMeta}`;
-      option.append(color, label);
+      const lockButton = createCatalogLockButton(item, () => toggleCatalogItemLock(item));
+      option.append(color, label, lockButton);
       option.addEventListener("click", () => selectItem(getItemKey(item)));
+      option.addEventListener("keydown", (event) => {
+        // Preserve keyboard selection now that item rows contain their own lock button.
+        if (event.target.closest(".catalog-lock-button")) {
+          return;
+        }
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          selectItem(getItemKey(item));
+        }
+      });
       el.codeSelect.append(option);
     });
   });
@@ -4054,6 +4283,11 @@ function setNewCategoryFieldsVisible(fields, visible) {
   fields.classList.toggle("is-hidden", !visible);
 }
 
+function setItemEditDuplicateOverrideVisible(visible) {
+  // Show the override action only after duplicate-code validation blocks a normal save.
+  el.itemEditIgnoreDuplicateButton.classList.toggle("is-hidden", !visible);
+}
+
 function getSelectedCategoryFromControls(select, fields, nameInput, colorInput) {
   // Read either an existing selected category or the revealed new category fields.
   if (!fields.classList.contains("is-hidden")) {
@@ -4081,7 +4315,7 @@ function openItemEditModal() {
 
   const color = normalizeColor(state.selectedItem.color);
   el.editModalError.textContent = "";
-  el.itemEditIgnoreDuplicateButton.classList.add("is-hidden");
+  setItemEditDuplicateOverrideVisible(false);
   el.editTitleInput.value = state.selectedItem.title;
   el.editLabelModeInput.value = normalizeLabelMode(state.selectedItem.labelMode, state.selectedItem);
   el.editCodeInput.value = state.selectedItem.code;
@@ -4100,10 +4334,15 @@ function openItemEditModal() {
   el.editCategoryColorInput.value = DEFAULT_CATEGORY_COLOR;
   el.editColorInput.value = color;
   syncEditColorPresets(color);
+  syncItemEditLockState();
   el.itemEditModal.classList.add("is-open");
   el.itemEditModal.setAttribute("aria-hidden", "false");
-  el.editTitleInput.focus();
-  el.editTitleInput.select();
+  if (isCatalogEntryLocked(state.selectedItem)) {
+    el.itemEditLockButton.focus();
+  } else {
+    el.editTitleInput.focus();
+    el.editTitleInput.select();
+  }
 }
 
 function closeItemEditModal() {
@@ -4111,8 +4350,20 @@ function closeItemEditModal() {
   el.itemEditModal.classList.remove("is-open");
   el.itemEditModal.setAttribute("aria-hidden", "true");
   el.editModalError.textContent = "";
-  el.itemEditIgnoreDuplicateButton.classList.add("is-hidden");
+  setItemEditDuplicateOverrideVisible(false);
   el.editCodeButton.focus();
+}
+
+function syncItemEditLockState() {
+  // Disable item editor fields while the selected item is PIN locked.
+  const locked = isCatalogEntryLocked(state.selectedItem);
+  updateLockButton(el.itemEditLockButton, state.selectedItem);
+  el.itemEditForm.querySelectorAll("input, select, textarea, button").forEach((control) => {
+    if ([el.itemEditLockButton, el.itemEditCancelButton, el.itemEditCloseButton].includes(control)) {
+      return;
+    }
+    control.disabled = locked;
+  });
 }
 
 function populateCategoryPresetSelect() {
@@ -4186,6 +4437,9 @@ function getCheckedCategoryItems() {
 function setVisibleCategoryItemSelection(checked) {
   // Toggle every currently visible category row checkbox and preserve the pending category assignment.
   el.categoryItemList.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
+    if (checkbox.disabled) {
+      return;
+    }
     checkbox.checked = checked;
     if (checked) {
       state.categoryEditCheckedKeys.add(checkbox.dataset.itemKey);
@@ -4250,9 +4504,12 @@ function renderCategoryItemChecklist(categoryName) {
     const mode = document.createElement("span");
     const categoryTag = document.createElement("span");
     const presetTag = document.createElement("span");
+    const lockTag = document.createElement("span");
     const checkbox = document.createElement("input");
     const itemPreset = getCategoryItemPreset(item);
+    const itemLocked = isCatalogEntryLocked(item);
     row.className = "category-item-row";
+    row.classList.toggle("is-locked", itemLocked);
     text.className = "category-item-text";
     title.textContent = item.title;
     meta.className = "category-item-meta";
@@ -4266,9 +4523,13 @@ function renderCategoryItemChecklist(categoryName) {
     categoryTag.style.setProperty("--tag-color", normalizeCategoryColor(itemCategory?.color || DEFAULT_CATEGORY_COLOR));
     presetTag.className = `category-preset-badge${itemPreset ? "" : " is-empty"}`;
     presetTag.textContent = itemPreset ? itemPreset.name : t("status.noPresetAssigned");
+    lockTag.className = `category-item-tag${itemLocked ? "" : " is-hidden"}`;
+    lockTag.textContent = getLockIcon(item);
+    lockTag.style.setProperty("--tag-color", DEFAULT_CATEGORY_COLOR);
     checkbox.type = "checkbox";
     checkbox.checked = state.categoryEditCheckedKeys.has(itemKey);
     checkbox.dataset.itemKey = itemKey;
+    checkbox.disabled = itemLocked;
     checkbox.addEventListener("change", () => {
       if (checkbox.checked) {
         state.categoryEditCheckedKeys.add(itemKey);
@@ -4276,7 +4537,7 @@ function renderCategoryItemChecklist(categoryName) {
         state.categoryEditCheckedKeys.delete(itemKey);
       }
     });
-    meta.append(code, mode, categoryTag, presetTag);
+    meta.append(code, mode, categoryTag, presetTag, lockTag);
     text.append(title, meta);
     row.append(checkbox, text);
     el.categoryItemList.append(row);
@@ -4300,10 +4561,15 @@ function openCategoryEditModal() {
   el.categoryColorInput.value = normalizeCategoryColor(state.selectedCategory.color);
   populateCategoryPresetSelect();
   renderCategoryItemChecklist(state.selectedCategory.name);
+  syncCategoryEditLockState();
   el.categoryEditModal.classList.add("is-open");
   el.categoryEditModal.setAttribute("aria-hidden", "false");
-  el.categoryNameInput.focus();
-  el.categoryNameInput.select();
+  if (isCatalogEntryLocked(state.selectedCategory)) {
+    el.categoryEditLockButton.focus();
+  } else {
+    el.categoryNameInput.focus();
+    el.categoryNameInput.select();
+  }
 }
 
 function closeCategoryEditModal() {
@@ -4315,10 +4581,26 @@ function closeCategoryEditModal() {
   el.editCodeButton.focus();
 }
 
+function syncCategoryEditLockState() {
+  // Disable category editor fields while the selected category is PIN locked.
+  const locked = isCatalogEntryLocked(state.selectedCategory);
+  updateLockButton(el.categoryEditLockButton, state.selectedCategory);
+  el.categoryEditForm.querySelectorAll("input, select, textarea, button").forEach((control) => {
+    if ([el.categoryEditLockButton, el.categoryEditCancelButton, el.categoryEditCloseButton].includes(control)) {
+      return;
+    }
+    control.disabled = locked;
+  });
+}
+
 function saveCategoryEditFromModal() {
   // Persist category details and apply the checked catalog item membership.
   if (!state.selectedCategory) {
     closeCategoryEditModal();
+    return;
+  }
+  if (isCatalogEntryLocked(state.selectedCategory)) {
+    alertLockedEntry(state.selectedCategory.name);
     return;
   }
 
@@ -4332,6 +4614,34 @@ function saveCategoryEditFromModal() {
 
   const oldColor = normalizeCategoryColor(state.selectedCategory.color);
   const checkedKeys = new Set(state.categoryEditCheckedKeys);
+  if (!categoriesMatch(oldName, nextName) && state.catalog.items.some((item) => isCatalogEntryLocked(item) && categoriesMatch(item.category, oldName))) {
+    el.categoryModalError.textContent = t("alert.lockedCategoryItems");
+    return;
+  }
+  if (
+    oldColor.toLowerCase() !== nextColor.toLowerCase() &&
+    state.catalog.items.some((item) => isCatalogEntryLocked(item) && (checkedKeys.has(getItemKey(item)) || categoriesMatch(item.category, oldName)))
+  ) {
+    el.categoryModalError.textContent = t("alert.lockedCategoryItems");
+    return;
+  }
+  const changesLockedItem = state.catalog.items.some((item) => {
+    const itemKey = getItemKey(item);
+    return isCatalogEntryLocked(item) && checkedKeys.has(itemKey) !== categoriesMatch(item.category, oldName);
+  });
+  if (changesLockedItem) {
+    el.categoryModalError.textContent = t("alert.lockedCategoryItems");
+    return;
+  }
+  const changesLockedCategoryMembership = state.catalog.items.some((item) => {
+    const currentCategory = getCategory(item.category);
+    const itemKey = getItemKey(item);
+    return currentCategory && isCatalogEntryLocked(currentCategory) && !categoriesMatch(currentCategory.name, oldName) && checkedKeys.has(itemKey);
+  });
+  if (changesLockedCategoryMembership) {
+    el.categoryModalError.textContent = t("alert.lockedCategoryItems");
+    return;
+  }
   const shouldAbortMove = state.catalog.items.some((item) => {
     const itemKey = getItemKey(item);
     const currentCategory = normalizeCategoryName(item.category);
@@ -4388,6 +4698,10 @@ function applyPresetToSelectedCategoryItems() {
     el.categoryModalError.textContent = t("alert.selectCategoryItems");
     return;
   }
+  if (items.some(isCatalogEntryLocked)) {
+    el.categoryModalError.textContent = t("alert.lockedCategoryItems");
+    return;
+  }
   if (!window.confirm(t("confirm.applyPresetToItems", { preset: preset.name, count: items.length }))) {
     return;
   }
@@ -4411,6 +4725,10 @@ function clearPresetFromSelectedCategoryItems() {
     el.categoryModalError.textContent = t("alert.selectCategoryItems");
     return;
   }
+  if (items.some(isCatalogEntryLocked)) {
+    el.categoryModalError.textContent = t("alert.lockedCategoryItems");
+    return;
+  }
   if (!window.confirm(t("confirm.clearPresetFromItems", { count: items.length }))) {
     return;
   }
@@ -4432,6 +4750,10 @@ function saveItemEditFromModal(options = {}) {
     closeItemEditModal();
     return;
   }
+  if (isCatalogEntryLocked(state.selectedItem)) {
+    alertLockedEntry(state.selectedItem.title);
+    return;
+  }
 
   const currentItem = state.selectedItem;
   const nextTitle = el.editTitleInput.value.trim();
@@ -4450,19 +4772,28 @@ function saveItemEditFromModal(options = {}) {
   const previousCategoryColor = normalizeCategoryColor(existingCategory?.color);
   const nextCategoryColor = categorySelection.color;
   const nextColor = normalizeColor(el.editColorInput.value);
+  const currentCategory = getCategory(currentItem.category);
 
   if (!nextTitle || (nextCode && !isCodeValidForType(nextCode, nextCodeType))) {
     el.editModalError.textContent = t("alert.titleAndOptionalCode");
+    setItemEditDuplicateOverrideVisible(false);
     return;
   }
 
   const duplicate = nextCode ? state.catalog.items.find((item) => item.code === nextCode && item !== currentItem) : null;
   if (duplicate && !options.allowDuplicateCode) {
     el.editModalError.textContent = t("alert.duplicateCodeWithItem", { title: duplicate.title, code: nextCode });
-    el.itemEditIgnoreDuplicateButton.classList.remove("is-hidden");
+    setItemEditDuplicateOverrideVisible(true);
     return;
   }
-  el.itemEditIgnoreDuplicateButton.classList.add("is-hidden");
+  setItemEditDuplicateOverrideVisible(false);
+  const changesLockedCategory =
+    (currentCategory && isCatalogEntryLocked(currentCategory) && !categoriesMatch(currentCategory.name, nextCategory)) ||
+    (existingCategory && isCatalogEntryLocked(existingCategory) && !categoriesMatch(currentItem.category, nextCategory));
+  if (changesLockedCategory) {
+    el.editModalError.textContent = t("alert.lockedEntry", { name: currentCategory?.name || existingCategory.name });
+    return;
+  }
 
   currentItem.title = nextTitle;
   currentItem.code = nextCode;
@@ -4517,6 +4848,10 @@ function deleteSelectedCode() {
   if (!state.selectedItem) {
     return;
   }
+  if (isCatalogEntryLocked(state.selectedItem)) {
+    alertLockedEntry(state.selectedItem.title);
+    return;
+  }
 
   const confirmed = window.confirm(t("confirm.deleteItem", { title: state.selectedItem.title }));
   if (!confirmed) {
@@ -4540,8 +4875,16 @@ function deleteSelectedCategory() {
   if (!state.selectedCategory) {
     return;
   }
+  if (isCatalogEntryLocked(state.selectedCategory)) {
+    alertLockedEntry(state.selectedCategory.name);
+    return;
+  }
 
   const categoryName = state.selectedCategory.name;
+  if (state.catalog.items.some((item) => isCatalogEntryLocked(item) && categoriesMatch(item.category, categoryName))) {
+    alert(t("alert.lockedCategoryItems"));
+    return;
+  }
   const count = state.catalog.items.filter((item) => normalizeCategoryName(item.category) === categoryName).length;
   const confirmed = window.confirm(t("confirm.deleteCategory", { category: categoryName, count }));
   if (!confirmed) {
@@ -5372,6 +5715,7 @@ function moveLabelPart(part, beforePart) {
 
 function clearLabelSortDropState() {
   // Remove drag spacing and hover state from every sort rectangle.
+  state.labelSortDrop = null;
   el.labelSortList.classList.remove("is-sorting");
   el.labelSortList.querySelectorAll(".label-sort-item").forEach((item) => {
     item.classList.remove("is-dragging", "is-drop-target", "is-drop-before", "is-drop-after");
@@ -5380,6 +5724,7 @@ function clearLabelSortDropState() {
 
 function updateLabelSortDropTarget(target, position) {
   // Open a visible before/after drop slot on the rectangle currently under the pointer.
+  state.labelSortDrop = target?.dataset.part ? { part: target.dataset.part, position } : null;
   el.labelSortList.classList.add("is-sorting");
   el.labelSortList.querySelectorAll(".label-sort-item").forEach((item) => {
     const isTarget = item === target;
@@ -5397,6 +5742,31 @@ function getLabelSortDropPart(target, position) {
 
   const nextItem = target.nextElementSibling?.closest?.(".label-sort-item");
   return nextItem?.dataset.part || null;
+}
+
+function getLabelSortTargetFromPoint(clientY) {
+  // Resolve a before/after slot from the pointer Y position, including the visual gaps opened during sorting.
+  const items = [...el.labelSortList.querySelectorAll(".label-sort-item")].filter((item) => item.getAttribute("aria-disabled") !== "true");
+  if (!items.length) {
+    return null;
+  }
+
+  for (const item of items) {
+    const rect = item.getBoundingClientRect();
+    if (clientY < rect.top + rect.height / 2) {
+      return { target: item, position: "before" };
+    }
+  }
+  return { target: items[items.length - 1], position: "after" };
+}
+
+function getLabelSortDropFromState() {
+  // Return the last highlighted drop slot so dropping on the opened gap still succeeds.
+  if (!state.labelSortDrop) {
+    return null;
+  }
+  const target = [...el.labelSortList.querySelectorAll(".label-sort-item")].find((item) => item.dataset.part === state.labelSortDrop.part);
+  return target ? { target, position: state.labelSortDrop.position } : null;
 }
 
 function updatePrintPageSize(layout) {
@@ -6210,10 +6580,32 @@ function bindEvents() {
     // Save only after the user explicitly accepts keeping a duplicate code.
     saveItemEditFromModal({ allowDuplicateCode: true });
   });
+  el.itemEditLockButton.addEventListener("click", () => {
+    // Let the item editor lock or unlock the current item without closing the modal.
+    if (!state.selectedItem) {
+      return;
+    }
+    toggleCatalogItemLock(state.selectedItem);
+    syncItemEditLockState();
+  });
+  [el.editCodeInput, el.editCodeTypeInput].forEach((input) => {
+    // Hide the duplicate override as soon as the code being validated changes.
+    input.addEventListener("input", () => setItemEditDuplicateOverrideVisible(false));
+    input.addEventListener("change", () => setItemEditDuplicateOverrideVisible(false));
+  });
   el.categoryEditForm.addEventListener("submit", (event) => {
     // Save category edits without reloading the static page.
     event.preventDefault();
     saveCategoryEditFromModal();
+  });
+  el.categoryEditLockButton.addEventListener("click", () => {
+    // Let the category editor lock or unlock the current category without closing the modal.
+    if (!state.selectedCategory) {
+      return;
+    }
+    toggleCatalogCategoryLock(state.selectedCategory);
+    renderCategoryItemChecklist(state.selectedCategory.name);
+    syncCategoryEditLockState();
   });
   el.applyCategoryPresetButton.addEventListener("click", applyPresetToSelectedCategoryItems);
   el.clearCategoryPresetButton.addEventListener("click", clearPresetFromSelectedCategoryItems);
@@ -6376,7 +6768,7 @@ function bindEvents() {
       }
 
       event.preventDefault();
-      setPreviewZoom(state.previewZoom + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP));
+      setPreviewZoom(state.previewZoom + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP), event);
     },
     { passive: false },
   );
@@ -6546,16 +6938,14 @@ function bindEvents() {
     clearLabelSortDropState();
   });
   el.labelSortList.addEventListener("dragover", (event) => {
-    // Track whether the pointer is above or below the hovered rectangle midpoint.
-    const target = event.target.closest(".label-sort-item");
-    if (!target || target.getAttribute("aria-disabled") === "true") {
+    // Track the intended slot across the full list, including opened spacing between rectangles.
+    const dropTarget = getLabelSortTargetFromPoint(event.clientY);
+    if (!dropTarget) {
       return;
     }
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
-    const targetRect = target.getBoundingClientRect();
-    const position = event.clientY < targetRect.top + targetRect.height / 2 ? "before" : "after";
-    updateLabelSortDropTarget(target, position);
+    updateLabelSortDropTarget(dropTarget.target, dropTarget.position);
   });
   el.labelSortList.addEventListener("dragleave", (event) => {
     // Remove the open slot when the pointer leaves the whole sort list.
@@ -6565,14 +6955,13 @@ function bindEvents() {
   });
   el.labelSortList.addEventListener("drop", (event) => {
     // Move the dragged label region into the visible before/after slot.
-    const target = event.target.closest(".label-sort-item");
+    const dropTarget = getLabelSortDropFromState() || getLabelSortTargetFromPoint(event.clientY);
     const part = event.dataTransfer.getData("text/plain");
-    if (!target || !part || target.getAttribute("aria-disabled") === "true") {
+    if (!dropTarget || !part) {
       return;
     }
     event.preventDefault();
-    const position = target.classList.contains("is-drop-after") ? "after" : "before";
-    const beforePart = getLabelSortDropPart(target, position);
+    const beforePart = getLabelSortDropPart(dropTarget.target, dropTarget.position);
     clearLabelSortDropState();
     if (part !== beforePart) {
       moveLabelPart(part, beforePart);

@@ -693,6 +693,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
           <label for="editPresetSelect" data-i18n="label.itemPreset">Item preset</label>
           <select id="editPresetSelect"></select>
 
+          <div class="lock-edit-row">
+            <span>
+              <span class="field-label" data-i18n="label.pinLock">PIN lock</span>
+              <span class="lock-help" data-i18n="status.pinLockHelp">Prevents accidental changes until unlocked with the PIN.</span>
+            </span>
+            <button id="itemEditLockButton" class="secondary-button lock-toggle-button" type="button" data-lock-target="item">Lock</button>
+          </div>
+
           <div class="category-edit-row">
             <label for="editCategorySelect">
               <span data-i18n="label.category">Category</span>
@@ -748,6 +756,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
               <span data-i18n="label.categoryColor">Category color</span>
               <input id="categoryColorInput" type="color" value="#e5e7eb" />
             </label>
+          </div>
+          <div class="lock-edit-row">
+            <span>
+              <span class="field-label" data-i18n="label.pinLock">PIN lock</span>
+              <span class="lock-help" data-i18n="status.pinLockHelp">Prevents accidental changes until unlocked with the PIN.</span>
+            </span>
+            <button id="categoryEditLockButton" class="secondary-button lock-toggle-button" type="button" data-lock-target="category">Lock</button>
           </div>
           <div>
             <span class="field-label" data-i18n="label.categoryItems">Category items</span>
