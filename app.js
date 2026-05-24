@@ -888,6 +888,20 @@ function getSheetModeLabelKey(mode) {
   return "option.sheetFillRepeat";
 }
 
+function getSavedSheetGroupLabelKey(mode) {
+  // Group saved sheets by the mode that created them in the catalog list.
+  if (mode === "sequence") {
+    return "section.savedSequenceLabels";
+  }
+  if (mode === "queue") {
+    return "section.savedMixedLabels";
+  }
+  if (mode === "freestyle") {
+    return "section.savedFreestyleLabels";
+  }
+  return "section.savedRepeatedLabels";
+}
+
 function clampNumber(value, min, max) {
   // Keep freeform percentage geometry and rotations inside practical numeric bounds.
   const number = Number.parseFloat(value);
@@ -2216,7 +2230,20 @@ function saveCurrentSheet() {
     return;
   }
 
-  const existing = state.selectedSheet && state.catalog.labelSheets.find((sheet) => sheet.id === state.selectedSheet.id);
+  const existingBySelection = state.selectedSheet && state.catalog.labelSheets.find((sheet) => sheet.id === state.selectedSheet.id);
+  const existingByName = state.catalog.labelSheets.find((sheet) => normalizeSheetFillMode(sheet.mode) === mode && sheet.name.toLocaleLowerCase() === name.toLocaleLowerCase());
+  const existing = existingBySelection || existingByName || null;
+  if (existing) {
+    const firstWarning = window.confirm(t("confirm.overwriteSavedSheet", { name: existing.name }));
+    if (!firstWarning) {
+      return;
+    }
+    const secondWarning = window.confirm(t("confirm.overwriteSavedSheetFinal", { name: existing.name }));
+    if (!secondWarning) {
+      return;
+    }
+  }
+
   const savedSheet = normalizeLabelSheet({
     id: existing?.id || createSheetId(name),
     name,
@@ -3058,27 +3085,42 @@ function renderSearchOptions() {
   el.codeSelect.append(emptyOption);
 
   if (sheetMatches.length) {
-    const header = document.createElement("div");
-    header.className = "catalog-category";
-    header.setAttribute("role", "presentation");
-    header.innerHTML = `<span class="catalog-category-select">${t("section.savedSheets")}</span>`;
-    el.codeSelect.append(header);
+    const sheetsByMode = new Map();
     sheetMatches.forEach((sheet) => {
-      const option = document.createElement("button");
-      const isSelected = state.selectedSheet?.id === sheet.id;
-      const color = document.createElement("span");
-      const label = document.createElement("span");
-      option.type = "button";
-      option.className = `catalog-option catalog-sheet-option${isSelected ? " is-selected" : ""}`;
-      option.dataset.sheetId = sheet.id;
-      option.setAttribute("role", "option");
-      option.setAttribute("aria-selected", String(isSelected));
-      color.className = "catalog-color";
-      label.className = "catalog-option-label";
-      label.textContent = `${sheet.name} - ${t(getSheetModeLabelKey(sheet.mode))}`;
-      option.append(color, label);
-      option.addEventListener("click", () => applySavedSheet(sheet));
-      el.codeSelect.append(option);
+      const mode = normalizeSheetFillMode(sheet.mode);
+      if (!sheetsByMode.has(mode)) {
+        sheetsByMode.set(mode, []);
+      }
+      sheetsByMode.get(mode).push(sheet);
+    });
+    ["repeat", "sequence", "queue", "freestyle"].forEach((mode) => {
+      const sheets = sheetsByMode.get(mode) || [];
+      if (!sheets.length) {
+        return;
+      }
+
+      const header = document.createElement("div");
+      header.className = "catalog-category";
+      header.setAttribute("role", "presentation");
+      header.innerHTML = `<span class="catalog-category-select">${t(getSavedSheetGroupLabelKey(mode))}</span>`;
+      el.codeSelect.append(header);
+      sheets.forEach((sheet) => {
+        const option = document.createElement("button");
+        const isSelected = state.selectedSheet?.id === sheet.id;
+        const color = document.createElement("span");
+        const label = document.createElement("span");
+        option.type = "button";
+        option.className = `catalog-option catalog-sheet-option${isSelected ? " is-selected" : ""}`;
+        option.dataset.sheetId = sheet.id;
+        option.setAttribute("role", "option");
+        option.setAttribute("aria-selected", String(isSelected));
+        color.className = "catalog-color";
+        label.className = "catalog-option-label";
+        label.textContent = `${sheet.name} - ${t(getSheetModeLabelKey(sheet.mode))}`;
+        option.append(color, label);
+        option.addEventListener("click", () => applySavedSheet(sheet));
+        el.codeSelect.append(option);
+      });
     });
   }
 
@@ -3174,8 +3216,8 @@ function renderSelectedItem() {
     el.selectedTitle.textContent = state.selectedSheet.name;
     el.selectedCodeValue.textContent = t(getSheetModeLabelKey(state.selectedSheet.mode));
     el.selectedCodeValue.className = "selected-category-meta";
-    el.editCodeButton.disabled = true;
-    el.deleteCodeButton.disabled = true;
+    el.editCodeButton.disabled = false;
+    el.deleteCodeButton.disabled = false;
     return;
   }
 
@@ -4833,6 +4875,10 @@ function saveItemEditFromModal(options = {}) {
 
 function editSelectedCode() {
   // Open the correct editor for the current catalog selection.
+  if (state.selectedSheet) {
+    alert(t("alert.editSavedSheet", { mode: t(getSheetModeLabelKey(state.selectedSheet.mode)) }));
+    return;
+  }
   if (state.selectedCategory) {
     openCategoryEditModal();
     return;
@@ -4842,6 +4888,10 @@ function editSelectedCode() {
 
 function deleteSelectedCode() {
   // Remove the selected item or selected category from localStorage-backed catalog data.
+  if (state.selectedSheet) {
+    deleteSelectedSheet();
+    return;
+  }
   if (state.selectedCategory) {
     deleteSelectedCategory();
     return;
@@ -4869,6 +4919,27 @@ function deleteSelectedCode() {
     renderSelectedItem();
     renderLabels();
   }
+}
+
+function deleteSelectedSheet() {
+  // Remove the selected saved sheet from the catalog-backed sheet collection.
+  if (!state.selectedSheet) {
+    return;
+  }
+
+  const confirmed = window.confirm(t("confirm.deleteSavedSheet", { name: state.selectedSheet.name }));
+  if (!confirmed) {
+    return;
+  }
+
+  const deletedId = state.selectedSheet.id;
+  state.catalog.labelSheets = state.catalog.labelSheets.filter((sheet) => sheet.id !== deletedId);
+  state.selectedSheet = null;
+  state.selectedSheetSettingsBaseline = "";
+  saveCatalog();
+  renderSearchOptions();
+  renderSelectedItem();
+  renderLabels();
 }
 
 function deleteSelectedCategory() {
