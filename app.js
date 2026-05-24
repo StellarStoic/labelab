@@ -340,6 +340,7 @@ const state = {
   labelPartOrder: ["top", "main", "bottom"],
   labelSortDrop: null,
   sheetQueue: [],
+  pendingCatalogInsert: false,
   freestyleObjects: [],
   activeFreestyleObjectId: "",
   freestylePointer: null,
@@ -941,7 +942,8 @@ function normalizeFreestyleObjects(value) {
       const customSigns = parsecustomSigns(entry?.customSigns || "");
       const imageSrc = String(entry?.imageSrc || "");
       const imageName = String(entry?.imageName || "").trim();
-      if (!text.trim() && !signs.length && !customSigns.length && !imageSrc && !entry?.keepEmpty) {
+      const labelItem = normalizeSheetQueue(entry?.labelItem ? [entry.labelItem] : [])[0] || null;
+      if (!text.trim() && !signs.length && !customSigns.length && !imageSrc && !labelItem && !entry?.keepEmpty) {
         return null;
       }
 
@@ -958,6 +960,9 @@ function normalizeFreestyleObjects(value) {
         customSigns,
         imageSrc,
         imageName,
+        labelItem,
+        locked: Boolean(entry?.locked || labelItem?.locked),
+        lockedSettings: normalizeLockedSheetSettings(entry?.lockedSettings || labelItem?.lockedSettings),
         style: normalizeFreestyleStyle(entry?.style || entry || {}),
       };
     })
@@ -994,6 +999,7 @@ function normalizeSheetQueue(value) {
         quantity: Math.max(1, Number.parseInt(entry.quantity, 10) || 1),
         locked: Boolean(entry.locked),
         lockedSettings: normalizeLockedSheetSettings(entry.lockedSettings),
+        settings: normalizeLockedSheetSettings(entry.settings),
       };
       return queueEntry;
     })
@@ -1021,6 +1027,7 @@ function normalizeLockedSheetSettings(settings) {
     "marginBottom",
     "gapX",
     "gapY",
+    "codeType",
     "labelFont",
     "textAlign",
     "titleSize",
@@ -1232,6 +1239,10 @@ function applyTranslations() {
   document.documentElement.lang = state.locale;
   document.querySelectorAll("[data-i18n]").forEach((node) => {
     node.textContent = t(node.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach((node) => {
+    // Render trusted local translation snippets that intentionally include simple links.
+    node.innerHTML = t(node.dataset.i18nHtml);
   });
   document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
     node.setAttribute("placeholder", t(node.dataset.i18nPlaceholder));
@@ -2197,6 +2208,7 @@ function findItemFromSheetSettings(settings) {
 function applySavedSheet(sheet) {
   // Restore a saved repeat, sequence, or mixed label sheet from the catalog.
   const previousMode = normalizeSheetFillMode(el.sheetFillMode.value);
+  state.pendingCatalogInsert = false;
   state.selectedSheet = sheet;
   state.selectedCategory = null;
   setTextAlign("center", false);
@@ -3118,7 +3130,7 @@ function renderSearchOptions() {
         label.className = "catalog-option-label";
         label.textContent = `${sheet.name} - ${t(getSheetModeLabelKey(sheet.mode))}`;
         option.append(color, label);
-        option.addEventListener("click", () => applySavedSheet(sheet));
+        option.addEventListener("click", () => handleCatalogSheetClick(sheet));
         el.codeSelect.append(option);
       });
     });
@@ -3187,7 +3199,7 @@ function renderSearchOptions() {
       label.textContent = `${item.title} - ${itemMeta}`;
       const lockButton = createCatalogLockButton(item, () => toggleCatalogItemLock(item));
       option.append(color, label, lockButton);
-      option.addEventListener("click", () => selectItem(getItemKey(item)));
+      option.addEventListener("click", () => handleCatalogItemClick(item));
       option.addEventListener("keydown", (event) => {
         // Preserve keyboard selection now that item rows contain their own lock button.
         if (event.target.closest(".catalog-lock-button")) {
@@ -3195,7 +3207,7 @@ function renderSearchOptions() {
         }
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          selectItem(getItemKey(item));
+          handleCatalogItemClick(item);
         }
       });
       el.codeSelect.append(option);
@@ -3257,6 +3269,7 @@ function renderSelectedItem() {
 
 function selectItem(itemKey) {
   // Store the chosen catalog item as a normal repeat sheet and redraw it for printing.
+  state.pendingCatalogInsert = false;
   const nextItem = itemKey ? state.catalog.items.find((item) => getItemKey(item) === itemKey || item.code === itemKey) || null : null;
   const currentKey = state.selectedItem ? getItemKey(state.selectedItem) : "";
   const nextKey = nextItem ? getItemKey(nextItem) : "";
@@ -3291,6 +3304,7 @@ function selectItem(itemKey) {
 
 function selectCategory(name) {
   // Select a category row so edit/delete actions operate on the category instead of an item.
+  state.pendingCatalogInsert = false;
   state.selectedSheet = null;
   state.selectedItem = null;
   state.selectedCategory = getCategory(name);
@@ -3410,6 +3424,104 @@ function applyFreestyleStyleToControls(style) {
   setColorInputValue(el.experimentalTitleColor, normalized.experimentalTitleColor, "#111827");
 }
 
+function applyLabelStyleSettingsToControls(settings) {
+  // Load a freestyle embedded label's saved styling into the shared Style controls without changing paper format.
+  const normalized = normalizeLockedSheetSettings(settings);
+  if (!normalized) {
+    return;
+  }
+
+  if (normalized.codeType !== undefined) {
+    el.codeType.value = normalizeCodeType(normalized.codeType);
+  }
+  if (normalized.labelFont !== undefined) {
+    el.labelFont.value = normalized.labelFont;
+  }
+  if (normalized.textAlign !== undefined) {
+    setTextAlign(normalized.textAlign, false);
+  }
+  if (normalized.titleSize !== undefined) {
+    setMeasurementValue(el.titleSize, normalized.titleSize);
+  }
+  if (normalized.codeTextSize !== undefined) {
+    setMeasurementValue(el.codeTextSize, normalized.codeTextSize);
+  }
+  if (normalized.textAboveSize !== undefined) {
+    setMeasurementValue(el.textAboveSize, normalized.textAboveSize);
+  }
+  if (normalized.textBelowSize !== undefined) {
+    setMeasurementValue(el.textBelowSize, normalized.textBelowSize);
+  }
+  if (normalized.codePaddingLeft !== undefined) {
+    setMeasurementValue(el.codePaddingLeft, normalized.codePaddingLeft);
+  }
+  if (normalized.codePaddingRight !== undefined) {
+    setMeasurementValue(el.codePaddingRight, normalized.codePaddingRight);
+  }
+  if (normalized.codePaddingTop !== undefined) {
+    setMeasurementValue(el.codePaddingTop, normalized.codePaddingTop);
+  }
+  if (normalized.codePaddingBottom !== undefined) {
+    setMeasurementValue(el.codePaddingBottom, normalized.codePaddingBottom);
+  }
+  if (normalized.barcodeMaxHeight !== undefined) {
+    setMeasurementValue(el.barcodeMaxHeight, normalized.barcodeMaxHeight);
+  }
+  if (normalized.qrMaxSize !== undefined) {
+    setMeasurementValue(el.qrMaxSize, normalized.qrMaxSize);
+  }
+  if (normalized.signMaxSize !== undefined) {
+    setMeasurementValue(el.signMaxSize, normalized.signMaxSize);
+  }
+  if (normalized.signPaddingLeft !== undefined) {
+    setMeasurementValue(el.signPaddingLeft, normalized.signPaddingLeft);
+  }
+  if (normalized.signPaddingRight !== undefined) {
+    setMeasurementValue(el.signPaddingRight, normalized.signPaddingRight);
+  }
+  if (normalized.signPaddingTop !== undefined) {
+    setMeasurementValue(el.signPaddingTop, normalized.signPaddingTop);
+  }
+  if (normalized.signPaddingBottom !== undefined) {
+    setMeasurementValue(el.signPaddingBottom, normalized.signPaddingBottom);
+  }
+  [
+    "includeTitle",
+    "includeCodeNumber",
+    "includeTextAbove",
+    "includeTextBelow",
+    "titleBold",
+    "titleItalic",
+    "codeBold",
+    "codeItalic",
+    "textMiddleBold",
+    "textMiddleItalic",
+    "textAboveBold",
+    "textAboveItalic",
+    "textBelowBold",
+    "textBelowItalic",
+  ].forEach((key) => {
+    if (normalized[key] !== undefined && el[key]) {
+      el[key].checked = Boolean(normalized[key]);
+    }
+  });
+  if (normalized.experimentalLabelBackground !== undefined) {
+    setColorInputValue(el.experimentalLabelBackground, normalized.experimentalLabelBackground, "#ffffff");
+  }
+  if (normalized.experimentalBarcodeColor !== undefined) {
+    setColorInputValue(el.experimentalBarcodeColor, normalized.experimentalBarcodeColor, "#111111");
+  }
+  if (normalized.experimentalTitleColor !== undefined) {
+    setColorInputValue(el.experimentalTitleColor, normalized.experimentalTitleColor, "#111827");
+  }
+  if (normalized.experimentalCodeNumberColor !== undefined) {
+    setColorInputValue(el.experimentalCodeNumberColor, normalized.experimentalCodeNumberColor, "#111827");
+  }
+  if (normalized.labelPartOrder !== undefined) {
+    state.labelPartOrder = normalizeLabelPartOrder(normalized.labelPartOrder);
+  }
+}
+
 function syncActiveFreestyleStyleFromControls() {
   // Save Style control changes to the active object instead of every freestyle object.
   if (normalizeSheetFillMode(el.sheetFillMode.value) !== "freestyle" || !state.activeFreestyleObjectId) {
@@ -3417,7 +3529,11 @@ function syncActiveFreestyleStyleFromControls() {
   }
 
   const object = getFreestyleObject(state.activeFreestyleObjectId);
-  if (object) {
+  if (object?.labelItem && !isFreestyleObjectLocked(object)) {
+    object.labelItem.settings = collectSheetLockSettings();
+    return;
+  }
+  if (object && !object.labelItem && !isFreestyleObjectLocked(object)) {
     object.style = getCurrentFreestyleStyle();
   }
 }
@@ -3433,6 +3549,9 @@ function applyFreestyleObjectStyle(objectEl, object) {
   objectEl.style.setProperty("--text-middle-weight", style.textMiddleBold ? "700" : "400");
   objectEl.style.setProperty("--text-middle-style", style.textMiddleItalic ? "italic" : "normal");
   objectEl.style.setProperty("--experimental-title-color", style.experimentalTitleColor);
+  if (isFreestyleObjectLocked(object) && object.lockedSettings) {
+    applyLockedLabelStyles(objectEl, object.lockedSettings);
+  }
 }
 
 function isAllowedFreestyleImageFile(file) {
@@ -3452,10 +3571,11 @@ function readFreestyleImageFile(file) {
 
 function getFreestyleDefaultObject() {
   // Create a practical starting rectangle for catalog/sign insertion when none is active yet.
+  const offset = state.freestyleObjects.length % 8;
   return {
     id: `freestyle-${Date.now()}`,
-    x: 8,
-    y: 8,
+    x: 8 + offset * 2,
+    y: 8 + offset * 2,
     width: FREESTYLE_DEFAULT_WIDTH_PERCENT,
     height: FREESTYLE_DEFAULT_HEIGHT_PERCENT,
     rotation: 0,
@@ -3463,6 +3583,9 @@ function getFreestyleDefaultObject() {
     text: "",
     signs: [],
     customSigns: [],
+    labelItem: null,
+    locked: false,
+    lockedSettings: null,
     style: getCurrentFreestyleStyle(),
   };
 }
@@ -3485,8 +3608,16 @@ function setActiveFreestyleObject(id, shouldFocus = false) {
     objectEl.classList.toggle("is-active", objectEl.dataset.id === state.activeFreestyleObjectId);
   });
   const activeObject = getFreestyleObject(state.activeFreestyleObjectId);
-  if (activeObject) {
+  if (activeObject && !activeObject.labelItem && isFreestyleObjectLocked(activeObject)) {
+    applyLabelStyleSettingsToControls(activeObject.lockedSettings || activeObject.style);
+  } else if (activeObject && !activeObject.labelItem) {
     applyFreestyleStyleToControls(activeObject.style);
+  } else if (activeObject?.labelItem) {
+    applyLabelStyleSettingsToControls(
+      isFreestyleObjectLocked(activeObject)
+        ? activeObject.lockedSettings || activeObject.labelItem.lockedSettings || activeObject.labelItem.settings
+        : activeObject.labelItem.settings || collectSheetLockSettings(),
+    );
   }
   if (!shouldFocus || !id) {
     return;
@@ -3555,26 +3686,88 @@ function renderFreestyleSigns(object, signsEl) {
   signsEl.classList.toggle("is-hidden", !signsEl.children.length);
 }
 
+function createFreestyleLabelPreview(object) {
+  // Render one catalog label inside a freestyle geometry object, including its barcode or QR symbol.
+  const styleSettings = isFreestyleObjectLocked(object)
+    ? normalizeLockedSheetSettings(object.lockedSettings || object.labelItem.lockedSettings)
+    : normalizeLockedSheetSettings(object.labelItem.settings);
+  const label = createLabel(object.labelItem, { styleSettings });
+  label.classList.add("freestyle-label-preview");
+  return label;
+}
+
+function isFreestyleObjectLocked(object) {
+  // Treat any freeform geometry object as locked when its own flag or old embedded-label flag is active.
+  return Boolean(object?.locked || object?.labelItem?.locked);
+}
+
+function toggleFreestyleObjectLock(object) {
+  // Lock or unlock one freestyle object so style, text, and geometry edits are deliberate.
+  if (!object) {
+    return;
+  }
+
+  const nextLocked = !isFreestyleObjectLocked(object);
+  object.locked = nextLocked;
+  if (nextLocked) {
+    object.lockedSettings = collectSheetLockSettings();
+    object.style = normalizeFreestyleStyle(object.lockedSettings);
+    if (object.labelItem) {
+      object.labelItem.settings = object.lockedSettings;
+      object.labelItem.locked = true;
+      object.labelItem.lockedSettings = object.lockedSettings;
+    }
+  } else {
+    const ownSettings = normalizeLockedSheetSettings(object.lockedSettings || object.labelItem?.lockedSettings || object.labelItem?.settings);
+    if (ownSettings) {
+      applyLabelStyleSettingsToControls(ownSettings);
+      object.style = normalizeFreestyleStyle(ownSettings);
+    }
+    object.lockedSettings = null;
+    if (object.labelItem) {
+      object.labelItem.settings = ownSettings || object.labelItem.settings;
+      object.labelItem.locked = false;
+      object.labelItem.lockedSettings = null;
+    }
+  }
+  if (object.labelItem) {
+    object.labelItem.locked = nextLocked;
+  }
+  renderLabels();
+  saveSettings();
+}
+
 function createFreestyleObjectElement(object) {
   // Build one editable rectangle that can be typed into and transformed from its corner handle.
   const objectEl = document.createElement("div");
   const handle = document.createElement("button");
+  const lockButton = document.createElement("button");
   const imageEl = document.createElement("img");
   const signsEl = document.createElement("div");
   const textEl = document.createElement("div");
-  objectEl.className = `freestyle-object${object.id === state.activeFreestyleObjectId ? " is-active" : ""}`;
+  objectEl.className = `freestyle-object${object.id === state.activeFreestyleObjectId ? " is-active" : ""}${isFreestyleObjectLocked(object) ? " is-locked" : ""}`;
   objectEl.dataset.id = object.id;
   handle.type = "button";
   handle.className = "freestyle-handle";
   handle.textContent = getFreestyleToolLabel(object.tool);
   handle.setAttribute("aria-label", t("aria.freestyleHandle"));
+  lockButton.type = "button";
+  lockButton.className = "freestyle-lock";
+  lockButton.textContent = isFreestyleObjectLocked(object) ? "🔒" : "🔓";
+  lockButton.setAttribute("aria-label", isFreestyleObjectLocked(object) ? t("action.unlockFreestyleObject") : t("action.lockFreestyleObject"));
+  lockButton.title = isFreestyleObjectLocked(object) ? t("action.unlockFreestyleObject") : t("action.lockFreestyleObject");
+  lockButton.addEventListener("click", (event) => {
+    // Toggle the selected embedded label lock without starting a move or text edit.
+    event.preventDefault();
+    event.stopPropagation();
+    toggleFreestyleObjectLock(object);
+  });
   imageEl.className = "freestyle-image";
   imageEl.src = object.imageSrc || "";
   imageEl.alt = object.imageName || "";
   imageEl.draggable = false;
   signsEl.className = "freestyle-signs";
   textEl.className = "freestyle-text";
-  textEl.contentEditable = "true";
   textEl.spellcheck = false;
   textEl.textContent = object.text || "";
   textEl.addEventListener("input", () => {
@@ -3589,11 +3782,20 @@ function createFreestyleObjectElement(object) {
     event.stopPropagation();
   });
   renderFreestyleSigns(object, signsEl);
-  if (object.imageSrc) {
+  if (object.labelItem) {
+    objectEl.classList.add("has-label");
+    objectEl.append(createFreestyleLabelPreview(object));
+  } else if (object.imageSrc) {
     objectEl.classList.add("has-image");
+    textEl.contentEditable = String(!isFreestyleObjectLocked(object));
     objectEl.append(imageEl);
+    objectEl.append(signsEl, textEl);
+  } else {
+    textEl.contentEditable = String(!isFreestyleObjectLocked(object));
+    objectEl.append(signsEl, textEl);
   }
-  objectEl.append(handle, signsEl, textEl);
+  objectEl.append(lockButton);
+  objectEl.append(handle);
   applyFreestyleObjectStyle(objectEl, object);
   syncFreestyleObjectElement(object);
   return objectEl;
@@ -3609,28 +3811,75 @@ function renderFreestyleObjects() {
   setActiveFreestyleObject(state.activeFreestyleObjectId, false);
 }
 
-function insertFreestyleContent({ text = "", signs = [], customSigns = [] }) {
+function createSheetEntryFromCatalogItem(item, options = {}) {
+  // Convert a catalog item into one printable sheet entry, preserving saved item styling when available.
+  const lockedSettings = options.lockedSettings ? normalizeLockedSheetSettings(options.lockedSettings) : null;
+  const settings = normalizeLockedSheetSettings(options.settings || options.lockedSettings || item?.settings || collectSheetLockSettings());
+  return normalizeSheetQueue([
+    {
+      ...item,
+      id: options.id || `sheet-${getItemKey(item)}-${Date.now()}`,
+      locked: Boolean(lockedSettings),
+      lockedSettings,
+      settings,
+      quantity: 1,
+    },
+  ])[0];
+}
+
+function insertFreestyleContent({ text = "", signs = [], customSigns = [], style = null }) {
   // Add catalog, Unicode, emoji, and sign content to the active freeform rectangle.
   el.sheetFillMode.value = "freestyle";
-  const object = ensureActiveFreestyleObject();
+  let object = ensureActiveFreestyleObject();
+  if (object.labelItem || isFreestyleObjectLocked(object)) {
+    object = getFreestyleDefaultObject();
+    state.freestyleObjects.push(object);
+  }
   const nextText = String(text || "").trim();
   if (nextText) {
     object.text = [object.text, nextText].filter((value) => String(value || "").trim()).join("\n");
   }
   object.signs = [...new Set([...(object.signs || []), ...normalizeMixedLabelSigns(signs)])];
   object.customSigns = [...new Set([...parsecustomSigns(object.customSigns || ""), ...parsecustomSigns(customSigns || "")])];
-  object.style = object.style || getCurrentFreestyleStyle();
+  object.style = style ? normalizeFreestyleStyle(style) : object.style || getCurrentFreestyleStyle();
   state.activeFreestyleObjectId = object.id;
 }
 
-function insertCatalogItemIntoFreestyleObject(item) {
-  // Convert a catalog item into editable freestyle text plus any associated signs.
-  const textParts = [item.title, item.code].filter(Boolean);
-  insertFreestyleContent({
-    text: textParts.join("\n"),
-    signs: item.signs || [],
-    customSigns: item.customSigns || "",
-  });
+function isEmptyFreestyleObject(object) {
+  // Treat only blank rectangles as reusable targets for a selected catalog label.
+  return Boolean(
+    object &&
+      !object.labelItem &&
+      !object.imageSrc &&
+      !String(object.text || "").trim() &&
+      !normalizeMixedLabelSigns(object.signs || []).length &&
+      !parsecustomSigns(object.customSigns || "").length,
+  );
+}
+
+function insertCatalogItemIntoFreestyleObject(item, settings = null) {
+  // Place one full catalog label, including its barcode, into its own freestyle geometry object.
+  const labelItem = createSheetEntryFromCatalogItem(item, { lockedSettings: settings });
+  if (!labelItem) {
+    return;
+  }
+
+  const activeObject = getFreestyleObject(state.activeFreestyleObjectId);
+  const object = isEmptyFreestyleObject(activeObject) ? activeObject : getFreestyleDefaultObject();
+  object.labelItem = labelItem;
+  object.text = "";
+  object.signs = [];
+  object.customSigns = [];
+  object.imageSrc = "";
+  object.imageName = "";
+  object.locked = Boolean(labelItem.locked);
+  object.lockedSettings = labelItem.lockedSettings || null;
+  object.style = settings ? normalizeFreestyleStyle(settings) : object.style || getCurrentFreestyleStyle();
+  delete object.keepEmpty;
+  if (!state.freestyleObjects.some((entry) => entry.id === object.id)) {
+    state.freestyleObjects.push(object);
+  }
+  state.activeFreestyleObjectId = object.id;
 }
 
 function isPointerOverFreestyleTrash(event) {
@@ -3694,7 +3943,16 @@ function startFreestyleObjectPointer(event) {
     return;
   }
 
+  if (event.target.closest(".freestyle-lock")) {
+    return;
+  }
+
   const isHandle = Boolean(event.target.closest(".freestyle-handle"));
+  if (isFreestyleObjectLocked(object)) {
+    setActiveFreestyleObject(object.id, false);
+    event.preventDefault();
+    return;
+  }
   setActiveFreestyleObject(object.id, !isHandle);
   if (!isHandle && normalizeFreestyleTool(object.tool) !== "move") {
     return;
@@ -3771,7 +4029,7 @@ function stopFreestylePointer(event) {
   }
 
   if (pointer.action === "move" && isPointerOverFreestyleTrash(event)) {
-    state.freestyleObjects = state.freestyleObjects.filter((object) => object.id !== pointer.id);
+    state.freestyleObjects = state.freestyleObjects.filter((object) => object.id !== pointer.id || isFreestyleObjectLocked(object));
     state.activeFreestyleObjectId = "";
     renderFreestyleObjects();
   } else if (pointer.fromHandle && !state.freestyleHandleMoved) {
@@ -3983,10 +4241,16 @@ function renderSheetFillControls() {
   // Show only the controls needed for the active sheet fill mode.
   const mode = normalizeSheetFillMode(el.sheetFillMode.value);
   const showMixedTools = mode === "queue" || mode === "freestyle";
+  if (!showMixedTools) {
+    state.pendingCatalogInsert = false;
+  }
   el.sequenceSheetControls.classList.toggle("is-hidden", mode !== "sequence");
   el.queueSheetControls.classList.toggle("is-hidden", !showMixedTools);
   el.clearQueueButton.classList.toggle("is-hidden", !showMixedTools);
   el.clearQueueButton.textContent = mode === "freestyle" ? t("action.clearFreestyle") : t("action.clearQueue");
+  el.addSelectedToQueueButton.classList.toggle("is-active", Boolean(state.pendingCatalogInsert));
+  el.addSelectedToQueueButton.setAttribute("aria-pressed", String(Boolean(state.pendingCatalogInsert)));
+  el.codeSelect.classList.toggle("is-picking-catalog-item", Boolean(state.pendingCatalogInsert));
   el.selectFreestyleImageButton.classList.toggle("is-hidden", mode !== "freestyle");
   el.sheetQueueList.classList.toggle("is-hidden", mode !== "queue");
   el.paperWrap.classList.toggle("is-freestyle-mode", mode === "freestyle");
@@ -3995,32 +4259,80 @@ function renderSheetFillControls() {
   updateCatalogMeta();
 }
 
-function addSelectedItemToSheetQueue() {
-  // Queue a copy of the current catalog item so a mixed sheet can include it once or many times.
-  if (!state.selectedItem) {
-    alert(t("alert.selectItemForQueue"));
+function setCatalogInsertPicker(active) {
+  // Arm a one-click catalog picker so Mixed/Freestyle can import an item without opening it in repeat mode.
+  const mode = normalizeSheetFillMode(el.sheetFillMode.value);
+  state.pendingCatalogInsert = Boolean(active && (mode === "queue" || mode === "freestyle"));
+  renderSheetFillControls();
+  if (!state.pendingCatalogInsert) {
+    return;
+  }
+
+  showStatusToast(t("status.selectCatalogItemForSheet"), 5000);
+  (el.codeSelect.querySelector(".catalog-option[data-item-key]") || el.searchInput).focus();
+  el.codeSelect.scrollIntoView({ block: "nearest" });
+}
+
+function handleCatalogItemClick(item) {
+  // Route catalog clicks either into the active sheet builder or into the normal repeat preview.
+  if (state.pendingCatalogInsert && ["queue", "freestyle"].includes(normalizeSheetFillMode(el.sheetFillMode.value))) {
+    addCatalogItemToActiveSheet(item);
+    state.pendingCatalogInsert = false;
+    renderSheetFillControls();
+    showStatusToast(t("status.catalogItemAddedToSheet", { title: item.title }), 2600);
+    return;
+  }
+
+  selectItem(getItemKey(item));
+}
+
+function handleCatalogSheetClick(sheet) {
+  // In picker mode, only saved repeated labels can be inserted into Mixed/Freestyle sheets.
+  if (!state.pendingCatalogInsert || !["queue", "freestyle"].includes(normalizeSheetFillMode(el.sheetFillMode.value))) {
+    applySavedSheet(sheet);
+    return;
+  }
+
+  if (normalizeSheetFillMode(sheet.mode) !== "repeat") {
+    alert(t("alert.onlyRepeatSheetsForPicker"));
+    return;
+  }
+
+  const item = findItemFromSheetSettings(sheet.settings);
+  if (!item) {
+    alert(t("alert.repeatSheetMissingItem"));
+    return;
+  }
+
+  addCatalogItemToActiveSheet(item, { lockedSettings: sheet.settings });
+  state.pendingCatalogInsert = false;
+  renderSheetFillControls();
+  showStatusToast(t("status.catalogItemAddedToSheet", { title: sheet.name }), 2600);
+}
+
+function addCatalogItemToActiveSheet(item, options = {}) {
+  // Add a clicked catalog item to the current Mixed or Freestyle composition without selecting it as the preview item.
+  if (!item) {
     return;
   }
   if (normalizeSheetFillMode(el.sheetFillMode.value) === "freestyle") {
-    insertCatalogItemIntoFreestyleObject(state.selectedItem);
+    insertCatalogItemIntoFreestyleObject(item, options.lockedSettings);
     renderLabels();
     return;
   }
 
-  state.sheetQueue.push(
-    normalizeSheetQueue([
-      {
-        ...state.selectedItem,
-        id: `sheet-${getItemKey(state.selectedItem)}-${Date.now()}`,
-        locked: false,
-        lockedSettings: null,
-        quantity: 1,
-      },
-    ])[0],
-  );
+  const queueEntry = createSheetEntryFromCatalogItem(item, { lockedSettings: options.lockedSettings });
+  if (queueEntry) {
+    state.sheetQueue.push(queueEntry);
+  }
   el.sheetFillMode.value = "queue";
   renderSheetFillControls();
   renderLabels();
+}
+
+function addSelectedItemToSheetQueue() {
+  // Turn the button into a one-shot request for the next clicked catalog item.
+  setCatalogInsertPicker(!state.pendingCatalogInsert);
 }
 
 async function insertFreestyleImageFile(file, point = null) {
@@ -4220,6 +4532,7 @@ function rendersignPicker(container, selectedIds = [], options = {}) {
     const checkbox = document.createElement("input");
     const name = document.createElement("span");
     const tooltip = document.createElement("span");
+    const closeTooltip = document.createElement("button");
     const tooltipText = document.createElement("span");
     option.className = "sign-picker-option";
     checkbox.type = "checkbox";
@@ -4228,9 +4541,28 @@ function rendersignPicker(container, selectedIds = [], options = {}) {
     name.className = "sign-picker-name";
     name.textContent = sign.filename || sign.name || sign.id;
     tooltip.className = "sign-picker-tooltip";
+    closeTooltip.type = "button";
+    closeTooltip.className = "sign-picker-tooltip-close";
+    closeTooltip.textContent = "×";
+    closeTooltip.setAttribute("aria-label", t("aria.close"));
+    closeTooltip.addEventListener("click", (event) => {
+      // Close the touch tooltip without letting the tap toggle the sign checkbox or hit controls behind it.
+      event.preventDefault();
+      event.stopPropagation();
+      option.classList.add("is-tooltip-dismissed");
+      closeTooltip.blur();
+    });
+    option.addEventListener("focusin", () => {
+      // Reopen the tooltip normally the next time the sign option receives focus.
+      option.classList.remove("is-tooltip-dismissed");
+    });
+    option.addEventListener("pointerenter", () => {
+      // Reset a dismissed tooltip when desktop hover starts again.
+      option.classList.remove("is-tooltip-dismissed");
+    });
     tooltipText.className = "sign-picker-tooltip-text";
     tooltipText.textContent = [sign.name, sign.description, sign.filename, sign.group].filter(Boolean).join("\n");
-    tooltip.append(createsignMark(sign), tooltipText);
+    tooltip.append(closeTooltip, createsignMark(sign), tooltipText);
     option.append(checkbox, createsignMark(sign), name, tooltip);
     container.append(option);
   });
@@ -5444,9 +5776,11 @@ function createQrSvg(value) {
   return svg;
 }
 
-function getCodePayload(item) {
+function getCodePayload(item, settings = null) {
   // Choose the value printed and encoded for the currently selected symbol type.
-  const codeType = normalizeCodeType(item === state.selectedItem ? el.codeType.value || item.codeType : item.codeType || el.codeType.value);
+  const sheetMode = normalizeSheetFillMode(el.sheetFillMode.value);
+  const usesLiveCodeType = item === state.selectedItem || (!item?.locked && ["queue", "freestyle"].includes(sheetMode));
+  const codeType = normalizeCodeType(settings?.codeType || (usesLiveCodeType ? el.codeType.value || item.codeType : item.codeType || el.codeType.value));
   const rawCode = normalizeCodeForType(item.code || "", codeType);
 
   switch (codeType) {
@@ -5563,9 +5897,9 @@ function getQueueLabelStyleSettings(item) {
   return null;
 }
 
-function createLabel(item) {
+function createLabel(item, options = {}) {
   // Build one label cell with title, selected code symbol, and readable code number.
-  const styleSettings = getQueueLabelStyleSettings(item);
+  const styleSettings = options.styleSettings || getQueueLabelStyleSettings(item);
   const includeTitle = getLabelBoolean(styleSettings, "includeTitle", el.includeTitle.checked);
   const includeCodeNumber = getLabelBoolean(styleSettings, "includeCodeNumber", el.includeCodeNumber.checked);
   const includeTextAbove = getLabelBoolean(styleSettings, "includeTextAbove", el.includeTextAbove.checked);
@@ -5656,7 +5990,7 @@ function createLabel(item) {
     return label;
   }
 
-  const payload = getCodePayload(item);
+  const payload = getCodePayload(item, styleSettings);
   const barcode =
     payload.qr ||
     (payload.widths

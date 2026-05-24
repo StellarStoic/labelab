@@ -123,7 +123,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
           </div>
           <div id="queueSheetControls" class="sheet-fill-panel">
             <div class="button-row">
-              <button id="addSelectedToQueueButton" type="button" data-i18n="action.addSelectedToQueue">Add selected item</button>
+              <button id="addSelectedToQueueButton" type="button" data-i18n="action.addSelectedToQueue">Select a catalog item</button>
               <button id="clearQueueButton" class="secondary-button" type="button" data-i18n="action.clearQueue">Clear mixed labels</button>
             </div>
             <label for="queueCustomTitle" data-i18n="label.queueCustomTitle">Custom label</label>
@@ -610,7 +610,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
           <button id="printButton" class="standalone-print" type="button" data-i18n="action.printLabels">Print labels</button>
           <button id="shareButton" class="share-button" type="button" data-i18n="action.shareOrSave">Share or save</button>
         </div>
-        <button id="donateButton" class="donate-button" type="button" data-i18n="action.donate">Donate</button>
+        <button id="donateButton" class="donate-button" type="button" data-i18n="action.about">About</button>
       </aside>
 
       <section class="preview-area" aria-label="Label preview" data-i18n-aria-label="aria.labelPreview">
@@ -837,11 +837,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
     <div id="donationModal" class="modal-backdrop" aria-hidden="true">
       <div class="donation-modal" role="dialog" aria-modal="true" aria-labelledby="donationTitle">
         <button id="donationCloseButton" class="modal-close" type="button" aria-label="Close" data-i18n-aria-label="aria.close">×</button>
-        <h2 id="donationTitle" data-i18n="donation.title">Support Labelab</h2>
+        <h2 id="donationTitle" data-i18n="donation.title">About Labelab</h2>
         <div class="donation-intro">
-          <p data-i18n="donation.intro1">I built Labelab to make local label printing simple, private, and useful.</p>
-          <p data-i18n="donation.intro2">No data selling, no dark patterns. If this tool saved you time, you can toss a few sats or a coffee into the jar.</p>
+          <p data-i18n="donation.intro1">Labelab started from the frustration of using complex label programs and spreadsheets just to print simple EAN code labels.</p>
+          <p data-i18n="donation.intro2">Every label company seems to have its own grid dimensions, and aligning those sheets through proprietary software or paid services gets frustrating fast. I decided to make something simpler, first for the company where I work.</p>
+          <p data-i18n="donation.intro3">The tool focuses on things most of us already have available: a normal printer, a ruler, and a label sheet. It has not been tested with expensive dedicated label printers.</p>
+          <p data-i18n="donation.intro4">What started as a small barcode helper kept growing as more practical needs appeared. It may look like a lot at first, but once the basic idea clicks, it becomes straightforward.</p>
+          <p data-i18n="donation.intro5">Labelab is local-first. Nothing has to be sent to cloud platforms or big tech servers. You can still export backups yourself, store them wherever you want, or send a label through a link.</p>
+          <p data-i18n="donation.intro6">There are four main modes: Repeated fills the paper with one label, Number sequence prints ranges such as cabinet or fuse numbers, Mixed labels builds one sheet from different labels, and Freestyle lets you place text, signs, and images wherever you need them.</p>
+          <p data-i18n-html="donation.intro7">If you have suggestions for more signs in search or other improvements, please let me know by creating a PR for Labelab on <a href="https://github.com/StellarStoic/labelab/pulls" target="_blank" rel="noopener noreferrer">GitHub</a>. Labelab is free for everyone and will stay that way. Sharing it with others helps, and if you want to support late-night coding sessions, the donation options are below. Thank you.</p>
         </div>
+        <h3 class="donation-section-title" data-i18n="donation.supportTitle">Support Labelab</h3>
         <div class="donation-grid">
           <article class="donation-method">
             <h3>Bitcoin Lightning</h3>

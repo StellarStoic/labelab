@@ -543,6 +543,28 @@ button:hover,
   grid-template-columns: 1fr 1fr;
 }
 
+/* Marks the one-shot catalog picker while Mixed/Freestyle waits for the next catalog item click. */
+#addSelectedToQueueButton.is-active,
+.catalog-list.is-picking-catalog-item {
+  animation: catalog-picker-pulse 6s ease-in-out infinite;
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgb(129, 67, 24);
+}
+
+@keyframes catalog-picker-pulse {
+  /* Softly fades the orange picker highlight in and out while the next catalog click is armed. */
+  0%,
+  100% {
+    background-color: rgba(94, 164, 127, 0.982);
+    box-shadow: 0 0 0 2px rgba(209, 229, 32, 0.644);
+  }
+
+  50% {
+    background-color: rgba(131, 233, 146, 0.565);
+    box-shadow: 0 0 0 6px rgba(0, 255, 42, 0.438);
+  }
+}
+
 /* Groups mutually exclusive text alignment choices into one compact control. */
 .segmented-control {
   background: var(--panel);
@@ -927,10 +949,28 @@ button:hover,
 .freestyle-object.is-active {
   border-color: var(--label-border);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 42%, transparent);
+  z-index: 12;
+}
+
+.freestyle-object.is-locked {
+  box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.45);
 }
 
 .freestyle-object.has-image {
   grid-template-rows: 1fr auto auto;
+}
+
+.freestyle-object.has-label {
+  grid-template-rows: 1fr;
+  padding: 0;
+}
+
+.freestyle-label-preview {
+  background: transparent !important;
+  border: 0;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
 }
 
 .freestyle-image {
@@ -967,6 +1007,31 @@ button:hover,
   top: -9px;
   width: 22px;
   z-index: 3;
+}
+
+.freestyle-lock {
+  align-items: center;
+  background: #f97316;
+  border: 0;
+  border-radius: 999px;
+  color: #111111;
+  display: inline-grid;
+  font-size: 12px;
+  height: 22px;
+  left: -9px;
+  line-height: 1;
+  min-height: 22px;
+  min-width: 22px;
+  padding: 0;
+  place-items: center;
+  position: absolute;
+  top: -9px;
+  width: 22px;
+  z-index: 3;
+}
+
+.freestyle-object.is-locked .freestyle-handle {
+  opacity: 0.45;
 }
 
 .freestyle-signs {
@@ -1729,6 +1794,34 @@ button:hover,
   display: grid;
 }
 
+.sign-picker-option.is-tooltip-dismissed .sign-picker-tooltip {
+  display: none;
+}
+
+.sign-picker-tooltip-close {
+  align-items: center;
+  background: #dc2626;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  display: none;
+  font-size: 20px;
+  font-weight: 700;
+  height: 34px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  position: sticky;
+  top: 0;
+  width: 34px;
+  z-index: 1;
+}
+
+.sign-picker-tooltip-close:hover {
+  background: #b91c1c;
+  color: #ffffff;
+}
+
 .sign-picker-tooltip .sign-mark {
   height: min(220px, 42vh);
   justify-self: center;
@@ -1744,6 +1837,17 @@ button:hover,
   text-align: left;
   white-space: pre-line;
   word-break: break-word;
+}
+
+@media (hover: none), (max-width: 720px) {
+  .sign-picker-tooltip {
+    pointer-events: auto;
+  }
+
+  .sign-picker-tooltip-close {
+    display: inline-grid;
+    justify-self: end;
+  }
 }
 
 .sign-credit {
@@ -1978,7 +2082,13 @@ button:hover,
   color: var(--muted);
   display: grid;
   gap: 8px;
+  font-size: 13px;
   margin-top: 12px;
+}
+
+.donation-section-title {
+  font-size: 16px;
+  margin: 18px 0 0;
 }
 
 .donation-grid {
@@ -2157,6 +2267,7 @@ button:hover,
   .preview-toolbar,
   .save-item-setup-button,
   .freestyle-handle,
+  .freestyle-lock,
   .freestyle-trash,
   .donate-button,
   .share-button {
