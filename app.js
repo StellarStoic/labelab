@@ -389,6 +389,7 @@ const el = {
   codeType: document.querySelector("#codeType"),
   labelFont: document.querySelector("#labelFont"),
   textAlignGroup: document.querySelector("#textAlignGroup"),
+  mirrorSideText: document.querySelector("#mirrorSideText"),
   titleSize: document.querySelector("#titleSize"),
   codeTextSize: document.querySelector("#codeTextSize"),
   textAboveSize: document.querySelector("#textAboveSize"),
@@ -1030,6 +1031,7 @@ function normalizeLockedSheetSettings(settings) {
     "codeType",
     "labelFont",
     "textAlign",
+    "mirrorSideText",
     "titleSize",
     "codeTextSize",
     "textAboveSize",
@@ -1072,6 +1074,7 @@ function normalizeLockedSheetSettings(settings) {
     return cleanSettings;
   }, {});
   snapshot.textAlign = normalizeTextAlign(snapshot.textAlign);
+  snapshot.mirrorSideText = Boolean(snapshot.mirrorSideText);
   return snapshot;
 }
 
@@ -1267,7 +1270,23 @@ function applyTranslations() {
   if (el.itemEditModal.classList.contains("is-open")) {
     rendersignPicker(el.editsignGrid, getSelectedsigns(el.editsignGrid));
   }
+  updateCheckboxToggleTitles();
   updateCollapseLabels();
+}
+
+function updateCheckboxToggleTitles(root = document) {
+  // Give every checkbox-style toggle a clear hover title based on its visible translated text.
+  root.querySelectorAll("label.check-row").forEach((label) => {
+    const input = label.querySelector("input[type='checkbox']");
+    const text = label.textContent.trim();
+    if (!input || !text) {
+      return;
+    }
+
+    label.title = text;
+    input.title = text;
+    input.setAttribute("aria-label", text);
+  });
 }
 
 function getControlGroupKey(group, index) {
@@ -1913,6 +1932,7 @@ function saveSettings() {
       gapY: readMeasurement(el.gapY, 0),
       codeType: el.codeType.value,
       labelFont: el.labelFont.value,
+      mirrorSideText: el.mirrorSideText.checked,
       titleSize: readMeasurement(el.titleSize, 2.4),
       codeTextSize: readMeasurement(el.codeTextSize, 2.1),
       textAboveSize: readMeasurement(el.textAboveSize, 2.1),
@@ -2022,6 +2042,9 @@ function applySavedTypography(saved) {
   }
   if (saved.labelFont !== undefined) {
     el.labelFont.value = saved.labelFont;
+  }
+  if (saved.mirrorSideText !== undefined) {
+    el.mirrorSideText.checked = Boolean(saved.mirrorSideText);
   }
   if (saved.titleSize !== undefined) {
     setMeasurementValue(el.titleSize, saved.titleSize);
@@ -2137,6 +2160,9 @@ function applySettingsSnapshot(snapshot) {
   applySavedTypography(snapshot);
   if (snapshot.textAlign !== undefined) {
     setTextAlign(snapshot.textAlign, false);
+  }
+  if (snapshot.mirrorSideText !== undefined) {
+    el.mirrorSideText.checked = Boolean(snapshot.mirrorSideText);
   }
   if (snapshot.experimentalLabelBackground !== undefined) {
     setColorInputValue(el.experimentalLabelBackground, snapshot.experimentalLabelBackground, "#ffffff");
@@ -2300,6 +2326,7 @@ function collectSettingsSnapshot() {
     codeType: el.codeType.value,
     labelFont: el.labelFont.value,
     textAlign: normalizeTextAlign(el.textAlignGroup.dataset.value),
+    mirrorSideText: el.mirrorSideText.checked,
     titleSize: readMeasurement(el.titleSize, 2.4),
     codeTextSize: readMeasurement(el.codeTextSize, 2.1),
     textAboveSize: readMeasurement(el.textAboveSize, 2.1),
@@ -3440,6 +3467,9 @@ function applyLabelStyleSettingsToControls(settings) {
   if (normalized.textAlign !== undefined) {
     setTextAlign(normalized.textAlign, false);
   }
+  if (normalized.mirrorSideText !== undefined) {
+    el.mirrorSideText.checked = Boolean(normalized.mirrorSideText);
+  }
   if (normalized.titleSize !== undefined) {
     setMeasurementValue(el.titleSize, normalized.titleSize);
   }
@@ -4538,6 +4568,8 @@ function rendersignPicker(container, selectedIds = [], options = {}) {
     checkbox.type = "checkbox";
     checkbox.value = sign.id;
     checkbox.checked = selected.has(sign.id);
+    checkbox.title = sign.name || sign.filename || sign.id;
+    checkbox.setAttribute("aria-label", checkbox.title);
     name.className = "sign-picker-name";
     name.textContent = sign.filename || sign.name || sign.id;
     tooltip.className = "sign-picker-tooltip";
@@ -4905,6 +4937,8 @@ function renderCategoryItemChecklist(categoryName) {
     checkbox.checked = state.categoryEditCheckedKeys.has(itemKey);
     checkbox.dataset.itemKey = itemKey;
     checkbox.disabled = itemLocked;
+    checkbox.title = itemLocked ? t("alert.lockedEntry", { name: item.title }) : item.title;
+    checkbox.setAttribute("aria-label", checkbox.title);
     checkbox.addEventListener("change", () => {
       if (checkbox.checked) {
         state.categoryEditCheckedKeys.add(itemKey);
@@ -5836,6 +5870,24 @@ function getLabelBoolean(settings, key, fallback) {
   return Boolean(getLabelSetting(settings, key, fallback));
 }
 
+function shouldMirrorSideText(settings) {
+  // Enable cable-wrap duplication only for side-aligned labels where both sides can be used.
+  const align = normalizeTextAlign(getLabelSetting(settings, "textAlign", el.textAlignGroup.dataset.value));
+  return getLabelBoolean(settings, "mirrorSideText", el.mirrorSideText.checked) && align !== "center";
+}
+
+function applyMirroredSideText(container, text) {
+  // Render the same readable text at both edges without rotating or flipping the characters.
+  container.classList.add("mirrored-side-text");
+  container.textContent = "";
+  ["left", "right"].forEach((side) => {
+    const textNode = document.createElement("span");
+    textNode.className = `mirrored-side-text-${side}`;
+    textNode.textContent = text || "";
+    container.append(textNode);
+  });
+}
+
 function applyLockedLabelStyles(label, settings) {
   // Apply captured style variables to one locked queue label instead of the whole sheet.
   if (!settings) {
@@ -5904,6 +5956,7 @@ function createLabel(item, options = {}) {
   const includeCodeNumber = getLabelBoolean(styleSettings, "includeCodeNumber", el.includeCodeNumber.checked);
   const includeTextAbove = getLabelBoolean(styleSettings, "includeTextAbove", el.includeTextAbove.checked);
   const includeTextBelow = getLabelBoolean(styleSettings, "includeTextBelow", el.includeTextBelow.checked);
+  const mirrorSideText = shouldMirrorSideText(styleSettings);
   const labelPartOrder = normalizeLabelPartOrder(getLabelSetting(styleSettings, "labelPartOrder", state.labelPartOrder));
   const label = document.createElement("article");
   label.className = "label";
@@ -5934,9 +5987,17 @@ function createLabel(item, options = {}) {
     signGrid.className = "sign-label-grid label-part-main";
     topGroup.className = "label-part-top sign-top-group";
     upperText.className = "text-only-extra text-only-above";
-    upperText.textContent = item.textAbove || "";
+    if (mirrorSideText) {
+      applyMirroredSideText(upperText, item.textAbove || "");
+    } else {
+      upperText.textContent = item.textAbove || "";
+    }
     lowerText.className = "text-only-extra text-only-below label-part-bottom";
-    lowerText.textContent = item.textBelow || "";
+    if (mirrorSideText) {
+      applyMirroredSideText(lowerText, item.textBelow || "");
+    } else {
+      lowerText.textContent = item.textBelow || "";
+    }
     normalizesigns(item.signs).forEach((id) => {
       const sign = getsign(id);
       if (sign) {
@@ -5975,11 +6036,23 @@ function createLabel(item, options = {}) {
     const lowerText = document.createElement("div");
     textOnly.className = "text-only-stack";
     centerText.className = "text-only-label label-part-main";
-    centerText.textContent = item.title;
+    if (mirrorSideText) {
+      applyMirroredSideText(centerText, item.title);
+    } else {
+      centerText.textContent = item.title;
+    }
     upperText.className = "text-only-extra text-only-above label-part-top";
-    upperText.textContent = item.textAbove;
+    if (mirrorSideText) {
+      applyMirroredSideText(upperText, item.textAbove);
+    } else {
+      upperText.textContent = item.textAbove;
+    }
     lowerText.className = "text-only-extra text-only-below label-part-bottom";
-    lowerText.textContent = item.textBelow;
+    if (mirrorSideText) {
+      applyMirroredSideText(lowerText, item.textBelow);
+    } else {
+      lowerText.textContent = item.textBelow;
+    }
     appendOrderedLabelParts(textOnly, {
       top: includeTextAbove && item.textAbove ? upperText : null,
       main: centerText,
@@ -6001,7 +6074,11 @@ function createLabel(item, options = {}) {
 
   const number = document.createElement("div");
   number.className = "code-number label-part-bottom";
-  number.textContent = payload.display || item.code;
+  if (mirrorSideText) {
+    applyMirroredSideText(number, payload.display || item.code);
+  } else {
+    number.textContent = payload.display || item.code;
+  }
   barcode.classList.add("label-part-main");
 
   appendOrderedLabelParts(label, {
@@ -7337,6 +7414,7 @@ function bindEvents() {
     el.includeCodeNumber,
     el.includeTextAbove,
     el.includeTextBelow,
+    el.mirrorSideText,
     el.titleBold,
     el.titleItalic,
     el.codeBold,

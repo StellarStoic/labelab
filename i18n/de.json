@@ -75,6 +75,7 @@
   "label.codeType": "Codetyp",
   "label.font": "Schrift",
   "label.textAlign": "Textausrichtung",
+  "label.mirrorSideText": "Seitentext spiegeln",
   "label.titleSize": "Titelgröße",
   "label.codeSize": "Code-Nr.-Größe",
   "label.textAboveSize": "Größe Text oben",

@@ -75,6 +75,7 @@
   "label.codeType": "Tipo de código",
   "label.font": "Fuente",
   "label.textAlign": "Alineación de texto",
+  "label.mirrorSideText": "Duplicar texto lateral",
   "label.titleSize": "Tamaño del título",
   "label.codeSize": "Tamaño del n.º de código",
   "label.textAboveSize": "Tamaño del texto superior",

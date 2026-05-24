@@ -75,6 +75,7 @@
   "label.codeType": "Тип кода",
   "label.font": "Шрифт",
   "label.textAlign": "Выравнивание текста",
+  "label.mirrorSideText": "Дублировать боковой текст",
   "label.titleSize": "Размер названия",
   "label.codeSize": "Размер номера кода",
   "label.textAboveSize": "Размер текста сверху",

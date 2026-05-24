@@ -211,6 +211,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
             <option value="qr">QR Code</option>
           </select>
           <label for="labelFont" data-i18n="label.font">Font</label>
+          <!-- Offers local system font stacks only, so labels still work offline and without font downloads. -->
           <select id="labelFont">
             <optgroup label="Sans serif">
               <option value="Arial, Helvetica, sans-serif">Arial</option>
@@ -220,7 +221,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
               <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</option>
               <option value="'Segoe UI', Arial, sans-serif">Segoe UI</option>
               <option value="'Calibri', 'Segoe UI', sans-serif">Calibri</option>
+              <option value="'Candara', Calibri, sans-serif">Candara</option>
+              <option value="'Corbel', Calibri, sans-serif">Corbel</option>
+              <option value="'Aptos', 'Segoe UI', Arial, sans-serif">Aptos</option>
+              <option value="'Roboto', 'Segoe UI', Arial, sans-serif">Roboto</option>
+              <option value="'Open Sans', 'Segoe UI', Arial, sans-serif">Open Sans</option>
+              <option value="'Noto Sans', 'Segoe UI', Arial, sans-serif">Noto Sans</option>
+              <option value="'Lucida Sans Unicode', 'Lucida Grande', sans-serif">Lucida Sans</option>
               <option value="'Gill Sans', 'Gill Sans MT', Calibri, sans-serif">Gill Sans</option>
+              <option value="'Bahnschrift', 'Arial Narrow', Arial, sans-serif">Bahnschrift</option>
               <option value="'Arial Narrow', Arial, sans-serif">Arial Narrow</option>
               <option value="Impact, Haettenschweiler, sans-serif">Impact</option>
             </optgroup>
@@ -231,6 +240,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
               <option value="'Palatino Linotype', Palatino, serif">Palatino</option>
               <option value="'Book Antiqua', Palatino, serif">Book Antiqua</option>
               <option value="'Cambria', Georgia, serif">Cambria</option>
+              <option value="'Constantia', Cambria, Georgia, serif">Constantia</option>
+              <option value="'Sitka Text', Georgia, serif">Sitka Text</option>
+              <option value="'Noto Serif', Georgia, serif">Noto Serif</option>
               <option value="'Baskerville', 'Times New Roman', serif">Baskerville</option>
             </optgroup>
             <optgroup label="Monospace">
@@ -238,11 +250,26 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
               <option value="Consolas, 'Courier New', monospace">Consolas</option>
               <option value="'Lucida Console', Monaco, monospace">Lucida Console</option>
               <option value="'Cascadia Mono', Consolas, monospace">Cascadia Mono</option>
+              <option value="'Cascadia Code', 'Cascadia Mono', Consolas, monospace">Cascadia Code</option>
+              <option value="'Roboto Mono', Consolas, monospace">Roboto Mono</option>
+              <option value="'Noto Sans Mono', Consolas, monospace">Noto Sans Mono</option>
+              <option value="'DejaVu Sans Mono', Consolas, monospace">DejaVu Sans Mono</option>
             </optgroup>
             <optgroup label="Display">
               <option value="'Century Gothic', Arial, sans-serif">Century Gothic</option>
               <option value="'Franklin Gothic Medium', Arial, sans-serif">Franklin Gothic</option>
+              <option value="'Segoe UI Semibold', 'Segoe UI', Arial, sans-serif">Segoe UI Semibold</option>
+              <option value="'Segoe Print', 'Comic Sans MS', cursive">Segoe Print</option>
+              <option value="'Comic Sans MS', 'Segoe Print', cursive">Comic Sans MS</option>
               <option value="'Copperplate', 'Copperplate Gothic Light', serif">Copperplate</option>
+            </optgroup>
+            <optgroup label="Symbols and international">
+              <option value="'Segoe UI Symbol', 'Noto Sans Symbols', sans-serif">Segoe UI Symbol</option>
+              <option value="'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif">Emoji</option>
+              <option value="'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif">Chinese Sans</option>
+              <option value="'SimSun', 'Songti SC', serif">Chinese Serif</option>
+              <option value="'Meiryo', 'Yu Gothic', sans-serif">Japanese Sans</option>
+              <option value="'Malgun Gothic', 'Noto Sans KR', sans-serif">Korean Sans</option>
             </optgroup>
           </select>
           <span class="field-label" data-i18n="label.textAlign">Text align</span>
@@ -252,6 +279,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
             <button class="text-align-button is-active" type="button" data-text-align="center" aria-label="Align text center" data-i18n-aria-label="aria.alignTextCenter">C</button>
             <button class="text-align-button" type="button" data-text-align="right" aria-label="Align text right" data-i18n-aria-label="aria.alignTextRight">R</button>
           </div>
+          <!-- Duplicates wrap labels on both sides without flipping the text itself. -->
+          <label class="check-row">
+            <input id="mirrorSideText" type="checkbox" />
+            <span data-i18n="label.mirrorSideText">Mirror side text</span>
+          </label>
           <div class="two-col">
             <label>
               <span class="label-line"><span data-i18n="label.titleSize">Title size</span> <span data-unit-label></span></span>

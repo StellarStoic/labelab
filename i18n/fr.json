@@ -75,6 +75,7 @@
   "label.codeType": "Type de code",
   "label.font": "Police",
   "label.textAlign": "Alignement du texte",
+  "label.mirrorSideText": "Dupliquer le texte latéral",
   "label.titleSize": "Taille du titre",
   "label.codeSize": "Taille du n° de code",
   "label.textAboveSize": "Taille du texte au-dessus",

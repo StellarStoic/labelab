@@ -75,6 +75,7 @@
   "label.codeType": "代码类型",
   "label.font": "字体",
   "label.textAlign": "文本对齐",
+  "label.mirrorSideText": "复制两侧文本",
   "label.titleSize": "标题大小",
   "label.codeSize": "代码编号大小",
   "label.textAboveSize": "上方文字大小",

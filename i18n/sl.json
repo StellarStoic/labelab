@@ -75,6 +75,7 @@
   "label.codeType": "Vrsta kode",
   "label.font": "Pisava",
   "label.textAlign": "Poravnava besedila",
+  "label.mirrorSideText": "Zrcali stransko besedilo",
   "label.titleSize": "Velikost naslova",
   "label.codeSize": "Velikost št. kode",
   "label.textAboveSize": "Velikost besedila zgoraj",

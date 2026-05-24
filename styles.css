@@ -231,13 +231,76 @@ label {
 
 .check-row {
   align-items: center;
-  display: flex;
+  background: color-mix(in srgb, var(--panel) 86%, var(--muted));
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  font-size: 12px;
+  font-weight: 700;
   gap: 8px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  min-height: 38px;
+  padding: 5px 10px 5px 5px;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease;
 }
 
 .check-row input {
-  min-height: auto;
-  width: auto;
+  appearance: none;
+  background: color-mix(in srgb, var(--muted) 28%, var(--panel));
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: inherit;
+  display: inline-grid;
+  height: 20px;
+  margin: 0;
+  min-height: 20px;
+  padding: 0;
+  position: relative;
+  width: 34px;
+}
+
+.check-row input::before {
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.28);
+  content: "";
+  height: 14px;
+  left: 2px;
+  position: absolute;
+  top: 2px;
+  transition: transform 160ms ease;
+  width: 14px;
+}
+
+.check-row input:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.check-row input:checked::before {
+  transform: translateX(14px);
+}
+
+.check-row:has(input:checked) {
+  background: color-mix(in srgb, var(--accent) 18%, var(--panel));
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--text);
+}
+
+.check-row:has(input:focus-visible) {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.check-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 input,
@@ -249,6 +312,56 @@ select {
   min-height: 36px;
   padding: 7px 9px;
   width: 100%;
+}
+
+/* Keeps dense generated checkbox lists compact while still looking like clear toggle controls. */
+.sign-picker-option input[type="checkbox"],
+.category-item-row input[type="checkbox"] {
+  appearance: none;
+  background: color-mix(in srgb, var(--muted) 25%, var(--panel));
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  position: relative;
+  width: 34px;
+}
+
+.sign-picker-option input[type="checkbox"]::before,
+.category-item-row input[type="checkbox"]::before {
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.28);
+  content: "";
+  height: 14px;
+  left: 2px;
+  position: absolute;
+  top: 2px;
+  transition: transform 160ms ease;
+  width: 14px;
+}
+
+.sign-picker-option input[type="checkbox"]:checked,
+.category-item-row input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.sign-picker-option input[type="checkbox"]:checked::before,
+.category-item-row input[type="checkbox"]:checked::before {
+  transform: translateX(14px);
+}
+
+.sign-picker-option input[type="checkbox"]:focus-visible,
+.category-item-row input[type="checkbox"]:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.category-item-row input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
 }
 
 select[size] {
@@ -1189,6 +1302,32 @@ button:hover,
   width: 100%;
 }
 
+/* Duplicates cable-wrap text on both sides while keeping the characters readable. */
+.mirrored-side-text {
+  align-items: center;
+  display: grid;
+  gap: 2mm;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  justify-items: stretch;
+  text-align: initial;
+  width: 100%;
+}
+
+.mirrored-side-text span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.mirrored-side-text-left {
+  justify-self: start;
+  text-align: left;
+}
+
+.mirrored-side-text-right {
+  justify-self: end;
+  text-align: right;
+}
+
 .text-only-extra {
   color: var(--experimental-code-number-color, #111827);
   font-style: normal;
@@ -1728,7 +1867,7 @@ button:hover,
   border-radius: 8px;
   display: grid;
   gap: 8px;
-  grid-template-columns: 22px 44px minmax(0, 1fr);
+  grid-template-columns: 34px 44px minmax(0, 1fr);
   min-height: 48px;
   padding: 8px;
   position: relative;
@@ -1979,8 +2118,8 @@ button:hover,
 }
 
 .category-item-row input {
-  min-height: auto;
-  width: auto;
+  min-height: 20px;
+  width: 34px;
 }
 
 .category-item-text {
