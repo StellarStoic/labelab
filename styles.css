@@ -1389,6 +1389,30 @@ button:hover,
   width: 100%;
 }
 
+/* Mirrors sign, Unicode, and emoji marks as duplicate groups for cable-wrap labels. */
+.sign-label-grid.mirrored-side-signs {
+  display: grid;
+  gap: 2mm;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  justify-content: stretch;
+}
+
+.mirrored-side-signs-group {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1mm;
+  min-width: 0;
+}
+
+.mirrored-side-signs-left {
+  justify-content: flex-start;
+}
+
+.mirrored-side-signs-right {
+  justify-content: flex-end;
+}
+
 .sign-mark {
   align-items: center;
   color: #111827;

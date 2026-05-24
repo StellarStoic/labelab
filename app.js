@@ -3400,6 +3400,31 @@ function createCustomSignMark(symbol) {
   return mark;
 }
 
+function appendItemSignMarks(container, item) {
+  // Append all built-in signs and custom Unicode signs saved on one label item.
+  normalizesigns(item.signs).forEach((id) => {
+    const sign = getsign(id);
+    if (sign) {
+      container.append(createsignMark(sign));
+    }
+  });
+  parsecustomSigns(item.customSigns || "").forEach((symbol) => {
+    container.append(createCustomSignMark(symbol));
+  });
+}
+
+function applyMirroredSignMarks(container, item) {
+  // Duplicate sign and emoji marks to both label sides without changing their orientation.
+  container.classList.add("mirrored-side-signs");
+  container.textContent = "";
+  ["left", "right"].forEach((side) => {
+    const sideGroup = document.createElement("div");
+    sideGroup.className = `mirrored-side-signs-group mirrored-side-signs-${side}`;
+    appendItemSignMarks(sideGroup, item);
+    container.append(sideGroup);
+  });
+}
+
 function renderCustomSignPreview(input, preview) {
   // Show the exact symbols that will be saved from the manual Unicode field.
   preview.innerHTML = "";
@@ -5975,7 +6000,11 @@ function createLabel(item, options = {}) {
 
   const title = document.createElement("div");
   title.className = "label-title label-part-top";
-  title.textContent = item.title;
+  if (mirrorSideText) {
+    applyMirroredSideText(title, item.title);
+  } else {
+    title.textContent = item.title;
+  }
 
   if (normalizeLabelMode(item.labelMode, item) === "sign") {
     const signLabel = document.createElement("div");
@@ -5998,22 +6027,22 @@ function createLabel(item, options = {}) {
     } else {
       lowerText.textContent = item.textBelow || "";
     }
-    normalizesigns(item.signs).forEach((id) => {
-      const sign = getsign(id);
-      if (sign) {
-        signGrid.append(createsignMark(sign));
-      }
-    });
-    parsecustomSigns(item.customSigns || "").forEach((symbol) => {
-      signGrid.append(createCustomSignMark(symbol));
-    });
+    if (mirrorSideText) {
+      applyMirroredSignMarks(signGrid, item);
+    } else {
+      appendItemSignMarks(signGrid, item);
+    }
     if (includeTitle && item.title) {
       topGroup.append(title);
     }
     if (item.signalWord) {
       const signalWord = document.createElement("div");
       signalWord.className = "sign-signal-word";
-      signalWord.textContent = item.signalWord;
+      if (mirrorSideText) {
+        applyMirroredSideText(signalWord, item.signalWord);
+      } else {
+        signalWord.textContent = item.signalWord;
+      }
       topGroup.append(signalWord);
     }
     if (includeTextAbove && item.textAbove) {
