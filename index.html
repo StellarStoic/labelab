@@ -426,6 +426,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
         <section class="control-group">
           <h2 data-i18n="section.sort">Sort</h2>
           <div id="labelSortList" class="label-sort-list" aria-label="Label part order" data-i18n-aria-label="aria.labelPartOrder"></div>
+          <!-- Clarifies that label part order is changed by dragging the rows. -->
+          <p class="label-sort-hint" data-i18n="sort.dragHint">Drag to reorder label parts</p>
         </section>
 
         <section class="control-group">
@@ -696,6 +698,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
 
           <label for="editsignalWordInput" data-i18n="label.signalWord">signal word</label>
           <input id="editsignalWordInput" type="text" placeholder="Warning, Danger, Fragile..." data-i18n-placeholder="placeholder.signalWord" />
+          <!-- Lets edited sign labels override the signal word color while keeping red as the default. -->
+          <label for="editsignalWordColorInput">
+            <span data-i18n="label.signalWordColor">Signal word color</span>
+            <input id="editsignalWordColorInput" type="color" value="#b91c1c" />
+          </label>
 
           <label for="editCustomSignInput">
             <span data-i18n="label.customSigns">Unicode / emoji signs</span>

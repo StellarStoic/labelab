@@ -298,6 +298,7 @@ const FREESTYLE_TOOLS = ["resize", "rotate", "move"];
 const FREESTYLE_IMAGE_TYPES = ["image/svg+xml", "image/png", "image/jpeg", "image/webp", "image/gif"];
 const FREESTYLE_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 const DEFAULT_CATEGORY_COLOR = "#e5e7eb";
+const DEFAULT_SIGNAL_WORD_COLOR = "#b91c1c";
 const COLOR_PRESETS = [
   "#0f766e",
   "#ef4444",
@@ -472,6 +473,7 @@ const el = {
   editTextAboveInput: document.querySelector("#editTextAboveInput"),
   editTextBelowInput: document.querySelector("#editTextBelowInput"),
   editsignalWordInput: document.querySelector("#editsignalWordInput"),
+  editsignalWordColorInput: document.querySelector("#editsignalWordColorInput"),
   editCustomSignInput: document.querySelector("#editCustomSignInput"),
   editCustomSignPreview: document.querySelector("#editCustomSignPreview"),
   editUnicodeHelpButton: document.querySelector("#editUnicodeHelpButton"),
@@ -992,6 +994,7 @@ function normalizeSheetQueue(value) {
         signs,
         customSigns,
         signalWord: String(entry.signalWord || "").trim(),
+        signalWordColor: normalizeColor(entry.signalWordColor, DEFAULT_SIGNAL_WORD_COLOR),
         color: normalizeColor(entry.color),
         category: "",
         presetId: "",
@@ -1400,6 +1403,7 @@ function normalizeCatalog(rawCatalog) {
         signs: normalizesigns(item.signs || item.pictograms || []),
         customSigns: parsecustomSigns(item.customSigns || item.customPictograms || item.unicodesigns || item.unicodePictograms || ""),
         signalWord: String(item.signalWord || "").trim(),
+        signalWordColor: normalizeColor(item.signalWordColor, DEFAULT_SIGNAL_WORD_COLOR),
         color: normalizeColor(item.color),
         category,
         presetId: String(item.presetId || presetIdByName.get(String(item.presetName || item.preset || "").trim().toLocaleLowerCase()) || "").trim(),
@@ -4145,6 +4149,7 @@ function getSequenceSheetItems(limit) {
       signs: [],
       customSigns: [],
       signalWord: "",
+      signalWordColor: DEFAULT_SIGNAL_WORD_COLOR,
       color: normalizeColor(el.newColor.value),
       category: "",
       presetId: "",
@@ -4457,6 +4462,7 @@ function addCustomItemToSheetQueue() {
         signs,
         customSigns,
         signalWord: "",
+        signalWordColor: DEFAULT_SIGNAL_WORD_COLOR,
         color: normalizeColor(el.newColor.value),
         textAbove: "",
         textBelow: "",
@@ -4754,6 +4760,7 @@ function openItemEditModal() {
   el.editTextAboveInput.value = state.selectedItem.textAbove || "";
   el.editTextBelowInput.value = state.selectedItem.textBelow || "";
   el.editsignalWordInput.value = state.selectedItem.signalWord || "";
+  setColorInputValue(el.editsignalWordColorInput, state.selectedItem.signalWordColor, DEFAULT_SIGNAL_WORD_COLOR);
   el.editCustomSignInput.value = (state.selectedItem.customSigns || []).join(", ");
   renderCustomSignPreview(el.editCustomSignInput, el.editCustomSignPreview);
   rendersignPicker(el.editsignGrid, state.selectedItem.signs);
@@ -5196,6 +5203,7 @@ function saveItemEditFromModal(options = {}) {
   const nextTextAbove = el.editTextAboveInput.value.trim();
   const nextTextBelow = el.editTextBelowInput.value.trim();
   const nextsignalWord = el.editsignalWordInput.value.trim();
+  const nextsignalWordColor = normalizeColor(el.editsignalWordColorInput.value, DEFAULT_SIGNAL_WORD_COLOR);
   const nextsigns = getSelectedsigns(el.editsignGrid);
   const nextcustomSigns = parsecustomSigns(el.editCustomSignInput.value);
   const nextLabelMode = normalizeLabelMode(el.editLabelModeInput.value, { code: nextCode, signs: nextsigns, customSigns: nextcustomSigns });
@@ -5237,6 +5245,7 @@ function saveItemEditFromModal(options = {}) {
   currentItem.signs = nextsigns;
   currentItem.customSigns = nextcustomSigns;
   currentItem.signalWord = nextsignalWord;
+  currentItem.signalWordColor = nextsignalWordColor;
   currentItem.color = nextColor;
   currentItem.category = nextCategory;
   currentItem.presetId = nextPresetId;
@@ -5320,6 +5329,10 @@ function deleteSelectedSheet() {
 
   const confirmed = window.confirm(t("confirm.deleteSavedSheet", { name: state.selectedSheet.name }));
   if (!confirmed) {
+    return;
+  }
+  const finalConfirmed = window.confirm(t("confirm.deleteSavedSheetFinal", { name: state.selectedSheet.name }));
+  if (!finalConfirmed) {
     return;
   }
 
@@ -6038,6 +6051,7 @@ function createLabel(item, options = {}) {
     if (item.signalWord) {
       const signalWord = document.createElement("div");
       signalWord.className = "sign-signal-word";
+      signalWord.style.color = normalizeColor(item.signalWordColor, DEFAULT_SIGNAL_WORD_COLOR);
       if (mirrorSideText) {
         applyMirroredSideText(signalWord, item.signalWord);
       } else {
@@ -6385,6 +6399,7 @@ function addCode() {
     signs,
     customSigns,
     signalWord,
+    signalWordColor: DEFAULT_SIGNAL_WORD_COLOR,
     color,
     category,
     presetId,
@@ -6439,6 +6454,7 @@ function upsertSharedItem(item, shouldSave) {
     signs: normalizesigns(item.signs || item.pictograms || []),
     customSigns: parsecustomSigns(item.customSigns || item.customPictograms || item.unicodesigns || item.unicodePictograms || ""),
     signalWord: String(item.signalWord || "").trim(),
+    signalWordColor: normalizeColor(item.signalWordColor, DEFAULT_SIGNAL_WORD_COLOR),
     color: normalizeColor(item.color),
     category: normalizeCategoryName(item.category),
     presetId: String(item.presetId || "").trim(),
@@ -6528,6 +6544,7 @@ function buildCurrentLabelPayload() {
       signs: normalizesigns(state.selectedItem.signs),
       customSigns: parsecustomSigns(state.selectedItem.customSigns || ""),
       signalWord: String(state.selectedItem.signalWord || "").trim(),
+      signalWordColor: normalizeColor(state.selectedItem.signalWordColor, DEFAULT_SIGNAL_WORD_COLOR),
       color: normalizeColor(state.selectedItem.color),
       category: normalizeCategoryName(state.selectedItem.category),
       categoryColor: normalizeCategoryColor(getCategory(state.selectedItem.category)?.color),
