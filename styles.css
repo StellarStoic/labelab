@@ -1130,9 +1130,19 @@ button:hover,
   z-index: 3;
 }
 
+/* Blue indicates the handle will rotate the selected freestyle object. */
+.freestyle-handle.is-rotate {
+  background: #2563eb;
+}
+
+/* Purple indicates the handle will move the selected freestyle object. */
+.freestyle-handle.is-move {
+  background: #7c3aed;
+}
+
 .freestyle-lock {
   align-items: center;
-  background: #f97316;
+  background: #16a34a;
   border: 0;
   border-radius: 999px;
   color: #111111;
@@ -1149,6 +1159,18 @@ button:hover,
   top: -9px;
   width: 22px;
   z-index: 3;
+}
+
+/* Red marks a locked freestyle object that will ignore edits until unlocked. */
+.freestyle-lock.is-locked {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* Green marks an unlocked freestyle object that can still be edited. */
+.freestyle-lock.is-unlocked {
+  background: #16a34a;
+  color: #ffffff;
 }
 
 .freestyle-object.is-locked .freestyle-handle {

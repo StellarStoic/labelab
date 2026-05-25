@@ -3807,11 +3807,13 @@ function createFreestyleObjectElement(object) {
   objectEl.className = `freestyle-object${object.id === state.activeFreestyleObjectId ? " is-active" : ""}${isFreestyleObjectLocked(object) ? " is-locked" : ""}`;
   objectEl.dataset.id = object.id;
   handle.type = "button";
-  handle.className = "freestyle-handle";
+  // Mark the active handle behavior so the control color matches resize, rotate, or move mode.
+  handle.className = `freestyle-handle is-${normalizeFreestyleTool(object.tool)}`;
   handle.textContent = getFreestyleToolLabel(object.tool);
   handle.setAttribute("aria-label", t("aria.freestyleHandle"));
   lockButton.type = "button";
-  lockButton.className = "freestyle-lock";
+  // Mark lock state visually so users can spot protected objects without reading the icon.
+  lockButton.className = `freestyle-lock ${isFreestyleObjectLocked(object) ? "is-locked" : "is-unlocked"}`;
   lockButton.textContent = isFreestyleObjectLocked(object) ? "🔒" : "🔓";
   lockButton.setAttribute("aria-label", isFreestyleObjectLocked(object) ? t("action.unlockFreestyleObject") : t("action.lockFreestyleObject"));
   lockButton.title = isFreestyleObjectLocked(object) ? t("action.unlockFreestyleObject") : t("action.lockFreestyleObject");
