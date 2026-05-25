@@ -2249,9 +2249,14 @@ button:hover,
 .donation-intro {
   color: var(--muted);
   display: grid;
-  gap: 8px;
+  gap: 14px;
   font-size: 17px;
   margin-top: 12px;
+}
+
+.donation-intro p {
+  font-size: inherit;
+  line-height: 1.45;
 }
 
 .donation-section-title {

@@ -1,5 +1,5 @@
 {
-  "metadata": "images/iso_signs/signs_metadata.json",
+  "metadata": "images/signs_metadata.json",
   "folders": [
     "images/iso_signs/General_Recycling_Symbols/",
     "images/iso_signs/ISO_7000_Equipment_Packaging/",
@@ -11,7 +11,13 @@
     "images/iso_signs/ISO_7010_Warning/",
     "images/iso_signs/ISO_9244_Earth_Moving_Machinery/",
     "images/iso_signs/ISO_11469_Plastic_Recycling/",
-    "images/ghs"
+    "images/ghs",
+    "images/viennaConventionRoadSigns/Road_Signs_Vienna_Convention_Information",
+    "images/viennaConventionRoadSigns/Road_Signs_Vienna_Convention_Mandatory",
+    "images/viennaConventionRoadSigns/Road_Signs_Vienna_Convention_Priority",
+    "images/viennaConventionRoadSigns/Road_Signs_Vienna_Convention_Prohibition",
+    "images/viennaConventionRoadSigns/Road_Signs_Vienna_Convention_Warning",
+    "images/flags"
   ],
   "items": []
 }

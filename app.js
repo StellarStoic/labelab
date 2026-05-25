@@ -20,7 +20,7 @@ const PRESETS_KEY = "labelLab.presets.v1";
 const CATALOG_BACKUP_KEY = "labelLab.codes.backup.v1";
 const DEFAULT_LOCALE = "en";
 const SIGN_MANIFEST_URL = "images/signs.json";
-const SIGN_METADATA_URL = "images/iso_signs/signs_metadata.json";
+const SIGN_METADATA_URL = "images/signs_metadata.json";
 const UNICODE_SEARCH_URL = "https://home.unicode.org/";
 const SIGN_PICKER_BATCH_SIZE = 150;
 const SIGN_PICKER_SCROLL_THRESHOLD = 80;
@@ -4176,7 +4176,48 @@ function getSheetCellItem(index, totalCells) {
   if (mode === "queue") {
     return getSheetQueueExpandedItems()[index] || null;
   }
-  return state.selectedItem;
+  return state.selectedItem || getDraftNewLabelPreviewItem();
+}
+
+function canPreviewDraftNewLabel() {
+  // Show unsaved Add New content only on an otherwise empty repeated-label sheet.
+  return !state.selectedItem && !state.selectedSheet && !state.selectedCategory && normalizeSheetFillMode(el.sheetFillMode.value) === "repeat";
+}
+
+function getDraftNewLabelPreviewItem() {
+  // Convert the Add New form into a temporary label item without saving it to the catalog.
+  if (!canPreviewDraftNewLabel()) {
+    return null;
+  }
+
+  const title = el.newTitle.value.trim();
+  const codeType = normalizeCodeType(el.codeType.value);
+  const code = normalizeCodeForType(el.newCode.value, codeType);
+  const textAbove = el.newTextAbove.value.trim();
+  const textBelow = el.newTextBelow.value.trim();
+  const signalWord = el.newsignalWord.value.trim();
+  const signs = getSelectedsigns(el.newsignGrid);
+  const customSigns = parsecustomSigns(el.newCustomSignInput.value);
+  if (!title && !code && !textAbove && !textBelow && !signalWord && !signs.length && !customSigns.length) {
+    return null;
+  }
+
+  return {
+    id: "draft-new-label-preview",
+    title,
+    code,
+    codeType,
+    labelMode: normalizeLabelMode(el.newLabelMode.value, { code, signs, customSigns }),
+    signs,
+    customSigns,
+    signalWord,
+    signalWordColor: DEFAULT_SIGNAL_WORD_COLOR,
+    color: normalizeColor(el.newColor.value),
+    category: "",
+    presetId: "",
+    textAbove,
+    textBelow,
+  };
 }
 
 function getSheetMetaTitle(totalCells) {
@@ -4193,7 +4234,7 @@ function getSheetMetaTitle(totalCells) {
   if (mode === "freestyle") {
     return t("status.freestyleMeta", { count: state.freestyleObjects.length });
   }
-  return state.selectedItem?.title || t("status.noItemSelected");
+  return state.selectedItem?.title || getDraftNewLabelPreviewItem()?.title || t("status.noItemSelected");
 }
 
 function getSheetQueueDisplayTitle(entry) {
@@ -7545,11 +7586,32 @@ function bindEvents() {
     }
   });
 
-  el.newCustomSignInput.addEventListener("input", () => renderCustomSignPreview(el.newCustomSignInput, el.newCustomSignPreview));
+  [
+    el.newTitle,
+    el.newLabelMode,
+    el.newCode,
+    el.newTextAbove,
+    el.newTextBelow,
+    el.newsignalWord,
+    el.newCustomSignInput,
+  ].forEach((input) => {
+    input.addEventListener("input", () => {
+      // Keep an unsaved Add New label visible on the paper while the catalog selection is empty.
+      if (input === el.newCustomSignInput) {
+        renderCustomSignPreview(el.newCustomSignInput, el.newCustomSignPreview);
+      }
+      renderLabels();
+    });
+  });
+  el.newLabelMode.addEventListener("change", renderLabels);
   el.editCustomSignInput.addEventListener("input", () => renderCustomSignPreview(el.editCustomSignInput, el.editCustomSignPreview));
   el.newSignSearch.addEventListener("input", () => rendersignPicker(el.newsignGrid, getSelectedsigns(el.newsignGrid)));
   el.mixSignSearch.addEventListener("input", () => rendersignPicker(el.mixsignGrid, getSelectedsigns(el.mixsignGrid)));
   el.editSignSearch.addEventListener("input", () => rendersignPicker(el.editsignGrid, getSelectedsigns(el.editsignGrid)));
+  el.newsignGrid.addEventListener("change", () => {
+    // Selected signs in Add New are part of the temporary paper preview until the label is saved.
+    renderLabels();
+  });
   [el.newUnicodeHelpButton, el.editUnicodeHelpButton].forEach((button) => {
     button.addEventListener("click", () => {
       // Open a dedicated Unicode search site so users can find symbol code points.
