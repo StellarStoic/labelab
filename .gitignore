@@ -5,6 +5,7 @@ codes.json.bak
 download_github_folder.py
 migrate_codes_copy_to_codes.py
 wikimediaCommonsDownloader.py
+flagsDownloader.py
 codes_1.json
 codes_copy.json
 codes_mann.json
