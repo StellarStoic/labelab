@@ -1570,6 +1570,14 @@ button:hover,
   scrollbar-width: thin;
 }
 
+/* Heading links explain payment methods without changing the card layout. */
+.donation-heading-link {
+    color: inherit;
+    font-size: 0.65em;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
 .item-edit-modal,
 .category-edit-modal,
 .import-review-modal,
