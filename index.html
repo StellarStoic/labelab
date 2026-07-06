@@ -624,7 +624,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
                 <option value="ru">Русский</option>
                 <option value="zh">中文</option>
               </select>
-              <a class="translator-link" href="https://crowdin.com/project/labelab" target="_blank" rel="noopener noreferrer" data-i18n="action.translatorsClickHere">Translators click here</a>
+              <button id="translatorHelpButton" class="translator-link" type="button" data-i18n="action.translatorsClickHere">Help translate Labelab</button>
             </label>
           </div>
         </section>
@@ -892,6 +892,25 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
           <button id="copyShareLinkButton" type="button" data-i18n="action.copyShareLink">Copy share link</button>
           <button id="saveLabelFileButton" class="secondary-button" type="button" data-i18n="action.saveLabelFile">Save label file</button>
           <button id="savePdfButton" class="secondary-button" type="button" data-i18n="action.savePdf">Print / save PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="translatorModal" class="modal-backdrop" aria-hidden="true">
+      <div class="translator-modal" role="dialog" aria-modal="true" aria-labelledby="translatorTitle">
+        <button id="translatorCloseButton" class="modal-close" type="button" aria-label="Close" data-i18n-aria-label="aria.close">×</button>
+        <h2 id="translatorTitle" data-i18n="modal.translatorHelp">Help translate Labelab</h2>
+        <p class="translator-intro" data-i18n="translator.intro">Translations are maintained directly in the project repository. Fork the project, edit or add the JSON file for your language in the i18n folder, then open a pull request so the changes can be reviewed and included.</p>
+        <ol class="translator-steps">
+          <li data-i18n="translator.stepFork">Fork the Labelab repository on GitHub.</li>
+          <li data-i18n="translator.stepEdit">Edit an existing file such as i18n/en.json, or add a new locale file using the same keys.</li>
+          <li data-i18n="translator.stepValidate">Keep the JSON valid and preserve placeholders such as {name}, {count}, and {code}.</li>
+          <li data-i18n="translator.stepPullRequest">Open a pull request with a short note about the language you changed.</li>
+        </ol>
+        <p class="translator-note" data-i18n="translator.note">Please translate the visible text only. Keep i18n keys, HTML attributes, and placeholder names unchanged.</p>
+        <div class="modal-actions">
+          <a class="button-link" href="https://github.com/StellarStoic/labelab" target="_blank" rel="noopener noreferrer" data-i18n="action.openRepository">Open repository</a>
+          <button id="translatorDismissButton" class="secondary-button" type="button" data-i18n="action.close">Close</button>
         </div>
       </div>
     </div>

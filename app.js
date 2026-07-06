@@ -545,6 +545,10 @@ const el = {
   copyShareLinkButton: document.querySelector("#copyShareLinkButton"),
   saveLabelFileButton: document.querySelector("#saveLabelFileButton"),
   savePdfButton: document.querySelector("#savePdfButton"),
+  translatorHelpButton: document.querySelector("#translatorHelpButton"),
+  translatorModal: document.querySelector("#translatorModal"),
+  translatorCloseButton: document.querySelector("#translatorCloseButton"),
+  translatorDismissButton: document.querySelector("#translatorDismissButton"),
   categoryOptions: document.querySelector("#categoryOptions"),
   donationModal: document.querySelector("#donationModal"),
   donationCloseButton: document.querySelector("#donationCloseButton"),
@@ -7224,6 +7228,20 @@ function closeShareModal() {
   el.shareButton.focus();
 }
 
+function openTranslatorModal() {
+  // Open translation contribution instructions without sending users away from the app.
+  el.translatorModal.classList.add("is-open");
+  el.translatorModal.setAttribute("aria-hidden", "false");
+  el.translatorCloseButton.focus();
+}
+
+function closeTranslatorModal() {
+  // Close the translation instructions and return focus to the language settings link.
+  el.translatorModal.classList.remove("is-open");
+  el.translatorModal.setAttribute("aria-hidden", "true");
+  el.translatorHelpButton.focus();
+}
+
 function printWithBorderChoice() {
   // Ask whether dashed cut borders should be included only for the upcoming print job.
   const includeBorders = window.confirm(t("confirm.printLabelBorders"));
@@ -7806,6 +7824,15 @@ function bindEvents() {
   el.copyShareLinkButton.addEventListener("click", copyCurrentLabelShareLink);
   el.saveLabelFileButton.addEventListener("click", saveCurrentLabelFile);
   el.savePdfButton.addEventListener("click", printCurrentLabelFromShareModal);
+  el.translatorHelpButton.addEventListener("click", openTranslatorModal);
+  el.translatorCloseButton.addEventListener("click", closeTranslatorModal);
+  el.translatorDismissButton.addEventListener("click", closeTranslatorModal);
+  el.translatorModal.addEventListener("click", (event) => {
+    // Close translator instructions when users click outside the modal content.
+    if (event.target === el.translatorModal) {
+      closeTranslatorModal();
+    }
+  });
   el.appUpdateCloseButton.addEventListener("click", closeAppUpdateModal);
   el.appUpdateDismissButton.addEventListener("click", closeAppUpdateModal);
   el.appUpdateReloadButton.addEventListener("click", reloadLatestAppVersion);

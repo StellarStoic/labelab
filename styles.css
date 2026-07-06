@@ -217,9 +217,14 @@ label {
 }
 
 .translator-link {
+  background: transparent;
+  border: 0;
   color: var(--accent);
+  cursor: pointer;
   font-size: 11px;
   line-height: 1.2;
+  padding: 0;
+  text-align: left;
   text-decoration: none;
 }
 
@@ -1583,6 +1588,7 @@ button:hover,
 .import-review-modal,
 .scanner-modal,
 .share-modal,
+.translator-modal,
 .app-update-modal {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -1613,6 +1619,44 @@ button:hover,
 
 .app-update-changes li {
   line-height: 1.35;
+}
+
+.translator-modal {
+  display: grid;
+  gap: 14px;
+}
+
+.translator-intro,
+.translator-note {
+  color: var(--muted);
+}
+
+.translator-steps {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.translator-steps li {
+  line-height: 1.35;
+}
+
+.button-link {
+  align-items: center;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: white;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
+.button-link:hover {
+  background: var(--accent-strong);
 }
 
 /* Keeps the larger item editor inside the viewport and scrollable on small screens. */
@@ -1668,7 +1712,8 @@ button:hover,
 .category-edit-modal h2,
 .import-review-modal h2,
 .scanner-modal h2,
-.share-modal h2 {
+.share-modal h2,
+.translator-modal h2 {
   font-size: 22px;
   padding-right: 42px;
 }
