@@ -115,6 +115,20 @@ http://localhost:8000/
 
 You can also deploy the repository to any static hosting provider that serves `index.html`, `app.js`, `styles.css`, `i18n/`, `images/`, and `assets/` like Github.
 
+## Website Updates
+
+The GitHub Pages workflow in `.github/workflows/pages.yml` deploys the static site from `main`.
+
+On each deploy it:
+
+- Copies the site into a clean `_site/` folder.
+- Generates `version.json` from the latest Git commits.
+- Adds the current commit hash to `styles.css` and `app.js` URLs in the deployed `index.html`.
+
+The app fetches `version.json` with `cache: "no-store"` during startup. When the deployed commit differs from the version already acknowledged in that browser, Labelab shows a small "What's new" dialog with the latest commit messages and a reload button. Reloading adds the commit to the page URL so browsers request the newest HTML, CSS, and JavaScript instead of reusing stale cached files.
+
+For GitHub Pages, set the site source to **GitHub Actions** so this workflow controls deployment.
+
 ## Data Files
 
 - `codes.json` contains catalog data used by the app as a bundled/default catalog source.

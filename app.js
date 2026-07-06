@@ -18,7 +18,9 @@ const STORAGE_KEY = "labelLab.codes.v1";
 const SETTINGS_KEY = "labelLab.settings.v1";
 const PRESETS_KEY = "labelLab.presets.v1";
 const CATALOG_BACKUP_KEY = "labelLab.codes.backup.v1";
+const APP_VERSION_KEY = "labelLab.appVersion.v1";
 const DEFAULT_LOCALE = "en";
+const VERSION_URL = "version.json";
 const SIGN_MANIFEST_URL = "images/signs.json";
 const SIGN_METADATA_URL = "images/signs_metadata.json";
 const UNICODE_SEARCH_URL = "https://home.unicode.org/";
@@ -362,6 +364,7 @@ const state = {
   freestylePointer: null,
   freestyleHandleMoved: false,
   favoriteGrids: [],
+  latestAppVersion: null,
 };
 
 const signPickerState = new WeakMap();
@@ -550,6 +553,12 @@ const el = {
   qrViewerCloseButton: document.querySelector("#qrViewerCloseButton"),
   qrViewerTitle: document.querySelector("#qrViewerTitle"),
   qrViewerImage: document.querySelector("#qrViewerImage"),
+  appUpdateModal: document.querySelector("#appUpdateModal"),
+  appUpdateCloseButton: document.querySelector("#appUpdateCloseButton"),
+  appUpdateMeta: document.querySelector("#appUpdateMeta"),
+  appUpdateChanges: document.querySelector("#appUpdateChanges"),
+  appUpdateReloadButton: document.querySelector("#appUpdateReloadButton"),
+  appUpdateDismissButton: document.querySelector("#appUpdateDismissButton"),
   measurementUnit: document.querySelector("#measurementUnit"),
   languageSelect: document.querySelector("#languageSelect"),
   themeSelect: document.querySelector("#themeSelect"),
@@ -615,6 +624,99 @@ function showModeChangedToast(previousMode, nextMode) {
     return;
   }
   showStatusToast(t("status.modeChanged", { mode: t(getSheetModeLabelKey(nextMode)) }), 5000);
+}
+
+function normalizeAppVersionInfo(rawVersion) {
+  // Normalize generated deploy metadata so the update modal can handle older or partial version files.
+  const commit = String(rawVersion?.commit || "").trim();
+  if (!commit) {
+    return null;
+  }
+
+  return {
+    commit,
+    shortCommit: String(rawVersion?.shortCommit || commit.slice(0, 7)).trim(),
+    date: String(rawVersion?.date || "").trim(),
+    changes: (Array.isArray(rawVersion?.changes) ? rawVersion.changes : []).map((change) => String(change || "").trim()).filter(Boolean),
+  };
+}
+
+function getStoredAppVersion() {
+  // Read the last app version acknowledged by this browser.
+  try {
+    return localStorage.getItem(APP_VERSION_KEY) || "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function storeAppVersion(commit) {
+  // Remember that the user has seen or loaded this site version.
+  try {
+    localStorage.setItem(APP_VERSION_KEY, commit);
+  } catch (error) {
+    console.warn("Could not save app version.", error);
+  }
+}
+
+function closeAppUpdateModal() {
+  // Close the release-notes modal and mark the shown commit as acknowledged.
+  if (state.latestAppVersion?.commit) {
+    storeAppVersion(state.latestAppVersion.commit);
+  }
+  el.appUpdateModal.classList.remove("is-open");
+  el.appUpdateModal.setAttribute("aria-hidden", "true");
+}
+
+function reloadLatestAppVersion() {
+  // Reload the page with a commit query string so the browser asks the server for fresh HTML and assets.
+  const commit = state.latestAppVersion?.commit;
+  if (commit) {
+    storeAppVersion(commit);
+  }
+
+  const url = new URL(window.location.href);
+  url.searchParams.set("v", commit || Date.now().toString());
+  window.location.replace(url.toString());
+}
+
+function renderAppUpdateModal(versionInfo) {
+  // Render generated commit notes inside the update modal without trusting deploy metadata as HTML.
+  state.latestAppVersion = versionInfo;
+  el.appUpdateMeta.textContent = t("status.appUpdateMeta", {
+    commit: versionInfo.shortCommit,
+    date: versionInfo.date || t("status.unknown"),
+  });
+  el.appUpdateChanges.innerHTML = "";
+
+  const changes = versionInfo.changes.length ? versionInfo.changes : [t("status.appUpdateFallback")];
+  changes.forEach((change) => {
+    const item = document.createElement("li");
+    item.textContent = change;
+    el.appUpdateChanges.append(item);
+  });
+
+  el.appUpdateModal.classList.add("is-open");
+  el.appUpdateModal.setAttribute("aria-hidden", "false");
+}
+
+async function checkForAppUpdate() {
+  // Fetch generated deploy metadata without cache so repeat visitors see the latest release notes.
+  try {
+    const response = await fetch(`${VERSION_URL}?t=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) {
+      return;
+    }
+
+    const versionInfo = normalizeAppVersionInfo(await response.json());
+    if (!versionInfo || getStoredAppVersion() === versionInfo.commit) {
+      return;
+    }
+
+    renderAppUpdateModal(versionInfo);
+  } catch (error) {
+    console.info("App version metadata unavailable.", error);
+  }
 }
 
 function stripPinFieldsForShare(value) {
@@ -7704,6 +7806,15 @@ function bindEvents() {
   el.copyShareLinkButton.addEventListener("click", copyCurrentLabelShareLink);
   el.saveLabelFileButton.addEventListener("click", saveCurrentLabelFile);
   el.savePdfButton.addEventListener("click", printCurrentLabelFromShareModal);
+  el.appUpdateCloseButton.addEventListener("click", closeAppUpdateModal);
+  el.appUpdateDismissButton.addEventListener("click", closeAppUpdateModal);
+  el.appUpdateReloadButton.addEventListener("click", reloadLatestAppVersion);
+  el.appUpdateModal.addEventListener("click", (event) => {
+    // Let users dismiss the update notice by clicking the backdrop outside the modal body.
+    if (event.target === el.appUpdateModal) {
+      closeAppUpdateModal();
+    }
+  });
   el.donateButton.addEventListener("click", openDonationModal);
   document.querySelectorAll("[data-reset-controls]").forEach((button) => {
     // Connect every plus-shaped movement reset button to the shared reset behavior.
@@ -8190,6 +8301,7 @@ async function init() {
 
   await loadMessages(state.locale);
   applyTranslations();
+  checkForAppUpdate();
   renderLabelStockOptions();
   renderGridPresetOptions(el.gridPreset.value);
   rendersignPicker(el.mixsignGrid, []);

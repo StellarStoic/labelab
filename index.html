@@ -40,6 +40,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Labelab" />
     <meta name="twitter:description" content="Private local label maker for barcodes, QR codes, text labels, warning signs, and custom printable sheets." />
+    <!-- The deploy workflow adds a commit query string here so browsers refresh changed CSS. -->
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -961,6 +962,20 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
       </div>
     </div>
 
+    <div id="appUpdateModal" class="modal-backdrop" aria-hidden="true">
+      <div class="app-update-modal" role="dialog" aria-modal="true" aria-labelledby="appUpdateTitle">
+        <button id="appUpdateCloseButton" class="modal-close" type="button" aria-label="Close" data-i18n-aria-label="aria.close">×</button>
+        <h2 id="appUpdateTitle" data-i18n="modal.appUpdate">Labelab updated</h2>
+        <p id="appUpdateMeta" class="app-update-meta"></p>
+        <ul id="appUpdateChanges" class="app-update-changes"></ul>
+        <div class="modal-actions">
+          <button id="appUpdateReloadButton" type="button" data-i18n="action.reloadLatest">Reload latest</button>
+          <button id="appUpdateDismissButton" class="secondary-button" type="button" data-i18n="action.dismiss">Dismiss</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- The deploy workflow adds a commit query string here so browsers refresh changed JavaScript. -->
     <script src="app.js"></script>
   </body>
 </html>
