@@ -88,6 +88,30 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
         </section>
 
         <section class="control-group">
+          <h2 data-i18n="section.labelTypes">Label types</h2>
+          <label for="labelStockSelect" data-i18n="label.labelStock">Saved label type</label>
+          <select id="labelStockSelect"></select>
+          <label for="labelStockCodeInput" data-i18n="label.packageCode">Package EAN / code</label>
+          <!-- Lets users scan the code printed on a label package and apply the matching physical sheet layout. -->
+          <div class="scan-code-row">
+            <input id="labelStockCodeInput" type="text" inputmode="numeric" placeholder="Package code" data-i18n-placeholder="placeholder.packageCode" />
+            <button id="scanLabelStockButton" class="secondary-button" type="button" data-i18n="action.scanCode">Scan</button>
+          </div>
+          <div class="button-row">
+            <button id="applyLabelStockButton" type="button" data-i18n="action.applyLabelStock">Apply type</button>
+            <button id="saveLabelStockButton" type="button" data-i18n="action.saveLabelStock">Save current type</button>
+          </div>
+          <div class="button-row">
+            <button id="editLabelStockButton" class="secondary-button is-hidden" type="button" data-i18n="action.editLabelStock">Edit type</button>
+            <button id="deleteLabelStockButton" class="secondary-button" type="button" data-i18n="action.deleteLabelStock">Delete type</button>
+          </div>
+          <div class="button-row">
+            <button id="adaptContentButton" class="secondary-button" type="button" data-i18n="action.adaptContent">Adapt content</button>
+          </div>
+          <p id="labelStockMeta" class="label-stock-meta" data-i18n="status.noLabelStock">No label type selected.</p>
+        </section>
+
+        <section class="control-group">
           <h2 data-i18n="section.mixer">Modes</h2>
           <button id="saveSheetButton" type="button" data-i18n="action.saveCurrentWork">Save current</button>
           <label for="sheetFillMode" data-i18n="label.sheetFillMode">Mode</label>

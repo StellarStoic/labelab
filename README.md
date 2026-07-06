@@ -21,6 +21,8 @@ The app is useful for simple product labels, warehouse labels, shelf tags, warni
 - Search, select, edit, and delete catalog items from the left-side catalog panel.
 - Group catalog items by category and assign category colors.
 - Save reusable layout and style presets, then apply them to new or existing labels.
+- Save manufacturer label types with package EAN/code, paper size, grid, margins, and gaps, then apply them by selecting or scanning the package code.
+- Explicitly adapt text, barcode, QR, sign size, and padding controls to the current individual label size when switching to a different label type.
 - Scan supported barcodes with the device camera through the browser `BarcodeDetector` API when the browser supports it.
 - Add manual Unicode or emoji signs by typing symbols or code point formats such as `U+2620`.
 - Search a local sign dictionary and attach SVG/image signs to labels.
@@ -33,7 +35,7 @@ The app is useful for simple product labels, warehouse labels, shelf tags, warni
 - Share the current label setup through a generated link.
 - Save a single label setup as a `.label.json` file.
 - Export and import the full catalog as JSON.
-- Store catalog, settings, and presets in browser `localStorage`.
+- Store catalog, settings, presets, saved sheets, and label types in browser `localStorage`.
 - Switch between light and dark themes.
 - Switch between metric and imperial measurement units.
 - Use the interface in English, Slovenian, French, and Chinese.
@@ -50,6 +52,7 @@ Labelab exposes detailed layout controls for users who need labels to match spec
   - Photo sizes.
   - Custom paper width and height.
 - Portrait and landscape orientation.
+- Saved label types for physical manufacturer sheets, including optional package EAN/code lookup.
 - Grid presets such as `5 x 15`, `4 x 16`, `3 x 10`, and `2 x 8`.
 - Custom rows and columns.
 - Page margins for top, right, bottom, and left.
@@ -62,8 +65,11 @@ Labelab exposes detailed layout controls for users who need labels to match spec
 - Font family selection across sans serif, serif, monospace, and display fonts.
 - Title size, code number size, barcode max height, QR max size, and sign max size.
 - Directional padding controls for barcode placement and sign placement.
+- Manual `Adapt content` action for retuning content sizes after changing to a smaller or larger label format.
 - Toggle controls for title, code number, text above, text below, bold, and italic styles.
 - Drag-and-drop ordering for label parts.
+
+Presets and label types intentionally serve different jobs. Presets store visual label setup, such as typography, barcode size, colors, and padding. Label types store the physical sheet stock, such as paper size, row/column count, margins, gaps, and package code. Selecting a label type changes the sheet geometry; adapting content is a separate button so carefully tuned label styling is not changed automatically.
 
 ## Sign And Pictogram Dictionary
 
@@ -83,7 +89,7 @@ More information about adding local sign files is in `images/README.md`.
 Labelab is built as a local-first static web app:
 
 - Catalog data is stored in browser `localStorage`.
-- Settings and presets are stored in browser `localStorage`.
+- Settings, presets, saved sheets, and label types are stored in browser `localStorage`.
 - Exported JSON files can be kept as backups or moved between browsers.
 - The app does not require a database.
 - The app does not require a server-side account system.
@@ -124,7 +130,7 @@ Use the Backup controls in the app to:
 
 - Export the current catalog to `codes.json`.
 - Import a compatible JSON catalog.
-- Preserve catalog data before clearing browser storage, changing browser profiles, or deploying updates.
+- Preserve catalog items, categories, presets, saved sheets, favorite grids, and saved label types before clearing browser storage, changing browser profiles, or deploying updates.
 
 The share/save controls can also package the currently selected label as a standalone `.label.json` file or a shareable link.
 

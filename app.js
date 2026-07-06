@@ -315,7 +315,21 @@ const COLOR_PRESETS = [
 ];
 
 const state = {
-  catalog: { lastUpdate: "", totalItems: 0, totalCategories: 0, totalPresets: 0, totalSheets: 0, favoriteGrids: [], globalSettings: { favoriteGrids: [] }, labelSheets: [], categories: [], presets: [], items: [] },
+  catalog: {
+    lastUpdate: "",
+    totalItems: 0,
+    totalCategories: 0,
+    totalPresets: 0,
+    totalSheets: 0,
+    totalLabelStocks: 0,
+    favoriteGrids: [],
+    globalSettings: { favoriteGrids: [] },
+    labelStocks: [],
+    labelSheets: [],
+    categories: [],
+    presets: [],
+    items: [],
+  },
   selectedItem: null,
   selectedCategory: null,
   selectedSheet: null,
@@ -337,6 +351,7 @@ const state = {
   scannerStream: null,
   scannerFrameId: null,
   scannerDetector: null,
+  scannerHandler: null,
   imageSigns: [],
   labelPartOrder: ["top", "main", "bottom"],
   labelSortDrop: null,
@@ -364,6 +379,15 @@ const el = {
   updatePresetButton: document.querySelector("#updatePresetButton"),
   renamePresetButton: document.querySelector("#renamePresetButton"),
   deletePresetButton: document.querySelector("#deletePresetButton"),
+  labelStockSelect: document.querySelector("#labelStockSelect"),
+  labelStockCodeInput: document.querySelector("#labelStockCodeInput"),
+  scanLabelStockButton: document.querySelector("#scanLabelStockButton"),
+  applyLabelStockButton: document.querySelector("#applyLabelStockButton"),
+  saveLabelStockButton: document.querySelector("#saveLabelStockButton"),
+  editLabelStockButton: document.querySelector("#editLabelStockButton"),
+  deleteLabelStockButton: document.querySelector("#deleteLabelStockButton"),
+  adaptContentButton: document.querySelector("#adaptContentButton"),
+  labelStockMeta: document.querySelector("#labelStockMeta"),
   newTitle: document.querySelector("#newTitle"),
   newLabelMode: document.querySelector("#newLabelMode"),
   newCode: document.querySelector("#newCode"),
@@ -680,9 +704,20 @@ function createSheetId(name, index = Date.now()) {
   return `sheet-${source.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 }
 
+function createLabelStockId(name, code = "", index = Date.now()) {
+  // Create a stable local label-stock id from the manufacturer name or package code.
+  const source = `${name || "label-stock"}-${code || index}`;
+  return `stock-${source.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}
+
 function getItemKey(item) {
   // Prefer explicit ids, with code fallback for older in-memory items.
   return item?.id || item?.code || "";
+}
+
+function normalizePackageCode(value) {
+  // Store package EAN/UPC values digit-only while still allowing manual empty entries.
+  return String(value || "").replace(/\D/g, "").trim();
 }
 
 function getImportItemKey(item) {
@@ -1149,6 +1184,61 @@ function normalizeLabelSheets(value) {
   return [...sheetsById.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
+function normalizeStockNumber(value, fallback = 0) {
+  // Read stock dimensions from imported JSON while falling back to practical numeric defaults.
+  const number = Number.parseFloat(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function normalizeLabelStock(rawStock, index = Date.now()) {
+  // Normalize a manufacturer label-sheet definition without mixing it with printable sheet content.
+  const name = String(rawStock?.name || rawStock?.title || "").trim();
+  const manufacturer = String(rawStock?.manufacturer || rawStock?.brand || "").trim();
+  const packageCode = normalizePackageCode(rawStock?.packageCode || rawStock?.ean || rawStock?.upc || rawStock?.code || "");
+  const rawSettings = rawStock?.settings && typeof rawStock.settings === "object" ? rawStock.settings : rawStock || {};
+  if (!name) {
+    return null;
+  }
+
+  const settings = {
+    measurementUnit: "metric",
+    paperSize: rawSettings.paperSize || "A4",
+    paperOrientation: rawSettings.paperOrientation || "portrait",
+    paperWidth: normalizeStockNumber(rawSettings.paperWidth, PAPER_SIZES.A4.width),
+    paperHeight: normalizeStockNumber(rawSettings.paperHeight, PAPER_SIZES.A4.height),
+    gridPreset: rawSettings.gridPreset || "Custom",
+    columns: Math.max(1, Number.parseInt(rawSettings.columns, 10) || 1),
+    rows: Math.max(1, Number.parseInt(rawSettings.rows, 10) || 1),
+    marginLeft: normalizeStockNumber(rawSettings.marginLeft, 0),
+    marginRight: normalizeStockNumber(rawSettings.marginRight, 0),
+    marginTop: normalizeStockNumber(rawSettings.marginTop, 0),
+    marginBottom: normalizeStockNumber(rawSettings.marginBottom, 0),
+    gapX: normalizeStockNumber(rawSettings.gapX, 0),
+    gapY: normalizeStockNumber(rawSettings.gapY, 0),
+  };
+
+  return {
+    id: String(rawStock.id || createLabelStockId(name, packageCode, index)),
+    name,
+    manufacturer,
+    packageCode,
+    settings,
+    updatedAt: rawStock.updatedAt || new Date().toISOString(),
+  };
+}
+
+function normalizeLabelStocks(value) {
+  // Deduplicate saved label stocks by id while keeping package codes searchable after import.
+  const stocksById = new Map();
+  (Array.isArray(value) ? value : []).forEach((stock, index) => {
+    const normalized = normalizeLabelStock(stock, index);
+    if (normalized) {
+      stocksById.set(normalized.id, normalized);
+    }
+  });
+  return [...stocksById.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
 function normalizeLabelPartOrder(value) {
   // Keep only the three known movable label regions in a stable order.
   const parts = Array.isArray(value) ? value : String(value || "").split(",");
@@ -1265,6 +1355,7 @@ function applyTranslations() {
   updateCatalogMeta();
   renderSelectedItem();
   renderPresetOptions();
+  renderLabelStockOptions();
   renderGridPresetOptions();
   updateCategoryOptions();
   renderSheetFillControls();
@@ -1363,6 +1454,7 @@ function normalizeCatalog(rawCatalog) {
   const rawCategories = Array.isArray(rawCatalog?.categories) ? rawCatalog.categories : [];
   const presets = Array.isArray(rawCatalog?.presets) ? rawCatalog.presets.map(normalizePreset).filter(Boolean) : [];
   const favoriteGrids = normalizeFavoriteGrids(rawCatalog?.favoriteGrids || rawCatalog?.globalSettings?.favoriteGrids || []);
+  const labelStocks = normalizeLabelStocks(rawCatalog?.labelStocks || rawCatalog?.labelTypes || rawCatalog?.stocks || []);
   const labelSheets = normalizeLabelSheets(rawCatalog?.labelSheets || rawCatalog?.sheets || []);
   const presetIdByName = new Map(presets.map((preset) => [preset.name.toLocaleLowerCase(), preset.id]));
   const categoriesByName = new Map();
@@ -1423,10 +1515,12 @@ function normalizeCatalog(rawCatalog) {
     totalCategories: categories.length,
     totalPresets: presets.length,
     totalSheets: labelSheets.length,
+    totalLabelStocks: labelStocks.length,
     favoriteGrids,
     globalSettings: {
       favoriteGrids,
     },
+    labelStocks,
     labelSheets,
     categories,
     presets,
@@ -1471,6 +1565,8 @@ function saveCatalog(options = {}) {
   state.catalog.presets = Array.isArray(state.catalog.presets) ? state.catalog.presets.map(normalizePreset).filter(Boolean) : [];
   state.catalog.presets.sort((a, b) => a.name.localeCompare(b.name));
   state.catalog.totalPresets = state.catalog.presets.length;
+  state.catalog.labelStocks = normalizeLabelStocks(state.catalog.labelStocks);
+  state.catalog.totalLabelStocks = state.catalog.labelStocks.length;
   state.catalog.labelSheets = normalizeLabelSheets(state.catalog.labelSheets);
   state.catalog.totalSheets = state.catalog.labelSheets.length;
   state.presets = state.catalog.presets;
@@ -1519,6 +1615,7 @@ function syncPresetsFromCatalog() {
   // Keep the legacy in-memory preset reference pointed at the catalog-backed presets.
   state.catalog.presets = Array.isArray(state.catalog.presets) ? state.catalog.presets.map(normalizePreset).filter(Boolean) : [];
   state.presets = state.catalog.presets;
+  state.catalog.labelStocks = normalizeLabelStocks(state.catalog.labelStocks);
   state.catalog.labelSheets = normalizeLabelSheets(state.catalog.labelSheets);
 }
 
@@ -1911,6 +2008,260 @@ function deleteSelectedPreset() {
   });
   savePresets();
   renderPresetOptions();
+}
+
+function getLabelStockById(stockId) {
+  // Resolve a saved physical label stock from the catalog-backed collection.
+  return state.catalog.labelStocks.find((stock) => stock.id === stockId) || null;
+}
+
+function findLabelStockByPackageCode(code) {
+  // Match a scanned or typed package code against saved label stock package EAN/UPC values.
+  const packageCode = normalizePackageCode(code);
+  return packageCode ? state.catalog.labelStocks.find((stock) => stock.packageCode === packageCode) || null : null;
+}
+
+function getSelectedLabelStock() {
+  // Prefer the dropdown selection, falling back to a typed package code lookup.
+  return getLabelStockById(el.labelStockSelect.value) || findLabelStockByPackageCode(el.labelStockCodeInput.value);
+}
+
+function formatLabelStockMeta(stock) {
+  // Summarize one physical stock so users can verify the selected package before printing.
+  if (!stock) {
+    return t("status.noLabelStock");
+  }
+
+  const settings = stock.settings;
+  const brand = stock.manufacturer ? `${stock.manufacturer} - ` : "";
+  const code = stock.packageCode ? ` | ${t("label.packageCode")}: ${stock.packageCode}` : "";
+  return `${brand}${settings.columns} x ${settings.rows} | ${formatMeasurement(settings.paperWidth)} x ${formatMeasurement(settings.paperHeight)} ${getMeasurementUnitLabel()}${code}`;
+}
+
+function renderLabelStockOptions(selectedValue = el.labelStockSelect.value) {
+  // Rebuild the label-stock dropdown from catalog data after imports, deletes, or locale changes.
+  el.labelStockSelect.innerHTML = "";
+  const emptyOption = document.createElement("option");
+  emptyOption.value = "";
+  emptyOption.textContent = t("option.noLabelStock");
+  el.labelStockSelect.append(emptyOption);
+
+  normalizeLabelStocks(state.catalog.labelStocks).forEach((stock) => {
+    const option = document.createElement("option");
+    option.value = stock.id;
+    option.textContent = stock.manufacturer ? `${stock.manufacturer} - ${stock.name}` : stock.name;
+    el.labelStockSelect.append(option);
+  });
+
+  el.labelStockSelect.value = state.catalog.labelStocks.some((stock) => stock.id === selectedValue) ? selectedValue : "";
+  el.labelStockMeta.textContent = formatLabelStockMeta(getSelectedLabelStock());
+  updateLabelStockActionVisibility();
+}
+
+function updateLabelStockActionVisibility() {
+  // Show metadata editing only when the current selection points at a saved label type.
+  el.editLabelStockButton.classList.toggle("is-hidden", !getSelectedLabelStock());
+}
+
+function collectLabelStockSettings() {
+  // Capture only the physical sheet geometry that belongs to a manufacturer label stock.
+  return {
+    measurementUnit: "metric",
+    paperSize: el.paperSize.value,
+    paperOrientation: el.paperOrientation.value,
+    paperWidth: readMeasurement(el.paperWidth, PAPER_SIZES.A4.width),
+    paperHeight: readMeasurement(el.paperHeight, PAPER_SIZES.A4.height),
+    gridPreset: el.gridPreset.value,
+    columns: Math.max(1, Number.parseInt(el.columnsInput.value, 10) || 1),
+    rows: Math.max(1, Number.parseInt(el.rowsInput.value, 10) || 1),
+    marginLeft: readMeasurement(el.marginLeft, 0),
+    marginRight: readMeasurement(el.marginRight, 0),
+    marginTop: readMeasurement(el.marginTop, 0),
+    marginBottom: readMeasurement(el.marginBottom, 0),
+    gapX: readMeasurement(el.gapX, 0),
+    gapY: readMeasurement(el.gapY, 0),
+  };
+}
+
+function applyLabelStockSettings(settings) {
+  // Apply physical sheet geometry without changing label text, barcode type, or visual style presets.
+  if (!settings) {
+    return;
+  }
+
+  el.paperSize.value = settings.paperSize || "A4";
+  el.paperOrientation.value = settings.paperOrientation || "portrait";
+  setMeasurementValue(el.paperWidth, settings.paperWidth ?? PAPER_SIZES.A4.width);
+  setMeasurementValue(el.paperHeight, settings.paperHeight ?? PAPER_SIZES.A4.height);
+  el.gridPreset.value = [...el.gridPreset.options].some((option) => option.value === settings.gridPreset) ? settings.gridPreset : "Custom";
+  el.columnsInput.value = Math.max(1, Number.parseInt(settings.columns, 10) || 1);
+  el.rowsInput.value = Math.max(1, Number.parseInt(settings.rows, 10) || 1);
+  ["marginLeft", "marginRight", "marginTop", "marginBottom", "gapX", "gapY"].forEach((key) => {
+    setMeasurementValue(el[key], settings[key] ?? 0);
+  });
+}
+
+function applySelectedLabelStock() {
+  // Apply the selected or scanned label stock to the paper, grid, margin, and gap controls.
+  const stock = getSelectedLabelStock();
+  if (!stock) {
+    alert(t("alert.selectLabelStock"));
+    return;
+  }
+
+  el.labelStockSelect.value = stock.id;
+  if (stock.packageCode) {
+    el.labelStockCodeInput.value = stock.packageCode;
+  }
+  applyLabelStockSettings(stock.settings);
+  el.labelStockMeta.textContent = formatLabelStockMeta(stock);
+  updateLabelStockActionVisibility();
+  renderLabels();
+  saveSettings();
+}
+
+function saveCurrentAsLabelStock() {
+  // Save the current physical sheet geometry as a reusable manufacturer label type.
+  const currentStock = getSelectedLabelStock();
+  const namePrompt = window.prompt(t("prompt.labelStockName"), currentStock?.name || "");
+  if (namePrompt === null) {
+    return;
+  }
+  const name = namePrompt.trim();
+  if (!name) {
+    return;
+  }
+
+  const manufacturerPrompt = window.prompt(t("prompt.labelStockManufacturer"), currentStock?.manufacturer || "");
+  if (manufacturerPrompt === null) {
+    return;
+  }
+  const packageCodePrompt = window.prompt(t("prompt.packageCode"), el.labelStockCodeInput.value || currentStock?.packageCode || "");
+  if (packageCodePrompt === null) {
+    return;
+  }
+
+  const manufacturer = manufacturerPrompt.trim();
+  const packageCode = normalizePackageCode(packageCodePrompt);
+  const existing =
+    currentStock ||
+    (packageCode ? findLabelStockByPackageCode(packageCode) : null) ||
+    state.catalog.labelStocks.find(
+      (stock) =>
+        stock.name.toLocaleLowerCase() === name.toLocaleLowerCase() &&
+        stock.manufacturer.toLocaleLowerCase() === manufacturer.toLocaleLowerCase(),
+    ) ||
+    null;
+  if (existing && !window.confirm(t("confirm.overwriteLabelStock", { name: existing.name }))) {
+    return;
+  }
+
+  const savedStock = normalizeLabelStock({
+    id: existing?.id || createLabelStockId(name, packageCode),
+    name,
+    manufacturer,
+    packageCode,
+    settings: collectLabelStockSettings(),
+    updatedAt: new Date().toISOString(),
+  });
+  if (!savedStock) {
+    return;
+  }
+
+  if (existing) {
+    Object.assign(existing, savedStock);
+  } else {
+    state.catalog.labelStocks.push(savedStock);
+  }
+  saveCatalog();
+  renderLabelStockOptions(savedStock.id);
+  el.labelStockCodeInput.value = savedStock.packageCode;
+  el.labelStockMeta.textContent = formatLabelStockMeta(savedStock);
+  updateLabelStockActionVisibility();
+}
+
+function editSelectedLabelStock() {
+  // Edit saved label-type metadata without changing its captured paper, grid, margin, or gap settings.
+  const stock = getSelectedLabelStock();
+  if (!stock) {
+    alert(t("alert.selectLabelStock"));
+    return;
+  }
+
+  const namePrompt = window.prompt(t("prompt.labelStockName"), stock.name);
+  if (namePrompt === null) {
+    return;
+  }
+  const name = namePrompt.trim();
+  if (!name) {
+    return;
+  }
+  const manufacturerPrompt = window.prompt(t("prompt.labelStockManufacturer"), stock.manufacturer || "");
+  if (manufacturerPrompt === null) {
+    return;
+  }
+  const packageCodePrompt = window.prompt(t("prompt.packageCode"), stock.packageCode || "");
+  if (packageCodePrompt === null) {
+    return;
+  }
+
+  const manufacturer = manufacturerPrompt.trim();
+  const packageCode = normalizePackageCode(packageCodePrompt);
+  const duplicate = state.catalog.labelStocks.some(
+    (savedStock) =>
+      savedStock.id !== stock.id &&
+      ((packageCode && savedStock.packageCode === packageCode) ||
+        (savedStock.name.toLocaleLowerCase() === name.toLocaleLowerCase() &&
+          savedStock.manufacturer.toLocaleLowerCase() === manufacturer.toLocaleLowerCase())),
+  );
+  if (duplicate) {
+    alert(t("alert.duplicateLabelStock"));
+    return;
+  }
+
+  stock.name = name;
+  stock.manufacturer = manufacturer;
+  stock.packageCode = packageCode;
+  stock.updatedAt = new Date().toISOString();
+  saveCatalog();
+  renderLabelStockOptions(stock.id);
+  el.labelStockCodeInput.value = packageCode;
+  el.labelStockMeta.textContent = formatLabelStockMeta(stock);
+  updateLabelStockActionVisibility();
+}
+
+function deleteSelectedLabelStock() {
+  // Remove only the physical label stock definition, leaving labels and presets untouched.
+  const stock = getSelectedLabelStock();
+  if (!stock) {
+    alert(t("alert.selectLabelStock"));
+    return;
+  }
+  if (!window.confirm(t("confirm.deleteLabelStock", { name: stock.name }))) {
+    return;
+  }
+
+  state.catalog.labelStocks = state.catalog.labelStocks.filter((savedStock) => savedStock.id !== stock.id);
+  el.labelStockCodeInput.value = "";
+  saveCatalog();
+  renderLabelStockOptions("");
+  updateLabelStockActionVisibility();
+}
+
+function applyScannedLabelStockCode(rawValue) {
+  // Fill the package code field from the scanner and apply a matching saved stock when one exists.
+  const packageCode = normalizePackageCode(rawValue);
+  el.labelStockCodeInput.value = packageCode;
+  const stock = findLabelStockByPackageCode(packageCode);
+  if (!stock) {
+    alert(t("alert.labelStockNotFound", { code: packageCode || rawValue }));
+    el.labelStockCodeInput.focus();
+    return;
+  }
+
+  el.labelStockSelect.value = stock.id;
+  applySelectedLabelStock();
+  updateLabelStockActionVisibility();
 }
 
 function saveSettings() {
@@ -2611,10 +2962,15 @@ function readMeasurement(input, fallbackMm) {
 
 function updateUnitLabels() {
   // Refresh all inline unit labels when switching metric or imperial mode.
-  const unitLabel = state.measurementUnit === "imperial" ? "in" : "mm";
+  const unitLabel = getMeasurementUnitLabel();
   document.querySelectorAll("[data-unit-label]").forEach((node) => {
     node.textContent = unitLabel;
   });
+}
+
+function getMeasurementUnitLabel() {
+  // Return the short label for the active measurement unit.
+  return state.measurementUnit === "imperial" ? "in" : "mm";
 }
 
 function syncThemeSelect() {
@@ -2696,6 +3052,122 @@ function getLayout() {
     gapX: readMeasurement(el.gapX, 0),
     gapY: readMeasurement(el.gapY, 0),
   };
+}
+
+function getLabelCellSize(layout = getLayout()) {
+  // Calculate the individual label cell size produced by the active paper, margins, gaps, and grid.
+  const innerWidth = layout.width - layout.marginLeft - layout.marginRight - layout.gapX * (layout.columns - 1);
+  const innerHeight = layout.height - layout.marginTop - layout.marginBottom - layout.gapY * (layout.rows - 1);
+  return {
+    width: Math.max(1, innerWidth / layout.columns),
+    height: Math.max(1, innerHeight / layout.rows),
+  };
+}
+
+function clampNumber(value, min, max) {
+  // Keep auto-adapted sizes within readable but printable limits.
+  return Math.min(max, Math.max(min, value));
+}
+
+function getWeightedTextLength(text) {
+  // Estimate printed text width by counting wide letters and symbols heavier than narrow letters.
+  return [...String(text || "")].reduce((total, char) => {
+    if (/\s/.test(char)) {
+      return total + 0.35;
+    }
+    if (/[ilI1|.,:;!'`]/.test(char)) {
+      return total + 0.35;
+    }
+    if (/[MW@#%&0-9]/.test(char)) {
+      return total + 0.85;
+    }
+    return total + (char.charCodeAt(0) > 255 ? 1 : 0.6);
+  }, 0);
+}
+
+function getAdaptableSheetItems(limit) {
+  // Inspect the labels currently shown on the sheet so fitting uses the actual visible text.
+  return Array.from({ length: limit }, (_, index) => getSheetCellItem(index, limit)).filter(Boolean);
+}
+
+function getWidthFittedTextSize(text, availableWidth, preferredSize, minSize, maxSize) {
+  // Estimate a one-line font size that fits the available label width.
+  const weightedLength = getWeightedTextLength(text);
+  if (!weightedLength) {
+    return clampNumber(preferredSize, minSize, maxSize);
+  }
+
+  return clampNumber(Math.min(preferredSize, availableWidth / (weightedLength * 1.18)), minSize, maxSize);
+}
+
+function fitRenderedTitleSizeToWidth(minSize = 0.45) {
+  // Use actual rendered title widths as a final correction after the estimate-based adaptation.
+  const titles = [...el.paper.querySelectorAll(".label-title, .text-only-label")].filter((title) => title.textContent.trim());
+  const maxOverflowRatio = titles.reduce((ratio, title) => {
+    const width = title.getBoundingClientRect().width;
+    if (width <= 0 || title.scrollWidth <= width) {
+      return ratio;
+    }
+    return Math.max(ratio, title.scrollWidth / width);
+  }, 1);
+  if (maxOverflowRatio <= 1) {
+    return;
+  }
+
+  const currentTitleSize = readMeasurement(el.titleSize, 2.4);
+  const fittedTitleSize = clampNumber((currentTitleSize / maxOverflowRatio) * 0.96, minSize, currentTitleSize);
+  if (fittedTitleSize < currentTitleSize) {
+    setMeasurementValue(el.titleSize, fittedTitleSize);
+    renderLabels();
+  }
+}
+
+function adaptContentToCurrentLabelSize() {
+  // Explicitly adapt text, barcode, QR, sign, and padding controls to the current individual label size.
+  const layout = getLayout();
+  const cell = getLabelCellSize();
+  const count = getLabelsToPrint(layout.columns * layout.rows);
+  const visibleItems = getAdaptableSheetItems(count);
+  const longestTitle = visibleItems
+    .map((item) => {
+      const mode = normalizeLabelMode(item.labelMode, item);
+      return mode === "text" ? item.title || item.text || "" : item.title || "";
+    })
+    .sort((a, b) => getWeightedTextLength(b) - getWeightedTextLength(a))[0] || "";
+  const shortSide = Math.min(cell.width, cell.height);
+  const labelHorizontalPadding = 2;
+  const titleAvailableWidth = Math.max(1, cell.width - labelHorizontalPadding);
+  const titleSize = getWidthFittedTextSize(longestTitle, titleAvailableWidth, cell.height * 0.16, 0.6, 4);
+  const secondaryTextSize = clampNumber(cell.height * 0.12, 0.8, 3);
+  const codeTextSize = clampNumber(cell.height * 0.11, 0.8, 3);
+  const barcodeMaxHeight = clampNumber(cell.height * 0.48, 2.5, Math.max(2.5, cell.height - 1.2));
+  const qrMaxSize = clampNumber(shortSide * 0.72, 3, shortSide);
+  const signMaxSize = clampNumber(shortSide * 0.72, 4, shortSide);
+  const horizontalPadding = clampNumber(cell.width * 0.025, 0, 1.2);
+  const verticalPadding = clampNumber(cell.height * 0.03, 0, 0.8);
+
+  setMeasurementValue(el.titleSize, titleSize);
+  setMeasurementValue(el.codeTextSize, codeTextSize);
+  setMeasurementValue(el.textAboveSize, secondaryTextSize);
+  setMeasurementValue(el.textBelowSize, secondaryTextSize);
+  setMeasurementValue(el.barcodeMaxHeight, barcodeMaxHeight);
+  setMeasurementValue(el.qrMaxSize, qrMaxSize);
+  setMeasurementValue(el.signMaxSize, signMaxSize);
+  setMeasurementValue(el.codePaddingLeft, horizontalPadding);
+  setMeasurementValue(el.codePaddingRight, horizontalPadding);
+  setMeasurementValue(el.codePaddingTop, verticalPadding);
+  setMeasurementValue(el.codePaddingBottom, verticalPadding);
+  setMeasurementValue(el.signPaddingLeft, horizontalPadding);
+  setMeasurementValue(el.signPaddingRight, horizontalPadding);
+  setMeasurementValue(el.signPaddingTop, verticalPadding);
+  setMeasurementValue(el.signPaddingBottom, verticalPadding);
+  renderLabels();
+  fitRenderedTitleSizeToWidth();
+  saveSettings();
+
+  if (cell.height < 8 || cell.width < 18) {
+    alert(t("alert.smallLabelStock"));
+  }
 }
 
 function applyTypography() {
@@ -6358,10 +6830,9 @@ function renderLabels() {
   if (sheetMode === "freestyle") {
     syncActiveFreestyleStyleFromControls();
   }
-  const innerWidth = layout.width - layout.marginLeft - layout.marginRight - layout.gapX * (layout.columns - 1);
-  const innerHeight = layout.height - layout.marginTop - layout.marginBottom - layout.gapY * (layout.rows - 1);
-  const labelWidth = Math.max(1, innerWidth / layout.columns);
-  const labelHeight = Math.max(1, innerHeight / layout.rows);
+  const cellSize = getLabelCellSize(layout);
+  const labelWidth = cellSize.width;
+  const labelHeight = cellSize.height;
 
   el.paper.style.width = `${layout.width}mm`;
   el.paper.style.height = `${layout.height}mm`;
@@ -6859,8 +7330,8 @@ async function copyDonationAddress(address, type) {
   showCopyToast(type, address);
 }
 
-async function openScannerModal() {
-  // Start the camera scanner and fill the Add Code input when a code is detected.
+async function openScannerModal(options = {}) {
+  // Start the camera scanner and pass detected codes to the requested field handler.
   if (!window.BarcodeDetector || !navigator.mediaDevices?.getUserMedia) {
     alert(t("alert.scannerUnsupported"));
     return;
@@ -6876,6 +7347,7 @@ async function openScannerModal() {
     }
 
     state.scannerDetector = new window.BarcodeDetector({ formats });
+    state.scannerHandler = typeof options.onDetected === "function" ? options.onDetected : null;
     state.scannerStream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: { ideal: "environment" },
@@ -6906,6 +7378,7 @@ function closeScannerModal() {
   }
   state.scannerStream = null;
   state.scannerDetector = null;
+  state.scannerHandler = null;
   el.scannerVideo.pause();
   el.scannerVideo.srcObject = null;
   el.scannerModal.classList.remove("is-open");
@@ -6924,11 +7397,16 @@ async function scanCameraFrame() {
       const detected = codes[0];
       if (detected?.rawValue) {
         const codeType = mapScannerFormatToCodeType(detected.format);
+        const scannerHandler = state.scannerHandler;
+        closeScannerModal();
+        if (scannerHandler) {
+          scannerHandler(detected.rawValue, codeType, detected.format);
+          return;
+        }
         if (codeType) {
           el.codeType.value = codeType;
         }
         el.newCode.value = normalizeCodeForType(detected.rawValue, codeType || el.codeType.value);
-        closeScannerModal();
         el.newCode.focus();
         renderLabels();
         return;
@@ -7073,6 +7551,8 @@ function mergeCatalogs(currentCatalog, importedCatalog) {
   // Merge imported data by appending only missing items and missing categories.
   const categoriesByName = new Map();
   const presetsById = new Map();
+  const labelStocksById = new Map();
+  const labelStockCodes = new Set();
   const sheetsById = new Map();
   const favoriteGridsById = new Map();
   currentCatalog.categories.forEach((category) => {
@@ -7080,6 +7560,12 @@ function mergeCatalogs(currentCatalog, importedCatalog) {
   });
   currentCatalog.presets.forEach((preset) => {
     presetsById.set(preset.id, { ...preset });
+  });
+  normalizeLabelStocks(currentCatalog.labelStocks).forEach((stock) => {
+    labelStocksById.set(stock.id, { ...stock });
+    if (stock.packageCode) {
+      labelStockCodes.add(stock.packageCode);
+    }
   });
   normalizeLabelSheets(currentCatalog.labelSheets).forEach((sheet) => {
     sheetsById.set(sheet.id, { ...sheet });
@@ -7097,6 +7583,15 @@ function mergeCatalogs(currentCatalog, importedCatalog) {
   importedCatalog.presets.forEach((preset) => {
     if (!presetsById.has(preset.id)) {
       presetsById.set(preset.id, { ...preset });
+    }
+  });
+  normalizeLabelStocks(importedCatalog.labelStocks).forEach((stock) => {
+    if (labelStocksById.has(stock.id) || (stock.packageCode && labelStockCodes.has(stock.packageCode))) {
+      return;
+    }
+    labelStocksById.set(stock.id, { ...stock });
+    if (stock.packageCode) {
+      labelStockCodes.add(stock.packageCode);
     }
   });
   normalizeLabelSheets(importedCatalog.labelSheets).forEach((sheet) => {
@@ -7124,6 +7619,7 @@ function mergeCatalogs(currentCatalog, importedCatalog) {
 
   const categories = [...categoriesByName.values()].sort((a, b) => a.name.localeCompare(b.name));
   const presets = [...presetsById.values()].sort((a, b) => a.name.localeCompare(b.name));
+  const labelStocks = normalizeLabelStocks([...labelStocksById.values()]);
   const labelSheets = normalizeLabelSheets([...sheetsById.values()]);
   const favoriteGrids = normalizeFavoriteGrids([...favoriteGridsById.values()]);
   const items = [...itemsByKey.values()].sort((a, b) => (a.category || "").localeCompare(b.category || "") || a.title.localeCompare(b.title));
@@ -7131,6 +7627,7 @@ function mergeCatalogs(currentCatalog, importedCatalog) {
     lastUpdate: new Date().toISOString(),
     categories,
     presets,
+    labelStocks,
     labelSheets,
     favoriteGrids,
     globalSettings: {
@@ -7148,8 +7645,10 @@ function finishCatalogImport(mode) {
 
   saveCatalogBackup(mode);
   state.catalog = mode === "merge" ? mergeCatalogs(state.catalog, state.pendingImport.catalog) : state.pendingImport.catalog;
+  state.catalog.labelStocks = normalizeLabelStocks(state.catalog.labelStocks);
   state.catalog.labelSheets = normalizeLabelSheets(state.catalog.labelSheets);
   state.favoriteGrids = normalizeFavoriteGrids(state.catalog.favoriteGrids || state.catalog.globalSettings?.favoriteGrids || []);
+  renderLabelStockOptions();
   renderGridPresetOptions(el.gridPreset.value);
   state.selectedItem = null;
   state.selectedCategory = null;
@@ -7167,10 +7666,30 @@ function bindEvents() {
   // Wire form controls to catalog filtering, layout rendering, and backup actions.
   el.searchInput.addEventListener("input", renderSearchOptions);
   el.addCodeButton.addEventListener("click", addCode);
-  el.scanCodeButton.addEventListener("click", openScannerModal);
+  el.scanCodeButton.addEventListener("click", () => openScannerModal());
+  el.scanLabelStockButton.addEventListener("click", () => openScannerModal({ onDetected: applyScannedLabelStockCode }));
   el.editCodeButton.addEventListener("click", editSelectedCode);
   el.deleteCodeButton.addEventListener("click", deleteSelectedCode);
   el.createCategoryButton.addEventListener("click", createCatalogCategoryFromAction);
+  el.labelStockSelect.addEventListener("change", () => {
+    // Keep the package code and summary synchronized with the selected physical label type.
+    const stock = getSelectedLabelStock();
+    el.labelStockCodeInput.value = stock?.packageCode || "";
+    el.labelStockMeta.textContent = formatLabelStockMeta(stock);
+    updateLabelStockActionVisibility();
+  });
+  el.labelStockCodeInput.addEventListener("input", () => {
+    // Resolve typed package codes without changing the sheet until Apply is clicked.
+    const stock = findLabelStockByPackageCode(el.labelStockCodeInput.value);
+    el.labelStockSelect.value = stock?.id || "";
+    el.labelStockMeta.textContent = formatLabelStockMeta(stock);
+    updateLabelStockActionVisibility();
+  });
+  el.applyLabelStockButton.addEventListener("click", applySelectedLabelStock);
+  el.saveLabelStockButton.addEventListener("click", saveCurrentAsLabelStock);
+  el.editLabelStockButton.addEventListener("click", editSelectedLabelStock);
+  el.deleteLabelStockButton.addEventListener("click", deleteSelectedLabelStock);
+  el.adaptContentButton.addEventListener("click", adaptContentToCurrentLabelSize);
   el.saveSheetButton.addEventListener("click", saveCurrentWork);
   el.applyPresetButton.addEventListener("click", applySelectedPreset);
   el.savePresetButton.addEventListener("click", saveCurrentAsPreset);
@@ -7368,6 +7887,7 @@ function bindEvents() {
   });
   el.measurementUnit.addEventListener("change", () => {
     convertMeasurementInputs(el.measurementUnit.value);
+    renderLabelStockOptions(el.labelStockSelect.value);
     renderLabels();
   });
   el.languageSelect.addEventListener("change", async () => {
@@ -7670,6 +8190,7 @@ async function init() {
 
   await loadMessages(state.locale);
   applyTranslations();
+  renderLabelStockOptions();
   renderGridPresetOptions(el.gridPreset.value);
   rendersignPicker(el.mixsignGrid, []);
   updateCatalogMeta();
