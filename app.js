@@ -371,6 +371,7 @@ const signPickerState = new WeakMap();
 
 const el = {
   catalogMeta: document.querySelector("#catalogMeta"),
+  addCodeSection: document.querySelector("#addCodeSection"),
   searchInput: document.querySelector("#searchInput"),
   codeSelect: document.querySelector("#codeSelect"),
   selectedCode: document.querySelector("#selectedCode"),
@@ -392,6 +393,7 @@ const el = {
   adaptContentButton: document.querySelector("#adaptContentButton"),
   labelStockMeta: document.querySelector("#labelStockMeta"),
   newTitle: document.querySelector("#newTitle"),
+  newLabelTitle: document.querySelector("#newLabelTitle"),
   newLabelMode: document.querySelector("#newLabelMode"),
   newCode: document.querySelector("#newCode"),
   newTextAbove: document.querySelector("#newTextAbove"),
@@ -415,6 +417,7 @@ const el = {
   deleteCodeButton: document.querySelector("#deleteCodeButton"),
   createCategoryButton: document.querySelector("#createCategoryButton"),
   codeType: document.querySelector("#codeType"),
+  textStyleSection: document.querySelector("#textStyleSection"),
   labelFont: document.querySelector("#labelFont"),
   textAlignGroup: document.querySelector("#textAlignGroup"),
   mirrorSideText: document.querySelector("#mirrorSideText"),
@@ -495,6 +498,7 @@ const el = {
   itemEditIgnoreDuplicateButton: document.querySelector("#itemEditIgnoreDuplicateButton"),
   itemEditLockButton: document.querySelector("#itemEditLockButton"),
   editTitleInput: document.querySelector("#editTitleInput"),
+  editLabelTitleInput: document.querySelector("#editLabelTitleInput"),
   editLabelModeInput: document.querySelector("#editLabelModeInput"),
   editCodeInput: document.querySelector("#editCodeInput"),
   editTextAboveInput: document.querySelector("#editTextAboveInput"),
@@ -802,6 +806,11 @@ function createItemId(title, code, index = Date.now()) {
   return `item-${source.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 }
 
+function getLabelTitle(item) {
+  // Prefer the printable label title, falling back to the catalog name for older saved items.
+  return String(item?.labelTitle || item?.title || "").trim();
+}
+
 function createSheetId(name, index = Date.now()) {
   // Create a stable local sheet id for saved repeat, sequence, and mixed label sheets.
   const source = `${name || "sheet"}-${index}`;
@@ -951,6 +960,40 @@ function normalizeLabelMode(value, item = {}) {
     return "sign";
   }
   return item.code ? "code" : "text";
+}
+
+function syncLabelModeFieldVisibility(container, modeSelect) {
+  // Hide form fields that are ignored by the currently selected label mode without clearing their values.
+  if (!container || !modeSelect) {
+    return;
+  }
+  const mode = normalizeLabelMode(modeSelect.value);
+  container.querySelectorAll("[data-label-modes]").forEach((node) => {
+    const supportedModes = String(node.dataset.labelModes || "").split(/\s+/).filter(Boolean);
+    node.classList.toggle("is-hidden", !supportedModes.includes(mode));
+  });
+}
+
+function syncStyleControlVisibility() {
+  // Hide global style controls that the current Add Code label mode cannot use.
+  if (!el.textStyleSection) {
+    return;
+  }
+  const mode = state.selectedItem ? normalizeLabelMode(state.selectedItem.labelMode, state.selectedItem) : normalizeLabelMode(el.newLabelMode.value);
+  const codeType = normalizeCodeType(el.codeType.value);
+  el.textStyleSection.querySelectorAll("[data-style-label-modes]").forEach((node) => {
+    const supportedModes = String(node.dataset.styleLabelModes || "").split(/\s+/).filter(Boolean);
+    const supportedCodeTypes = String(node.dataset.codeTypes || "").split(/\s+/).filter(Boolean);
+    const isWrongMode = !supportedModes.includes(mode);
+    const isWrongCodeType = supportedCodeTypes.length > 0 && !supportedCodeTypes.includes(codeType);
+    node.classList.toggle("is-hidden", isWrongMode || isWrongCodeType);
+  });
+}
+
+function syncActiveLabelModeVisibility() {
+  // Keep Add Code fields and shared Style controls aligned with the selected label mode.
+  syncLabelModeFieldVisibility(el.addCodeSection, el.newLabelMode);
+  syncStyleControlVisibility();
 }
 
 function getAllsigns() {
@@ -1117,17 +1160,19 @@ function normalizeSheetQueue(value) {
   return (Array.isArray(value) ? value : [])
     .map((entry, index) => {
       const title = String(entry.title || "").trim();
+      const labelTitle = String(entry.labelTitle || entry.printTitle || entry.labelName || "").trim();
       const codeType = normalizeCodeType(entry.codeType || "code128");
       const code = normalizeCodeForType(entry.code || "", codeType);
       const signs = normalizeMixedLabelSigns(entry.signs || []);
       const customSigns = parsecustomSigns(entry.customSigns || "");
-      if (!title && !code && !signs.length && !customSigns.length) {
+      if (!title && !labelTitle && !code && !signs.length && !customSigns.length) {
         return null;
       }
 
       const queueEntry = {
         id: String(entry.id || `sheet-entry-${Date.now()}-${index}`),
         title,
+        labelTitle,
         code,
         codeType,
         labelMode: normalizeLabelMode(entry.labelMode, { code, signs, customSigns }),
@@ -1415,6 +1460,29 @@ function isCodeValidForType(code, codeType) {
   }
 }
 
+function getInvalidCodeReason(codeType) {
+  // Reuse code-type-specific validation copy so alerts explain the exact rule that failed.
+  return t(`invalid.${normalizeCodeType(codeType)}`);
+}
+
+function getTitleAndCodeValidationMessage(title, rawCode, codeType) {
+  // Report missing titles and invalid typed codes separately instead of using a generic form error.
+  const hasTitle = Boolean(String(title || "").trim());
+  const hasTypedCode = Boolean(String(rawCode || "").trim());
+  const normalizedCode = normalizeCodeForType(rawCode, codeType);
+  const codeInvalid = hasTypedCode && !isCodeValidForType(normalizedCode, codeType);
+  if (!hasTitle && codeInvalid) {
+    return t("alert.titleAndInvalidCodeReason", { reason: getInvalidCodeReason(codeType) });
+  }
+  if (!hasTitle) {
+    return t("alert.titleRequired");
+  }
+  if (codeInvalid) {
+    return t("alert.invalidCodeReason", { reason: getInvalidCodeReason(codeType) });
+  }
+  return "";
+}
+
 async function loadMessages(locale) {
   // Load one flat JSON file per locale so translation tools can map keys directly.
   try {
@@ -1581,6 +1649,7 @@ function normalizeCatalog(rawCatalog) {
     .map((item, index) => {
       const codeType = normalizeCodeType(item.codeType || "ean13");
       const title = String(item.title || "").trim();
+      const labelTitle = String(item.labelTitle || item.printTitle || item.labelName || "").trim();
       const code = normalizeCodeForType(item.code ?? item.eanCode ?? "", codeType);
       const category = normalizeCategoryName(item.category || item.categoryName || "");
       const categoryKey = category.toLocaleLowerCase();
@@ -1594,6 +1663,7 @@ function normalizeCatalog(rawCatalog) {
       return {
         id: String(item.id || createItemId(title, code, index)),
         title,
+        labelTitle,
         code,
         codeType,
         labelMode: normalizeLabelMode(item.labelMode, { ...item, code }),
@@ -3252,7 +3322,7 @@ function adaptContentToCurrentLabelSize() {
   const longestTitle = visibleItems
     .map((item) => {
       const mode = normalizeLabelMode(item.labelMode, item);
-      return mode === "text" ? item.title || item.text || "" : item.title || "";
+      return mode === "text" ? getLabelTitle(item) || item.text || "" : getLabelTitle(item);
     })
     .sort((a, b) => getWeightedTextLength(b) - getWeightedTextLength(a))[0] || "";
   const shortSide = Math.min(cell.width, cell.height);
@@ -3698,13 +3768,13 @@ function createCatalogLockButton(entry, onToggle) {
 }
 
 function renderSearchOptions() {
-  // Filter by title/category/code before grouping so saved category memberships stay visible.
+  // Filter by catalog name, printed title, category, and code before grouping saved memberships.
   const query = el.searchInput.value.trim().toLowerCase();
   const sheetMatches = state.catalog.labelSheets
     .filter((sheet) => `${sheet.name} ${t(getSheetModeLabelKey(sheet.mode))}`.toLowerCase().includes(query))
     .sort((a, b) => a.name.localeCompare(b.name));
   const matches = state.catalog.items
-    .filter((item) => `${item.title} ${item.code} ${item.category}`.toLowerCase().includes(query))
+    .filter((item) => `${item.title} ${getLabelTitle(item)} ${item.code} ${item.category}`.toLowerCase().includes(query))
     .sort((a, b) => (a.category || "").localeCompare(b.category || "") || a.title.localeCompare(b.title));
 
   el.codeSelect.innerHTML = "";
@@ -3820,7 +3890,9 @@ function renderSearchOptions() {
       const label = document.createElement("span");
       label.className = "catalog-option-label";
       const itemMeta = normalizeLabelMode(item.labelMode, item) === "sign" ? t("option.labelModeSign") : item.code || t("status.textOnly");
-      label.textContent = `${item.title} - ${itemMeta}`;
+      const printedTitle = getLabelTitle(item);
+      const titleText = printedTitle && printedTitle !== item.title ? `${item.title} (${printedTitle})` : item.title;
+      label.textContent = `${titleText} - ${itemMeta}`;
       const lockButton = createCatalogLockButton(item, () => toggleCatalogItemLock(item));
       option.append(color, label, lockButton);
       option.addEventListener("click", () => handleCatalogItemClick(item));
@@ -3847,6 +3919,7 @@ function renderSearchOptions() {
 function renderSelectedItem() {
   // Refresh the selected item display and enable actions only when an item exists.
   updateCurrentSaveButtonVisibility();
+  syncStyleControlVisibility();
   if (state.selectedSheet) {
     el.selectedCode.classList.remove("is-empty");
     el.selectedTitle.textContent = state.selectedSheet.name;
@@ -3881,12 +3954,17 @@ function renderSelectedItem() {
 
   el.selectedTitle.textContent = state.selectedItem.title;
   const activeCodeType = normalizeCodeType(el.codeType.value || state.selectedItem.codeType);
-  el.selectedCodeValue.textContent =
+  const printedTitle = getLabelTitle(state.selectedItem);
+  const codeSummary =
     normalizeLabelMode(state.selectedItem.labelMode, state.selectedItem) === "sign"
       ? t("option.labelModeSign")
       : state.selectedItem.code
         ? `${state.selectedItem.code} (${activeCodeType})`
         : t("status.textOnly");
+  el.selectedCodeValue.textContent = [
+    printedTitle && printedTitle !== state.selectedItem.title ? `${t("label.labelTitle")}: ${printedTitle}` : "",
+    codeSummary,
+  ].filter(Boolean).join(" · ");
   el.editCodeButton.disabled = false;
   el.deleteCodeButton.disabled = false;
 }
@@ -4786,13 +4864,15 @@ function getDraftNewLabelPreviewItem() {
   }
 
   const title = el.newTitle.value.trim();
+  const labelTitle = el.newLabelTitle.value.trim();
+  const selectedLabelMode = normalizeLabelMode(el.newLabelMode.value);
   const codeType = normalizeCodeType(el.codeType.value);
-  const code = normalizeCodeForType(el.newCode.value, codeType);
-  const textAbove = el.newTextAbove.value.trim();
-  const textBelow = el.newTextBelow.value.trim();
-  const signalWord = el.newsignalWord.value.trim();
-  const signs = getSelectedsigns(el.newsignGrid);
-  const customSigns = parsecustomSigns(el.newCustomSignInput.value);
+  const code = selectedLabelMode === "code" ? normalizeCodeForType(el.newCode.value, codeType) : "";
+  const textAbove = selectedLabelMode === "code" ? "" : el.newTextAbove.value.trim();
+  const textBelow = selectedLabelMode === "code" ? "" : el.newTextBelow.value.trim();
+  const signalWord = selectedLabelMode === "sign" ? el.newsignalWord.value.trim() : "";
+  const signs = selectedLabelMode === "sign" ? getSelectedsigns(el.newsignGrid) : [];
+  const customSigns = selectedLabelMode === "sign" ? parsecustomSigns(el.newCustomSignInput.value) : [];
   if (!title && !code && !textAbove && !textBelow && !signalWord && !signs.length && !customSigns.length) {
     return null;
   }
@@ -4800,9 +4880,10 @@ function getDraftNewLabelPreviewItem() {
   return {
     id: "draft-new-label-preview",
     title,
+    labelTitle,
     code,
     codeType,
-    labelMode: normalizeLabelMode(el.newLabelMode.value, { code, signs, customSigns }),
+    labelMode: normalizeLabelMode(selectedLabelMode, { code, signs, customSigns }),
     signs,
     customSigns,
     signalWord,
@@ -4829,7 +4910,7 @@ function getSheetMetaTitle(totalCells) {
   if (mode === "freestyle") {
     return t("status.freestyleMeta", { count: state.freestyleObjects.length });
   }
-  return state.selectedItem?.title || getDraftNewLabelPreviewItem()?.title || t("status.noItemSelected");
+  return getLabelTitle(state.selectedItem) || getLabelTitle(getDraftNewLabelPreviewItem()) || t("status.noItemSelected");
 }
 
 function getSheetQueueDisplayTitle(entry) {
@@ -5391,7 +5472,9 @@ function openItemEditModal() {
   el.editModalError.textContent = "";
   setItemEditDuplicateOverrideVisible(false);
   el.editTitleInput.value = state.selectedItem.title;
+  el.editLabelTitleInput.value = state.selectedItem.labelTitle || "";
   el.editLabelModeInput.value = normalizeLabelMode(state.selectedItem.labelMode, state.selectedItem);
+  syncLabelModeFieldVisibility(el.itemEditModal, el.editLabelModeInput);
   el.editCodeInput.value = state.selectedItem.code;
   el.editTextAboveInput.value = state.selectedItem.textAbove || "";
   el.editTextBelowInput.value = state.selectedItem.textBelow || "";
@@ -5834,15 +5917,18 @@ function saveItemEditFromModal(options = {}) {
 
   const currentItem = state.selectedItem;
   const nextTitle = el.editTitleInput.value.trim();
+  const nextLabelTitle = el.editLabelTitleInput.value.trim();
+  const selectedLabelMode = normalizeLabelMode(el.editLabelModeInput.value);
   const nextCodeType = normalizeCodeType(el.editCodeTypeInput.value);
-  const nextCode = normalizeCodeForType(el.editCodeInput.value, nextCodeType);
-  const nextTextAbove = el.editTextAboveInput.value.trim();
-  const nextTextBelow = el.editTextBelowInput.value.trim();
-  const nextsignalWord = el.editsignalWordInput.value.trim();
+  const nextRawCode = selectedLabelMode === "code" ? el.editCodeInput.value.trim() : "";
+  const nextCode = normalizeCodeForType(nextRawCode, nextCodeType);
+  const nextTextAbove = selectedLabelMode === "code" ? "" : el.editTextAboveInput.value.trim();
+  const nextTextBelow = selectedLabelMode === "code" ? "" : el.editTextBelowInput.value.trim();
+  const nextsignalWord = selectedLabelMode === "sign" ? el.editsignalWordInput.value.trim() : "";
   const nextsignalWordColor = normalizeColor(el.editsignalWordColorInput.value, DEFAULT_SIGNAL_WORD_COLOR);
-  const nextsigns = getSelectedsigns(el.editsignGrid);
-  const nextcustomSigns = parsecustomSigns(el.editCustomSignInput.value);
-  const nextLabelMode = normalizeLabelMode(el.editLabelModeInput.value, { code: nextCode, signs: nextsigns, customSigns: nextcustomSigns });
+  const nextsigns = selectedLabelMode === "sign" ? getSelectedsigns(el.editsignGrid) : [];
+  const nextcustomSigns = selectedLabelMode === "sign" ? parsecustomSigns(el.editCustomSignInput.value) : [];
+  const nextLabelMode = normalizeLabelMode(selectedLabelMode, { code: nextCode, signs: nextsigns, customSigns: nextcustomSigns });
   const nextPresetId = state.presets.some((preset) => preset.id === el.editPresetSelect.value) ? el.editPresetSelect.value : "";
   const categorySelection = getSelectedCategoryFromControls(el.editCategorySelect, el.editCategoryFields, el.editCategoryInput, el.editCategoryColorInput);
   const existingCategory = getCategory(categorySelection.category);
@@ -5852,8 +5938,9 @@ function saveItemEditFromModal(options = {}) {
   const nextColor = normalizeColor(el.editColorInput.value);
   const currentCategory = getCategory(currentItem.category);
 
-  if (!nextTitle || (nextCode && !isCodeValidForType(nextCode, nextCodeType))) {
-    el.editModalError.textContent = t("alert.titleAndOptionalCode");
+  const validationMessage = getTitleAndCodeValidationMessage(nextTitle, nextRawCode, nextCodeType);
+  if (validationMessage) {
+    el.editModalError.textContent = validationMessage;
     setItemEditDuplicateOverrideVisible(false);
     return;
   }
@@ -5874,6 +5961,7 @@ function saveItemEditFromModal(options = {}) {
   }
 
   currentItem.title = nextTitle;
+  currentItem.labelTitle = nextLabelTitle;
   currentItem.code = nextCode;
   currentItem.id = currentItem.id || createItemId(nextTitle, nextCode);
   currentItem.codeType = nextCodeType;
@@ -6650,9 +6738,9 @@ function createLabel(item, options = {}) {
   const title = document.createElement("div");
   title.className = "label-title label-part-top";
   if (mirrorSideText) {
-    applyMirroredSideText(title, item.title);
+    applyMirroredSideText(title, getLabelTitle(item));
   } else {
-    title.textContent = item.title;
+    title.textContent = getLabelTitle(item);
   }
 
   if (normalizeLabelMode(item.labelMode, item) === "sign") {
@@ -6681,7 +6769,7 @@ function createLabel(item, options = {}) {
     } else {
       appendItemSignMarks(signGrid, item);
     }
-    if (includeTitle && item.title) {
+    if (includeTitle && getLabelTitle(item)) {
       topGroup.append(title);
     }
     if (item.signalWord) {
@@ -6716,9 +6804,9 @@ function createLabel(item, options = {}) {
     textOnly.className = "text-only-stack";
     centerText.className = "text-only-label label-part-main";
     if (mirrorSideText) {
-      applyMirroredSideText(centerText, item.title);
+      applyMirroredSideText(centerText, getLabelTitle(item));
     } else {
-      centerText.textContent = item.title;
+      centerText.textContent = getLabelTitle(item);
     }
     upperText.className = "text-only-extra text-only-above label-part-top";
     if (mirrorSideText) {
@@ -6810,7 +6898,7 @@ function getVisibleLabelParts(item = state.selectedItem) {
     }
     return parts;
   }
-  if (mode === "sign" && ((el.includeTitle.checked && item.title) || item.signalWord)) {
+  if (mode === "sign" && ((el.includeTitle.checked && getLabelTitle(item)) || item.signalWord)) {
     parts.push("top");
   } else if (el.includeTextAbove.checked && item.textAbove) {
     parts.push("top");
@@ -6998,14 +7086,17 @@ function renderLabels() {
 function addCode() {
   // Add a new catalog item and immediately save it to localStorage.
   const title = el.newTitle.value.trim();
+  const labelTitle = el.newLabelTitle.value.trim();
+  const selectedLabelMode = normalizeLabelMode(el.newLabelMode.value);
   const codeType = normalizeCodeType(el.codeType.value);
-  const code = normalizeCodeForType(el.newCode.value, codeType);
-  const textAbove = el.newTextAbove.value.trim();
-  const textBelow = el.newTextBelow.value.trim();
-  const signalWord = el.newsignalWord.value.trim();
-  const signs = getSelectedsigns(el.newsignGrid);
-  const customSigns = parsecustomSigns(el.newCustomSignInput.value);
-  const labelMode = normalizeLabelMode(el.newLabelMode.value, { code, signs, customSigns });
+  const rawCode = selectedLabelMode === "code" ? el.newCode.value.trim() : "";
+  const code = normalizeCodeForType(rawCode, codeType);
+  const textAbove = selectedLabelMode === "code" ? "" : el.newTextAbove.value.trim();
+  const textBelow = selectedLabelMode === "code" ? "" : el.newTextBelow.value.trim();
+  const signalWord = selectedLabelMode === "sign" ? el.newsignalWord.value.trim() : "";
+  const signs = selectedLabelMode === "sign" ? getSelectedsigns(el.newsignGrid) : [];
+  const customSigns = selectedLabelMode === "sign" ? parsecustomSigns(el.newCustomSignInput.value) : [];
+  const labelMode = normalizeLabelMode(selectedLabelMode, { code, signs, customSigns });
   const presetId = state.presets.some((preset) => preset.id === el.newPresetSelect.value) ? el.newPresetSelect.value : "";
   const categorySelection = getSelectedCategoryFromControls(el.newCategorySelect, el.newCategoryFields, el.newCategory, el.newCategoryColor);
   const existingCategory = getCategory(categorySelection.category);
@@ -7014,8 +7105,9 @@ function addCode() {
   const previousCategoryColor = normalizeCategoryColor(existingCategory?.color);
   const color = normalizeColor(el.newColor.value);
 
-  if (!title || (code && !isCodeValidForType(code, codeType))) {
-    alert(t("alert.titleAndOptionalCode"));
+  const validationMessage = getTitleAndCodeValidationMessage(title, rawCode, codeType);
+  if (validationMessage) {
+    alert(validationMessage);
     return;
   }
 
@@ -7028,6 +7120,7 @@ function addCode() {
   const item = {
     id: createItemId(title, code),
     title,
+    labelTitle,
     code,
     codeType,
     labelMode,
@@ -7062,6 +7155,7 @@ function addCode() {
   renderSearchOptions();
   selectItem(getItemKey(item));
   el.newTitle.value = "";
+  el.newLabelTitle.value = "";
   el.newCode.value = "";
   el.newTextAbove.value = "";
   el.newTextBelow.value = "";
@@ -7070,6 +7164,7 @@ function addCode() {
   renderCustomSignPreview(el.newCustomSignInput, el.newCustomSignPreview);
   rendersignPicker(el.newsignGrid, []);
   el.newLabelMode.value = "code";
+  syncActiveLabelModeVisibility();
   el.newPresetSelect.value = "";
   el.newCategorySelect.value = "";
   el.newCategory.value = "";
@@ -7083,6 +7178,7 @@ function upsertSharedItem(item, shouldSave) {
   const sharedItem = {
     id: String(item.id || createItemId(item.title, item.code)),
     title: String(item.title || "").trim(),
+    labelTitle: String(item.labelTitle || item.printTitle || item.labelName || "").trim(),
     code: normalizeCodeForType(item.code || "", item.codeType || "ean13"),
     codeType: normalizeCodeType(item.codeType || "ean13"),
     labelMode: normalizeLabelMode(item.labelMode, item),
@@ -7173,6 +7269,7 @@ function buildCurrentLabelPayload() {
     item: {
       id: getItemKey(state.selectedItem),
       title: state.selectedItem.title,
+      labelTitle: String(state.selectedItem.labelTitle || "").trim(),
       code: state.selectedItem.code,
       codeType: state.selectedItem.codeType,
       labelMode: normalizeLabelMode(state.selectedItem.labelMode, state.selectedItem),
@@ -8263,6 +8360,7 @@ function bindEvents() {
 
   [
     el.newTitle,
+    el.newLabelTitle,
     el.newLabelMode,
     el.newCode,
     el.newTextAbove,
@@ -8278,7 +8376,15 @@ function bindEvents() {
       renderLabels();
     });
   });
-  el.newLabelMode.addEventListener("change", renderLabels);
+  el.newLabelMode.addEventListener("change", () => {
+    // Keep the Add Code form focused on fields used by the chosen label mode.
+    syncActiveLabelModeVisibility();
+    renderLabels();
+  });
+  el.editLabelModeInput.addEventListener("change", () => {
+    // Keep the item editor focused on fields used by the chosen label mode.
+    syncLabelModeFieldVisibility(el.itemEditModal, el.editLabelModeInput);
+  });
   el.editCustomSignInput.addEventListener("input", () => renderCustomSignPreview(el.editCustomSignInput, el.editCustomSignPreview));
   el.newSignSearch.addEventListener("input", () => rendersignPicker(el.newsignGrid, getSelectedsigns(el.newsignGrid)));
   el.mixSignSearch.addEventListener("input", () => rendersignPicker(el.mixsignGrid, getSelectedsigns(el.mixsignGrid)));
@@ -8303,6 +8409,7 @@ function bindEvents() {
       renderSearchOptions();
       renderSelectedItem();
     }
+    syncStyleControlVisibility();
     renderLabels();
   });
 
@@ -8344,6 +8451,7 @@ async function init() {
   await loadMessages(state.locale);
   applyTranslations();
   checkForAppUpdate();
+  syncActiveLabelModeVisibility();
   renderLabelStockOptions();
   renderGridPresetOptions(el.gridPreset.value);
   rendersignPicker(el.mixsignGrid, []);

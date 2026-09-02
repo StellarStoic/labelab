@@ -112,7 +112,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
           <p id="labelStockMeta" class="label-stock-meta" data-i18n="status.noLabelStock">No label type selected.</p>
         </section>
 
-        <section class="control-group">
+        <section id="addCodeSection" class="control-group">
           <h2 data-i18n="section.mixer">Modes</h2>
           <button id="saveSheetButton" type="button" data-i18n="action.saveCurrentWork">Save current</button>
           <label for="sheetFillMode" data-i18n="label.sheetFillMode">Mode</label>
@@ -166,22 +166,24 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
           </div>
         </section>
 
-        <section class="control-group">
+        <section id="addCodeSection" class="control-group">
           <h2 data-i18n="section.addCode">Add Code</h2>
-          <label for="newTitle" data-i18n="label.title">Title</label>
-          <input id="newTitle" type="text" placeholder="Product title" data-i18n-placeholder="placeholder.productTitle" />
+          <label for="newTitle" data-i18n="label.catalogName">Catalog name</label>
+          <input id="newTitle" type="text" placeholder="Catalog name" data-i18n-placeholder="placeholder.catalogName" />
+          <label for="newLabelTitle" data-i18n="label.labelTitle">Label title</label>
+          <input id="newLabelTitle" type="text" placeholder="Leave empty to use catalog name" data-i18n-placeholder="placeholder.labelTitle" />
           <label for="newLabelMode" data-i18n="label.labelMode">Label mode</label>
           <select id="newLabelMode">
             <option value="code" data-i18n="option.labelModeCode">Code label</option>
             <option value="text" data-i18n="option.labelModeText">Text only</option>
             <option value="sign" data-i18n="option.labelModeSign">Sign</option>
           </select>
-          <label for="newCode" data-i18n="label.code">Code</label>
-          <div class="scan-code-row">
+          <label for="newCode" data-label-modes="code" data-i18n="label.code">Code</label>
+          <div class="scan-code-row" data-label-modes="code">
             <input id="newCode" type="text" inputmode="text" placeholder="Code value" data-i18n-placeholder="placeholder.codeValue" />
             <button id="scanCodeButton" class="secondary-button" type="button" data-i18n="action.scanCode">Scan</button>
           </div>
-          <div class="two-col">
+          <div class="two-col" data-label-modes="text sign">
             <label for="newTextAbove">
               <span data-i18n="label.textAbove">Text above</span>
               <input id="newTextAbove" type="text" placeholder="Optional upper text" data-i18n-placeholder="placeholder.textAbove" />
@@ -191,21 +193,21 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
               <input id="newTextBelow" type="text" placeholder="Optional lower text" data-i18n-placeholder="placeholder.textBelow" />
             </label>
           </div>
-          <label for="newsignalWord" data-i18n="label.signalWord">signal word</label>
-          <input id="newsignalWord" type="text" placeholder="Warning, Danger, Fragile..." data-i18n-placeholder="placeholder.signalWord" />
-          <label for="newCustomSignInput">
+          <label for="newsignalWord" data-label-modes="sign" data-i18n="label.signalWord">signal word</label>
+          <input id="newsignalWord" data-label-modes="sign" type="text" placeholder="Warning, Danger, Fragile..." data-i18n-placeholder="placeholder.signalWord" />
+          <label for="newCustomSignInput" data-label-modes="sign">
             <span data-i18n="label.customSigns">Unicode / emoji signs</span>
             <span class="unicode-help-wrap">
               <input id="newCustomSignInput" type="text" placeholder="⚠, ☠, U+2620 U+26A0" data-i18n-placeholder="placeholder.customSigns" />
               <button id="newUnicodeHelpButton" class="unicode-help-button" type="button" title="Click to visit UnicodePlus and search for codes" data-i18n-title="title.unicodeSearch">?</button>
             </span>
           </label>
-          <div id="newCustomSignPreview" class="custom-sign-preview" aria-live="polite"></div>
-          <label for="newSignSearch" data-i18n="label.signSearch">Search signs</label>
-          <input id="newSignSearch" type="search" placeholder="Search sign dictionary..." data-i18n-placeholder="placeholder.signSearch" />
-          <span class="field-label" data-i18n="label.signs">Signs</span>
-          <div id="newsignGrid" class="sign-picker" aria-label="signs" data-i18n-aria-label="label.signs"></div>
-          <p class="sign-credit" data-i18n="sign.credit">Sign sources: Wikimedia Commons.</p>
+          <div id="newCustomSignPreview" class="custom-sign-preview" data-label-modes="sign" aria-live="polite"></div>
+          <label for="newSignSearch" data-label-modes="sign" data-i18n="label.signSearch">Search signs</label>
+          <input id="newSignSearch" data-label-modes="sign" type="search" placeholder="Search sign dictionary..." data-i18n-placeholder="placeholder.signSearch" />
+          <span class="field-label" data-label-modes="sign" data-i18n="label.signs">Signs</span>
+          <div id="newsignGrid" class="sign-picker" data-label-modes="sign" aria-label="signs" data-i18n-aria-label="label.signs"></div>
+          <p class="sign-credit" data-label-modes="sign" data-i18n="sign.credit">Sign sources: Wikimedia Commons.</p>
           <label for="newPresetSelect" data-i18n="label.itemPreset">Item preset</label>
           <select id="newPresetSelect"></select>
           <label for="newCategorySelect" data-i18n="label.category">Category</label>
@@ -224,10 +226,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
           <button id="addCodeButton" type="button" data-i18n="action.addCode">Add code</button>
         </section>
 
-        <section class="control-group">
+        <section id="textStyleSection" class="control-group">
           <h2 data-i18n="section.textStyle">Text Style</h2>
-          <label for="codeType" data-i18n="label.codeType">Code type</label>
-          <select id="codeType">
+          <label for="codeType" data-style-label-modes="code" data-i18n="label.codeType">Code type</label>
+          <select id="codeType" data-style-label-modes="code">
             <option value="ean13">EAN-13</option>
             <option value="ean8">EAN-8</option>
             <option value="upca">UPC-A</option>
@@ -310,26 +312,26 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
             <span data-i18n="label.mirrorSideText">Mirror side text</span>
           </label>
           <div class="two-col">
-            <label>
+            <label data-style-label-modes="code text sign">
               <span class="label-line"><span data-i18n="label.titleSize">Title size</span> <span data-unit-label></span></span>
               <input id="titleSize" type="number" min="0" max="12" step="0.01" value="2.4" />
             </label>
-            <label>
+            <label data-style-label-modes="code">
               <span class="label-line"><span data-i18n="label.codeSize">Code No. size</span> <span data-unit-label></span></span>
               <input id="codeTextSize" type="number" min="0" max="12" step="0.01" value="2.1" />
             </label>
-            <hr class="control-divider grid-divider" />
-            <label>
+            <hr class="control-divider grid-divider" data-style-label-modes="code" />
+            <label data-style-label-modes="code" data-code-types="ean13 ean8 upca code39 code128">
               <span class="label-line"><span data-i18n="label.barcodeMaxHeight">Barcode max height</span> <span data-unit-label></span></span>
               <input id="barcodeMaxHeight" type="number" min="1" max="200" step="0.01" value="12" />
             </label>
-            <label>
+            <label data-style-label-modes="code" data-code-types="qr">
               <span class="label-line"><span data-i18n="label.qrMaxSize">QR max size</span> <span data-unit-label></span></span>
               <input id="qrMaxSize" type="number" min="1" max="200" step="0.01" value="16" />
             </label>
           </div>
           <!-- Aligns directional code padding controls as a visual movement cross. -->
-          <div class="direction-pad">
+          <div class="direction-pad" data-style-label-modes="code">
             <label class="dir-top">
               <span class="label-line"><span data-i18n="label.codeTop">Code top</span> <span data-unit-label></span></span>
               <input id="codePaddingTop" type="number" min="0" max="30" step="0.01" value="0" />
@@ -348,15 +350,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
               <input id="codePaddingBottom" type="number" min="0" max="30" step="0.01" value="0" />
             </label>
           </div>
-          <hr class="control-divider" />
-          <div class="two-col">
+          <hr class="control-divider" data-style-label-modes="sign" />
+          <div class="two-col" data-style-label-modes="sign">
             <label>
               <span class="label-line"><span data-i18n="label.signMaxSize">Sign max size</span> <span data-unit-label></span></span>
               <input id="signMaxSize" type="number" min="1" max="200" step="0.01" value="24" />
             </label>
           </div>
           <!-- Aligns directional sign padding controls as a visual movement cross. -->
-          <div class="direction-pad">
+          <div class="direction-pad" data-style-label-modes="sign">
             <label class="dir-top">
               <span class="label-line"><span data-i18n="label.signTop">Sign top</span> <span data-unit-label></span></span>
               <input id="signPaddingTop" type="number" min="0" max="200" step="0.01" value="0" />
@@ -376,33 +378,33 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
             </label>
           </div>
           <div class="two-col">
-            <label class="check-row">
+            <label class="check-row" data-style-label-modes="code sign">
               <input id="includeTitle" type="checkbox" checked />
               <span data-i18n="label.includeTitle">Include title</span>
             </label>
-            <label class="check-row">
+            <label class="check-row" data-style-label-modes="code">
               <input id="includeCodeNumber" type="checkbox" checked />
               <span data-i18n="label.includeCodeNumber">Include code number</span>
             </label>
-            <label class="check-row">
+            <label class="check-row" data-style-label-modes="code sign">
               <input id="titleBold" type="checkbox" checked />
               <span data-i18n="label.titleBold">Title bold</span>
             </label>
-            <label class="check-row">
+            <label class="check-row" data-style-label-modes="code sign">
               <input id="titleItalic" type="checkbox" />
               <span data-i18n="label.titleItalic">Title italic</span>
             </label>
-            <label class="check-row">
+            <label class="check-row" data-style-label-modes="code">
               <input id="codeBold" type="checkbox" />
               <span data-i18n="label.codeBold">Code No. bold</span>
             </label>
-            <label class="check-row">
+            <label class="check-row" data-style-label-modes="code">
               <input id="codeItalic" type="checkbox" />
               <span data-i18n="label.codeItalic">Code No. italic</span>
             </label>
           </div>
-          <hr class="control-divider" />
-          <div class="two-col">
+          <hr class="control-divider" data-style-label-modes="text sign" />
+          <div class="two-col" data-style-label-modes="text sign">
             <label>
               <span class="label-line"><span data-i18n="label.textAboveSize">Text above size</span> <span data-unit-label></span></span>
               <input id="textAboveSize" type="number" min="0" max="12" step="0.01" value="2.1" />
@@ -412,7 +414,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
               <input id="textBelowSize" type="number" min="0" max="12" step="0.01" value="2.1" />
             </label>
           </div>
-          <div class="two-col">
+          <div class="two-col" data-style-label-modes="text sign">
             <label class="check-row">
               <input id="includeTextAbove" type="checkbox" checked />
               <span data-i18n="label.includeTextAbove">Include text above</span>
@@ -421,11 +423,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
               <input id="includeTextBelow" type="checkbox" checked />
               <span data-i18n="label.includeTextBelow">Include text below</span>
             </label>
-            <label class="check-row">
+            <label class="check-row" data-style-label-modes="text">
               <input id="textMiddleBold" type="checkbox" checked />
               <span data-i18n="label.textMiddleBold">Text middle bold</span>
             </label>
-            <label class="check-row">
+            <label class="check-row" data-style-label-modes="text">
               <input id="textMiddleItalic" type="checkbox" />
               <span data-i18n="label.textMiddleItalic">Text middle italic</span>
             </label>
@@ -697,8 +699,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
         <button id="itemEditCloseButton" class="modal-close" type="button" aria-label="Close" data-i18n-aria-label="aria.close">×</button>
         <h2 id="itemEditTitle" data-i18n="modal.editItem">Edit catalog item</h2>
         <form id="itemEditForm" class="item-edit-form">
-          <label for="editTitleInput" data-i18n="label.title">Title</label>
-          <input id="editTitleInput" type="text" placeholder="Product title" data-i18n-placeholder="placeholder.productTitle" />
+          <label for="editTitleInput" data-i18n="label.catalogName">Catalog name</label>
+          <input id="editTitleInput" type="text" placeholder="Catalog name" data-i18n-placeholder="placeholder.catalogName" />
+          <label for="editLabelTitleInput" data-i18n="label.labelTitle">Label title</label>
+          <input id="editLabelTitleInput" type="text" placeholder="Leave empty to use catalog name" data-i18n-placeholder="placeholder.labelTitle" />
 
           <label for="editLabelModeInput" data-i18n="label.labelMode">Label mode</label>
           <select id="editLabelModeInput">
@@ -707,10 +711,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
             <option value="sign" data-i18n="option.labelModeSign">Sign</option>
           </select>
 
-          <label for="editCodeInput" data-i18n="label.code">Code</label>
-          <input id="editCodeInput" type="text" inputmode="text" placeholder="Code value" data-i18n-placeholder="placeholder.codeValue" />
+          <label for="editCodeInput" data-label-modes="code" data-i18n="label.code">Code</label>
+          <input id="editCodeInput" data-label-modes="code" type="text" inputmode="text" placeholder="Code value" data-i18n-placeholder="placeholder.codeValue" />
 
-          <div class="two-col">
+          <div class="two-col" data-label-modes="text sign">
             <label for="editTextAboveInput">
               <span data-i18n="label.textAbove">Text above</span>
               <input id="editTextAboveInput" type="text" placeholder="Optional upper text" data-i18n-placeholder="placeholder.textAbove" />
@@ -721,31 +725,31 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
             </label>
           </div>
 
-          <label for="editsignalWordInput" data-i18n="label.signalWord">signal word</label>
-          <input id="editsignalWordInput" type="text" placeholder="Warning, Danger, Fragile..." data-i18n-placeholder="placeholder.signalWord" />
+          <label for="editsignalWordInput" data-label-modes="sign" data-i18n="label.signalWord">signal word</label>
+          <input id="editsignalWordInput" data-label-modes="sign" type="text" placeholder="Warning, Danger, Fragile..." data-i18n-placeholder="placeholder.signalWord" />
           <!-- Lets edited sign labels override the signal word color while keeping red as the default. -->
-          <label for="editsignalWordColorInput">
+          <label for="editsignalWordColorInput" data-label-modes="sign">
             <span data-i18n="label.signalWordColor">Signal word color</span>
             <input id="editsignalWordColorInput" type="color" value="#b91c1c" />
           </label>
 
-          <label for="editCustomSignInput">
+          <label for="editCustomSignInput" data-label-modes="sign">
             <span data-i18n="label.customSigns">Unicode / emoji signs</span>
             <span class="unicode-help-wrap">
               <input id="editCustomSignInput" type="text" placeholder="⚠, ☠, U+2620 U+26A0" data-i18n-placeholder="placeholder.customSigns" />
               <button id="editUnicodeHelpButton" class="unicode-help-button" type="button" title="Click to visit UnicodePlus and search for codes" data-i18n-title="title.unicodeSearch">?</button>
             </span>
           </label>
-          <div id="editCustomSignPreview" class="custom-sign-preview" aria-live="polite"></div>
+          <div id="editCustomSignPreview" class="custom-sign-preview" data-label-modes="sign" aria-live="polite"></div>
 
-          <label for="editSignSearch" data-i18n="label.signSearch">Search signs</label>
-          <input id="editSignSearch" type="search" placeholder="Search sign dictionary..." data-i18n-placeholder="placeholder.signSearch" />
-          <span class="field-label" data-i18n="label.signs">Signs</span>
-          <div id="editsignGrid" class="sign-picker" aria-label="signs" data-i18n-aria-label="label.signs"></div>
-          <p class="sign-credit" data-i18n="sign.credit">Sign sources: Wikimedia Commons.</p>
+          <label for="editSignSearch" data-label-modes="sign" data-i18n="label.signSearch">Search signs</label>
+          <input id="editSignSearch" data-label-modes="sign" type="search" placeholder="Search sign dictionary..." data-i18n-placeholder="placeholder.signSearch" />
+          <span class="field-label" data-label-modes="sign" data-i18n="label.signs">Signs</span>
+          <div id="editsignGrid" class="sign-picker" data-label-modes="sign" aria-label="signs" data-i18n-aria-label="label.signs"></div>
+          <p class="sign-credit" data-label-modes="sign" data-i18n="sign.credit">Sign sources: Wikimedia Commons.</p>
 
-          <label for="editCodeTypeInput" data-i18n="label.codeType">Code type</label>
-          <select id="editCodeTypeInput">
+          <label for="editCodeTypeInput" data-label-modes="code" data-i18n="label.codeType">Code type</label>
+          <select id="editCodeTypeInput" data-label-modes="code">
             <option value="ean13">EAN-13</option>
             <option value="ean8">EAN-8</option>
             <option value="upca">UPC-A</option>

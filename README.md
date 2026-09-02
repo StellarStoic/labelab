@@ -6,7 +6,7 @@ The app is useful for simple product labels, warehouse labels, shelf tags, warni
 
 ## What Labelab Can Do
 
-- Create label items with a title, code value, optional upper text, optional lower text, signal word, category, color, and preset.
+- Create label items with a catalog name, optional printed label title, code value, optional upper text, optional lower text, signal word, category, color, and preset.
 - Render multiple label modes:
   - Barcode or QR code labels.
   - Text-only labels.
@@ -19,6 +19,7 @@ The app is useful for simple product labels, warehouse labels, shelf tags, warni
   - Code 128.
   - QR Code.
 - Search, select, edit, and delete catalog items from the left-side catalog panel.
+- Keep the catalog name separate from the printed label title. If the printed label title is empty, Labelab prints the catalog name.
 - Group catalog items by category and assign category colors.
 - Save reusable layout and style presets, then apply them to new or existing labels.
 - Save manufacturer label types with package EAN/code, paper size, grid, margins, and gaps, then apply them by selecting or scanning the package code.
