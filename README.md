@@ -125,7 +125,7 @@ On each deploy it:
 - Generates `version.json` from the latest Git commits.
 - Adds the current commit hash to `styles.css` and `app.js` URLs in the deployed `index.html`.
 
-The app fetches `version.json` with `cache: "no-store"` during startup. When the deployed commit differs from the version already acknowledged in that browser, Labelab shows a small "What's new" dialog with the latest commit messages and a reload button. Reloading adds the commit to the page URL so browsers request the newest HTML, CSS, and JavaScript instead of reusing stale cached files.
+The app fetches `version.json` with `cache: "no-store"` during startup. When the deployed commit differs from the version already acknowledged in that browser, Labelab shows a small "What's new" dialog with the latest commit messages and a reload button. Reloading keeps the same page URL and origin so browser-stored catalog data remains available, while the deployed `index.html` already points to commit-stamped CSS and JavaScript files.
 
 For GitHub Pages, set the site source to **GitHub Actions** so this workflow controls deployment.
 

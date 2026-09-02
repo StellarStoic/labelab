@@ -673,15 +673,13 @@ function closeAppUpdateModal() {
 }
 
 function reloadLatestAppVersion() {
-  // Reload the page with a commit query string so the browser asks the server for fresh HTML and assets.
+  // Reload the current page in place so localStorage-backed catalog data stays on the same origin and path.
   const commit = state.latestAppVersion?.commit;
   if (commit) {
     storeAppVersion(commit);
   }
 
-  const url = new URL(window.location.href);
-  url.searchParams.set("v", commit || Date.now().toString());
-  window.location.replace(url.toString());
+  window.location.reload();
 }
 
 function renderAppUpdateModal(versionInfo) {
@@ -1697,13 +1695,29 @@ function saveCatalogBackup(reason) {
   );
 }
 
+function saveRawCatalogBackup(reason, rawCatalog) {
+  // Preserve the exact browser catalog before upgrade-time normalization can change its shape.
+  if (!rawCatalog) {
+    return;
+  }
+
+  localStorage.setItem(
+    CATALOG_BACKUP_KEY,
+    JSON.stringify({
+      createdAt: new Date().toISOString(),
+      reason,
+      rawCatalog,
+    }),
+  );
+}
+
 async function loadCatalog() {
   // Prefer saved browser data, then fall back to the bundled codes.json file.
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
+    saveRawCatalogBackup("startup-upgrade", saved);
     state.catalog = normalizeCatalog(JSON.parse(saved));
     syncFavoriteGridsFromCatalog();
-    saveCatalog({ touch: false });
     return;
   }
 
@@ -1714,7 +1728,6 @@ async function loadCatalog() {
 
   state.catalog = normalizeCatalog(await response.json());
   syncFavoriteGridsFromCatalog();
-  saveCatalog({ touch: false });
 }
 
 function syncPresetsFromCatalog() {
