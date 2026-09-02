@@ -1005,12 +1005,13 @@ function updateTextAlignButtons() {
 }
 
 function setTextAlign(value, shouldRender = true) {
-  // Store and optionally render the chosen text alignment.
+  // Store, persist, and optionally render the chosen text alignment.
   const align = normalizeTextAlign(value);
   el.textAlignGroup.dataset.value = align;
   updateTextAlignButtons();
   if (shouldRender) {
     renderLabels();
+    saveSettings();
     if (normalizeSheetFillMode(el.sheetFillMode.value) === "freestyle" && state.activeFreestyleObjectId) {
       setActiveFreestyleObject(state.activeFreestyleObjectId, true);
     }
@@ -2406,6 +2407,7 @@ function saveSettings() {
       gapY: readMeasurement(el.gapY, 0),
       codeType: el.codeType.value,
       labelFont: el.labelFont.value,
+      textAlign: normalizeTextAlign(el.textAlignGroup.dataset.value),
       mirrorSideText: el.mirrorSideText.checked,
       titleSize: readMeasurement(el.titleSize, 2.4),
       codeTextSize: readMeasurement(el.codeTextSize, 2.1),
@@ -2496,7 +2498,7 @@ function loadSettings() {
   });
 
   applySavedTypography(saved);
-  setTextAlign("center", false);
+  setTextAlign(saved.textAlign || "center", false);
   setColorInputValue(el.experimentalLabelBackground, saved.experimentalLabelBackground ?? saved.experimentalListBackground, "#ffffff");
   setColorInputValue(el.experimentalBarcodeColor, saved.experimentalBarcodeColor ?? saved.experimentalCodeColor, "#111111");
   setColorInputValue(el.experimentalTitleColor, saved.experimentalTitleColor ?? saved.experimentalFontColor, "#111827");
