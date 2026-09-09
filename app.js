@@ -27,6 +27,8 @@ const UNICODE_SEARCH_URL = "https://home.unicode.org/";
 const SIGN_PICKER_BATCH_SIZE = 150;
 const SIGN_PICKER_SCROLL_THRESHOLD = 80;
 const BUILT_IN_GRID_PRESETS = ["5x15", "4x16", "3x10", "2x8"];
+const CONTROL_GROUP_LONG_PRESS_MS = 550;
+const PINNED_CONTROL_GROUP_KEYS = new Set(["section.catalog"]);
 
 const PAPER_SIZES = {
   A0: { width: 841, height: 1189 },
@@ -344,6 +346,7 @@ const state = {
   presets: [],
   collapsedGroups: {},
   collapsedCatalogCategories: {},
+  controlGroupOrder: [],
   categoryPresetFilter: "all",
   categoryEditCheckedKeys: new Set(),
   selectedItemSettingsBaseline: "",
@@ -359,6 +362,7 @@ const state = {
   scannerHandler: null,
   imageSigns: [],
   labelPartOrder: ["top", "main", "bottom"],
+  controlGroupPressTimer: null,
   labelSortDrop: null,
   sheetQueue: [],
   pendingCatalogInsert: false,
@@ -1577,6 +1581,111 @@ function updateCollapseLabels() {
   document.querySelectorAll(".collapse-toggle").forEach((button) => {
     updateCollapseButton(button, button.closest(".control-group")?.classList.contains("is-collapsed"));
   });
+  document.querySelectorAll(".group-move-button[data-direction='up']").forEach((button) => {
+    button.setAttribute("aria-label", t("aria.moveGroupUp"));
+    button.title = t("aria.moveGroupUp");
+  });
+  document.querySelectorAll(".group-move-button[data-direction='down']").forEach((button) => {
+    button.setAttribute("aria-label", t("aria.moveGroupDown"));
+    button.title = t("aria.moveGroupDown");
+  });
+}
+
+function getMovableControlGroups() {
+  // Return only user-reorderable sidebar sections, keeping the catalog and standalone action buttons fixed.
+  return [...document.querySelectorAll(".controls-panel > .control-group")].filter((group) => !PINNED_CONTROL_GROUP_KEYS.has(group.dataset.groupKey));
+}
+
+function saveControlGroupOrder() {
+  // Persist the current section order so the customized menu returns after reload.
+  state.controlGroupOrder = getMovableControlGroups().map((group) => group.dataset.groupKey).filter(Boolean);
+  saveSettings();
+}
+
+function applyControlGroupOrder() {
+  // Reinsert movable sections before the fixed bottom action buttons using the saved order first.
+  const panel = document.querySelector(".controls-panel");
+  if (!panel) {
+    return;
+  }
+
+  const movableGroups = getMovableControlGroups();
+  const groupByKey = new Map(movableGroups.map((group) => [group.dataset.groupKey, group]));
+  const orderedKeys = [...state.controlGroupOrder, ...movableGroups.map((group) => group.dataset.groupKey)].filter(Boolean);
+  const orderedGroups = [];
+  const seen = new Set();
+  orderedKeys.forEach((key) => {
+    const group = groupByKey.get(key);
+    if (!group || seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    orderedGroups.push(group);
+  });
+
+  const fixedFooter = panel.querySelector(".standalone-actions, #donateButton");
+  orderedGroups.forEach((group) => {
+    panel.insertBefore(group, fixedFooter);
+  });
+  state.controlGroupOrder = orderedGroups.map((group) => group.dataset.groupKey);
+}
+
+function hideGroupMoveControls(exceptGroup = null) {
+  // Keep reorder controls visible for only one collapsed section at a time.
+  document.querySelectorAll(".control-group.is-reorder-active").forEach((group) => {
+    if (group !== exceptGroup) {
+      group.classList.remove("is-reorder-active");
+    }
+  });
+}
+
+function updateGroupMoveButtons(group) {
+  // Disable movement controls at the current top or bottom of the movable section list.
+  const movableGroups = getMovableControlGroups();
+  const index = movableGroups.indexOf(group);
+  group.querySelectorAll(".group-move-button").forEach((button) => {
+    const direction = button.dataset.direction;
+    button.disabled = !group.classList.contains("is-collapsed") || (direction === "up" && index <= 0) || (direction === "down" && index === movableGroups.length - 1);
+  });
+}
+
+function updateAllGroupMoveButtons() {
+  // Refresh movement button disabled states after any collapse or reorder change.
+  getMovableControlGroups().forEach(updateGroupMoveButtons);
+}
+
+function revealGroupMoveControls(group) {
+  // Long press exposes move buttons only while a reorderable section is collapsed.
+  if (!group || PINNED_CONTROL_GROUP_KEYS.has(group.dataset.groupKey) || !group.classList.contains("is-collapsed")) {
+    return;
+  }
+  hideGroupMoveControls(group);
+  group.classList.add("is-reorder-active");
+  updateGroupMoveButtons(group);
+}
+
+function moveControlGroup(group, direction) {
+  // Move one collapsed section up or down among other movable sections and save the new order.
+  if (!group || !group.classList.contains("is-collapsed") || PINNED_CONTROL_GROUP_KEYS.has(group.dataset.groupKey)) {
+    return;
+  }
+
+  const movableGroups = getMovableControlGroups();
+  const index = movableGroups.indexOf(group);
+  const target = direction === "up" ? movableGroups[index - 1] : movableGroups[index + 1];
+  if (!target) {
+    return;
+  }
+
+  if (direction === "up") {
+    target.before(group);
+  } else {
+    target.after(group);
+  }
+  saveControlGroupOrder();
+  hideGroupMoveControls(group);
+  group.classList.add("is-reorder-active");
+  updateAllGroupMoveButtons();
 }
 
 function setupCollapsibleGroups() {
@@ -1595,13 +1704,26 @@ function setupCollapsibleGroups() {
     const header = document.createElement("div");
     const body = document.createElement("div");
     const toggle = document.createElement("button");
+    const moveControls = document.createElement("div");
+    const moveUp = document.createElement("button");
+    const moveDown = document.createElement("button");
     header.className = "control-group-header";
     body.className = "control-group-body";
     toggle.className = "collapse-toggle";
     toggle.type = "button";
+    moveControls.className = "group-move-controls";
+    moveUp.className = "group-move-button";
+    moveUp.type = "button";
+    moveUp.dataset.direction = "up";
+    moveUp.textContent = "↑";
+    moveDown.className = "group-move-button";
+    moveDown.type = "button";
+    moveDown.dataset.direction = "down";
+    moveDown.textContent = "↓";
+    moveControls.append(moveUp, moveDown);
 
     heading.replaceWith(header);
-    header.append(heading, toggle);
+    header.append(heading, moveControls, toggle);
 
     while (header.nextSibling) {
       body.append(header.nextSibling);
@@ -1614,15 +1736,42 @@ function setupCollapsibleGroups() {
     const collapsed = state.hasSavedCollapsedGroups ? Boolean(state.collapsedGroups[key]) : true;
     group.classList.toggle("is-collapsed", collapsed);
     updateCollapseButton(toggle, collapsed);
+    updateCollapseLabels();
+
+    if (PINNED_CONTROL_GROUP_KEYS.has(key)) {
+      group.classList.add("is-reorder-locked");
+      moveControls.remove();
+    } else {
+      header.addEventListener("pointerdown", (event) => {
+        // Start a long-press timer on collapsed section headers without blocking normal buttons.
+        if (event.target.closest("button") || !group.classList.contains("is-collapsed")) {
+          return;
+        }
+        clearTimeout(state.controlGroupPressTimer);
+        state.controlGroupPressTimer = window.setTimeout(() => revealGroupMoveControls(group), CONTROL_GROUP_LONG_PRESS_MS);
+      });
+      ["pointerup", "pointercancel", "pointerleave"].forEach((eventName) => {
+        header.addEventListener(eventName, () => {
+          clearTimeout(state.controlGroupPressTimer);
+          state.controlGroupPressTimer = null;
+        });
+      });
+      moveUp.addEventListener("click", () => moveControlGroup(group, "up"));
+      moveDown.addEventListener("click", () => moveControlGroup(group, "down"));
+    }
 
     toggle.addEventListener("click", () => {
       const nextCollapsed = !group.classList.contains("is-collapsed");
       group.classList.toggle("is-collapsed", nextCollapsed);
+      group.classList.toggle("is-reorder-active", false);
       state.collapsedGroups[key] = nextCollapsed;
       updateCollapseButton(toggle, nextCollapsed);
+      updateAllGroupMoveButtons();
       saveSettings();
     });
   });
+  applyControlGroupOrder();
+  updateAllGroupMoveButtons();
 }
 
 function normalizeCatalog(rawCatalog) {
@@ -2593,7 +2742,7 @@ function saveSettings() {
       textBelowBold: el.textBelowBold.checked,
       textBelowItalic: el.textBelowItalic.checked,
       previewZoom: state.previewZoom,
-      theme: document.body.classList.contains("dark") ? "dark" : "light",
+      theme: document.body.dataset.theme || (document.body.classList.contains("dark") ? "dark" : "light"),
       experimentalLabelBackground: el.experimentalLabelBackground.value,
       experimentalBarcodeColor: el.experimentalBarcodeColor.value,
       experimentalTitleColor: el.experimentalTitleColor.value,
@@ -2611,6 +2760,7 @@ function saveSettings() {
       freestyleObjects: state.freestyleObjects,
       collapsedGroups: state.collapsedGroups,
       collapsedCatalogCategories: state.collapsedCatalogCategories,
+      controlGroupOrder: state.controlGroupOrder,
     }),
   );
 }
@@ -2622,6 +2772,7 @@ function loadSettings() {
   state.hasSavedCollapsedGroups = saved.collapsedGroups !== undefined;
   state.collapsedGroups = saved.collapsedGroups || {};
   state.collapsedCatalogCategories = saved.collapsedCatalogCategories || {};
+  state.controlGroupOrder = Array.isArray(saved.controlGroupOrder) ? saved.controlGroupOrder.filter((key) => typeof key === "string") : [];
   state.labelPartOrder = normalizeLabelPartOrder(saved.labelPartOrder);
   state.sheetQueue = normalizeSheetQueue(saved.sheetQueue);
   state.freestyleObjects = normalizeFreestyleObjects(saved.freestyleObjects);
@@ -3251,13 +3402,16 @@ function getMeasurementUnitLabel() {
 }
 
 function syncThemeSelect() {
-  // Keep the theme dropdown synchronized with the active body class.
-  el.themeSelect.value = document.body.classList.contains("dark") ? "dark" : "light";
+  // Keep the theme dropdown synchronized with the active body theme.
+  const theme = document.body.dataset.theme || (document.body.classList.contains("dark") ? "dark" : "light");
+  el.themeSelect.value = [...el.themeSelect.options].some((option) => option.value === theme) ? theme : "light";
 }
 
 function applyTheme(theme) {
   // Apply the selected theme from the settings dropdown.
-  document.body.classList.toggle("dark", theme === "dark");
+  const selectedTheme = ["light", "dark", "coffee", "ocean", "coder"].includes(theme) ? theme : "light";
+  document.body.dataset.theme = selectedTheme;
+  document.body.classList.toggle("dark", selectedTheme === "dark");
   syncThemeSelect();
 }
 

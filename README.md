@@ -32,13 +32,14 @@ The app is useful for simple product labels, warehouse labels, shelf tags, warni
 - Use ISO, recycling, public information, safety, warning, mandatory, prohibition, fire safety, plastic recycling, and GHS hazard pictograms from local image metadata.
 - Preview the full printable sheet live in the browser.
 - Zoom the preview in, out, or fit it to the available preview area.
+- Long-press collapsed sidebar sections to reveal up/down controls and customize the control order while keeping Catalog and bottom action buttons fixed.
 - Print labels directly from the browser.
 - Use the browser print dialog to save the result as a PDF.
 - Share the current label setup through a generated link.
 - Save a single label setup as a `.label.json` file.
 - Export and import the full catalog as JSON.
 - Store catalog, settings, presets, saved sheets, and label types in browser `localStorage`.
-- Switch between light and dark themes.
+- Switch between Light, Dark, Coffee, Ocean, and Coder themes.
 - Switch between metric and imperial measurement units.
 - Use the interface in English, Slovenian, French, and Chinese.
 

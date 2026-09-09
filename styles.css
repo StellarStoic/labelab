@@ -16,7 +16,8 @@
   --shadow: 0 18px 45px rgba(20, 30, 45, 0.12);
 }
 
-body.dark {
+body.dark,
+body[data-theme="dark"] {
   --bg: #161a20;
   --panel: #222832;
   --panel-strong: #1b2028;
@@ -31,6 +32,57 @@ body.dark {
   --paper: #ffffff;
   --label-border: #c2c8d0;
   --shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+}
+
+body[data-theme="coffee"] {
+  --bg: #f2eee8;
+  --panel: #fffaf3;
+  --panel-strong: #ece1d4;
+  --text: #241a14;
+  --donate:#f7931a;
+  --muted: #716257;
+  --border: #d7c7b8;
+  --catalog-highlight-border: #3a2618;
+  --catalog-highlight-bg: color-mix(in srgb, var(--panel-strong) 54%, #3a2618 46%);
+  --accent: #8f4f24;
+  --accent-strong: #653719;
+  --paper: #ffffff;
+  --label-border: #cfd6df;
+  --shadow: 0 18px 45px rgba(54, 35, 21, 0.18);
+}
+
+body[data-theme="ocean"] {
+  --bg: #eaf2ff;
+  --panel: #f8fbff;
+  --panel-strong: #dce9fb;
+  --text: #10233f;
+  --donate:#f7931a;
+  --muted: #536d94;
+  --border: #bfd0eb;
+  --catalog-highlight-border: #123d7a;
+  --catalog-highlight-bg: color-mix(in srgb, var(--panel-strong) 52%, #123d7a 48%);
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+  --paper: #ffffff;
+  --label-border: #cfd6df;
+  --shadow: 0 18px 45px rgba(37, 99, 235, 0.16);
+}
+
+body[data-theme="coder"] {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --panel-strong: #10161d;
+  --text: #e6edf3;
+  --donate:#f7931a;
+  --muted: #95a2b3;
+  --border: #30363d;
+  --catalog-highlight-border: #f97316;
+  --catalog-highlight-bg: color-mix(in srgb, var(--panel-strong) 58%, #f97316 42%);
+  --accent: #f97316;
+  --accent-strong: #fb923c;
+  --paper: #ffffff;
+  --label-border: #c2c8d0;
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.46);
 }
 
 * {
@@ -169,6 +221,37 @@ p,
 
 .control-group-header h2 {
   min-width: 0;
+}
+
+.group-move-controls {
+  display: none;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.control-group.is-collapsed.is-reorder-active .group-move-controls {
+  display: flex;
+}
+
+.group-move-button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  min-height: 26px;
+  min-width: 26px;
+  padding: 0;
+}
+
+.group-move-button:hover:not(:disabled) {
+  background: var(--panel);
+  color: var(--text);
+}
+
+.group-move-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
 }
 
 .collapse-toggle {
