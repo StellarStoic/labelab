@@ -21,6 +21,7 @@ The app is useful for simple product labels, warehouse labels, shelf tags, warni
 - Search, select, edit, and delete catalog items from the left-side catalog panel.
 - Keep the catalog name separate from the printed label title. If the printed label title is empty, Labelab prints the catalog name.
 - Group catalog items by category and assign category colors.
+- Select a catalog category and apply paper, grid, margin, and spacing changes to every item in that category after a warning prompt.
 - Save reusable layout and style presets, then apply them to new or existing labels.
 - Save manufacturer label types with package EAN/code, paper size, grid, margins, and gaps, then apply them by selecting or scanning the package code.
 - Explicitly adapt text, barcode, QR, sign size, and padding controls to the current individual label size when switching to a different label type.
@@ -92,6 +93,7 @@ Labelab is built as a local-first static web app:
 - Catalog data is stored in browser `localStorage`.
 - Settings, presets, saved sheets, and label types are stored in browser `localStorage`.
 - Exported JSON files can be kept as backups or moved between browsers.
+- Category-applied sheet layouts are stored on the affected catalog items, so they move with exported and imported JSON backups.
 - The app does not require a database.
 - The app does not require a server-side account system.
 - Camera scanning only runs when the user starts the scanner and grants camera permission.

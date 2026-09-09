@@ -348,6 +348,9 @@ const state = {
   categoryEditCheckedKeys: new Set(),
   selectedItemSettingsBaseline: "",
   selectedSheetSettingsBaseline: "",
+  selectedCategoryLayoutBaseline: null,
+  selectedCategoryLayoutConfirmKey: "",
+  defaultItemSettingsSnapshot: null,
   paperPan: null,
   pendingImport: null,
   scannerStream: null,
@@ -1957,6 +1960,11 @@ function getCurrentItemSettingsSnapshot() {
   return getItemPresetSettings(collectSettingsSnapshot()) || {};
 }
 
+function captureDefaultItemSettingsSnapshot() {
+  // Keep a neutral item setup so catalog selections do not inherit styling from the previously selected item.
+  state.defaultItemSettingsSnapshot = getCurrentItemSettingsSnapshot();
+}
+
 function stableStringify(value) {
   // Serialize settings with sorted keys so equivalent snapshots compare consistently.
   if (Array.isArray(value)) {
@@ -2016,6 +2024,9 @@ function applyItemPreset(item) {
   const itemSettings = getItemPresetSettings(item?.settings);
   const preset = getPresetById(item?.presetId);
   let didApplySettings = false;
+  if (state.defaultItemSettingsSnapshot) {
+    applySettingsSnapshot(state.defaultItemSettingsSnapshot);
+  }
   setTextAlign("center", false);
   resetLabelPartOrder();
   if (preset) {
@@ -2030,6 +2041,9 @@ function applyItemPreset(item) {
     applySettingsSnapshot(itemSettings);
     el.presetSelect.value = state.presets.some((savedPreset) => savedPreset.id === item?.presetId) ? item.presetId : "";
     didApplySettings = true;
+  }
+  if (item) {
+    el.codeType.value = normalizeCodeType(item.codeType || el.codeType.value);
   }
   return didApplySettings;
 }
@@ -2072,6 +2086,8 @@ function clearSelectedCatalogItemContext() {
   state.selectedCategory = null;
   state.selectedItemSettingsBaseline = "";
   state.selectedSheetSettingsBaseline = "";
+  state.selectedCategoryLayoutBaseline = null;
+  state.selectedCategoryLayoutConfirmKey = "";
   el.presetSelect.value = "";
 }
 
@@ -2271,6 +2287,74 @@ function collectLabelStockSettings() {
     gapX: readMeasurement(el.gapX, 0),
     gapY: readMeasurement(el.gapY, 0),
   };
+}
+
+function getSelectedCategoryItems() {
+  // Return the catalog items that belong to the currently selected category row.
+  if (!state.selectedCategory) {
+    return [];
+  }
+  return state.catalog.items.filter((item) => categoriesMatch(item.category, state.selectedCategory.name));
+}
+
+function getCategoryLayoutConfirmKey() {
+  // Key the one-time warning to the selected category and layout editing session.
+  return state.selectedCategory ? normalizeCategoryName(state.selectedCategory.name).toLowerCase() : "";
+}
+
+function applySheetLayoutToItems(items, layoutSettings) {
+  // Merge physical sheet geometry into each item while preserving saved typography and code styling.
+  items.forEach((item) => {
+    const existingSettings = getItemPresetSettings(item.settings) || {};
+    item.settings = {
+      ...existingSettings,
+      ...layoutSettings,
+    };
+  });
+}
+
+function revertCategoryLayoutChange() {
+  // Restore the last accepted layout controls after the user aborts a category bulk change.
+  if (state.selectedCategoryLayoutBaseline) {
+    applyLabelStockSettings(state.selectedCategoryLayoutBaseline);
+  }
+  renderLabels();
+}
+
+function persistSelectedCategoryLayoutChange() {
+  // Save paper, grid, margin, and gap changes onto every item in the selected category.
+  if (!state.selectedCategory) {
+    return true;
+  }
+
+  const items = getSelectedCategoryItems();
+  if (!items.length) {
+    state.selectedCategoryLayoutBaseline = collectLabelStockSettings();
+    return true;
+  }
+  if (isCatalogEntryLocked(state.selectedCategory) || items.some(isCatalogEntryLocked)) {
+    alert(t("alert.lockedCategoryItems"));
+    revertCategoryLayoutChange();
+    return false;
+  }
+
+  const confirmKey = getCategoryLayoutConfirmKey();
+  if (state.selectedCategoryLayoutConfirmKey !== confirmKey) {
+    const shouldApply = window.confirm(t("confirm.applyCategoryLayout", { category: state.selectedCategory.name, count: items.length }));
+    if (!shouldApply) {
+      revertCategoryLayoutChange();
+      return false;
+    }
+    state.selectedCategoryLayoutConfirmKey = confirmKey;
+  }
+
+  const layoutSettings = collectLabelStockSettings();
+  applySheetLayoutToItems(items, layoutSettings);
+  state.selectedCategoryLayoutBaseline = layoutSettings;
+  saveCatalog();
+  renderSearchOptions();
+  renderSelectedItem();
+  return true;
 }
 
 function applyLabelStockSettings(settings) {
@@ -2783,6 +2867,8 @@ function applySavedSheet(sheet) {
   state.pendingCatalogInsert = false;
   state.selectedSheet = sheet;
   state.selectedCategory = null;
+  state.selectedCategoryLayoutBaseline = null;
+  state.selectedCategoryLayoutConfirmKey = "";
   setTextAlign("center", false);
   resetLabelPartOrder();
   applySettingsSnapshot(sheet.settings);
@@ -3769,6 +3855,7 @@ function createCatalogLockButton(entry, onToggle) {
 
 function renderSearchOptions() {
   // Filter by catalog name, printed title, category, and code before grouping saved memberships.
+  const previousScrollTop = el.codeSelect.scrollTop;
   const query = el.searchInput.value.trim().toLowerCase();
   const sheetMatches = state.catalog.labelSheets
     .filter((sheet) => `${sheet.name} ${t(getSheetModeLabelKey(sheet.mode))}`.toLowerCase().includes(query))
@@ -3910,6 +3997,7 @@ function renderSearchOptions() {
     });
   });
 
+  el.codeSelect.scrollTop = previousScrollTop;
   if (!state.selectedItem && matches.length) {
     renderSelectedItem();
     renderLabels();
@@ -3986,6 +4074,8 @@ function selectItem(itemKey) {
   state.selectedSheet = null;
   state.selectedCategory = null;
   state.selectedSheetSettingsBaseline = "";
+  state.selectedCategoryLayoutBaseline = null;
+  state.selectedCategoryLayoutConfirmKey = "";
   state.selectedItem = nextItem;
   if (state.selectedItem) {
     el.sheetFillMode.value = "repeat";
@@ -4012,6 +4102,8 @@ function selectCategory(name) {
   state.selectedCategory = getCategory(name);
   state.selectedItemSettingsBaseline = "";
   state.selectedSheetSettingsBaseline = "";
+  state.selectedCategoryLayoutBaseline = collectLabelStockSettings();
+  state.selectedCategoryLayoutConfirmKey = "";
   renderSelectedItem();
   renderSearchOptions();
   renderLabels();
@@ -6098,6 +6190,8 @@ function deleteSelectedCategory() {
   });
   state.catalog.categories = state.catalog.categories.filter((category) => category.name !== categoryName);
   state.selectedCategory = null;
+  state.selectedCategoryLayoutBaseline = null;
+  state.selectedCategoryLayoutConfirmKey = "";
   saveCatalog();
   renderSearchOptions();
   renderSelectedItem();
@@ -7455,6 +7549,8 @@ function handleSharedLabelFromUrl() {
       state.selectedItem = null;
       state.selectedSheet = null;
       state.selectedCategory = null;
+      state.selectedCategoryLayoutBaseline = null;
+      state.selectedCategoryLayoutConfirmKey = "";
       el.searchInput.value = "";
     }
     renderSearchOptions();
@@ -7887,6 +7983,8 @@ function finishCatalogImport(mode) {
   state.selectedSheet = null;
   state.selectedItemSettingsBaseline = "";
   state.selectedSheetSettingsBaseline = "";
+  state.selectedCategoryLayoutBaseline = null;
+  state.selectedCategoryLayoutConfirmKey = "";
   closeImportReviewModal();
   saveCatalog();
   saveSettings();
@@ -8171,11 +8269,17 @@ function bindEvents() {
 
   el.paperSize.addEventListener("change", () => {
     applyPaperPreset();
+    if (!persistSelectedCategoryLayoutChange()) {
+      return;
+    }
     renderLabels();
   });
 
   el.paperOrientation.addEventListener("change", () => {
     applyOrientationChange();
+    if (!persistSelectedCategoryLayoutChange()) {
+      return;
+    }
     renderLabels();
   });
 
@@ -8183,6 +8287,9 @@ function bindEvents() {
   el.removeGridButton.addEventListener("click", removeSelectedFavoriteGrid);
   el.gridPreset.addEventListener("change", () => {
     applyGridPreset();
+    if (!persistSelectedCategoryLayoutChange()) {
+      return;
+    }
     renderLabels();
   });
   el.sheetFillMode.addEventListener("change", () => {
@@ -8237,7 +8344,7 @@ function bindEvents() {
     });
   });
 
-  [
+  const liveLayoutControls = [
     el.paperWidth,
     el.paperHeight,
     el.columnsInput,
@@ -8248,6 +8355,18 @@ function bindEvents() {
     el.marginBottom,
     el.gapX,
     el.gapY,
+  ];
+
+  liveLayoutControls.forEach((input) => {
+    input.addEventListener("input", () => {
+      if (!persistSelectedCategoryLayoutChange()) {
+        return;
+      }
+      renderLabels();
+    });
+  });
+
+  [
     el.codeType,
     el.labelFont,
     el.titleSize,
@@ -8433,6 +8552,7 @@ async function init() {
   populateEditColorPresets();
   bindEvents();
   loadSettings();
+  captureDefaultItemSettingsSnapshot();
   setupCollapsibleGroups();
   await loadImagesigns();
 
