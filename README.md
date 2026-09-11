@@ -133,6 +133,10 @@ The app fetches `version.json` with `cache: "no-store"` during startup. When the
 
 For GitHub Pages, set the site source to **GitHub Actions** so this workflow controls deployment.
 
+## Development Workflow
+
+Before changing Labelab, read `CONTRIBUTING.md`. AI coding agents should also read `AGENTS.md`, which documents the app structure, validation commands, i18n expectations, localStorage safety rules, commit/push workflow, and GitHub Pages version update process.
+
 ## Data Files
 
 - `codes.json` contains catalog data used by the app as a bundled/default catalog source.
