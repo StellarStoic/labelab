@@ -1017,6 +1017,7 @@ button:hover,
 
 #layoutMeta {
   font-size: 13px;
+  font-weight: 700;
   line-height: 1.25;
   min-width: 0;
   overflow: hidden;
@@ -1024,8 +1025,43 @@ button:hover,
   white-space: nowrap;
 }
 
+/* Selected label types use a second toolbar line while keeping both lines stable on narrow screens. */
+#layoutMeta.has-label-stock {
+  display: grid;
+  gap: 3px;
+  white-space: normal;
+}
+
+.layout-meta-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layout-meta-stock-line {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+}
+
+.layout-meta-stock {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layout-meta-count {
+  border-left: 1px solid var(--border);
+  color: var(--muted);
+  flex: 0 0 auto;
+  padding-left: 8px;
+}
+
 /* Highlights the selected label title with the same accent color used by buttons. */
-#layoutMeta .layout-meta-title {
+#layoutMeta .layout-meta-title,
+#layoutMeta .layout-meta-stock {
   color: var(--accent);
   font-weight: 800;
 }
@@ -2212,6 +2248,36 @@ button:hover,
   overflow-wrap: anywhere;
 }
 
+/* Keeps the persistent-default control compact without narrowing the label type selector unnecessarily. */
+.label-stock-select-row {
+  align-items: stretch;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 38px;
+}
+
+.label-stock-select-row select {
+  min-width: 0;
+}
+
+.label-stock-lock-button {
+  border-radius: 6px;
+  font-size: 16px;
+  min-height: 38px;
+  min-width: 38px;
+}
+
+.label-stock-lock-button.is-locked {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.label-stock-lock-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .modal-error {
   color: #b42318;
   font-size: 13px;
@@ -2312,6 +2378,26 @@ button:hover,
 .category-item-toolbar button {
   min-height: 30px;
   padding: 6px 10px;
+}
+
+/* Pushes sorting away from bulk selection actions while keeping the sticky toolbar compact. */
+.category-item-sort {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+  margin-left: auto;
+}
+
+.category-item-sort span {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.category-item-sort select {
+  min-height: 30px;
+  padding: 4px 28px 4px 8px;
+  width: auto;
 }
 
 .category-item-row {
@@ -2444,6 +2530,34 @@ button:hover,
 .donation-intro p {
   font-size: inherit;
   line-height: 1.45;
+}
+
+/* Separates version information from the About copy without creating another nested card. */
+.app-version-row {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-top: 18px;
+  padding: 14px 0;
+}
+
+.app-version-label {
+  color: var(--muted);
+  display: block;
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+
+#appVersionValue {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 14px;
+}
+
+.app-version-row button {
+  flex: 0 0 auto;
 }
 
 .donation-section-title {
@@ -2592,6 +2706,11 @@ button:hover,
 
   .donation-grid {
     grid-template-columns: 1fr;
+  }
+
+  .app-version-row {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .category-edit-row,

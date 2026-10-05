@@ -348,6 +348,7 @@ const state = {
   collapsedCatalogCategories: {},
   controlGroupOrder: [],
   categoryPresetFilter: "all",
+  categoryItemSort: "name",
   categoryEditCheckedKeys: new Set(),
   selectedItemSettingsBaseline: "",
   selectedSheetSettingsBaseline: "",
@@ -372,6 +373,7 @@ const state = {
   freestyleHandleMoved: false,
   favoriteGrids: [],
   latestAppVersion: null,
+  lockedLabelStockId: "",
 };
 
 const signPickerState = new WeakMap();
@@ -391,6 +393,7 @@ const el = {
   renamePresetButton: document.querySelector("#renamePresetButton"),
   deletePresetButton: document.querySelector("#deletePresetButton"),
   labelStockSelect: document.querySelector("#labelStockSelect"),
+  labelStockLockButton: document.querySelector("#labelStockLockButton"),
   labelStockCodeInput: document.querySelector("#labelStockCodeInput"),
   scanLabelStockButton: document.querySelector("#scanLabelStockButton"),
   applyLabelStockButton: document.querySelector("#applyLabelStockButton"),
@@ -569,11 +572,14 @@ const el = {
   qrViewerTitle: document.querySelector("#qrViewerTitle"),
   qrViewerImage: document.querySelector("#qrViewerImage"),
   appUpdateModal: document.querySelector("#appUpdateModal"),
+  appUpdateTitle: document.querySelector("#appUpdateTitle"),
   appUpdateCloseButton: document.querySelector("#appUpdateCloseButton"),
   appUpdateMeta: document.querySelector("#appUpdateMeta"),
   appUpdateChanges: document.querySelector("#appUpdateChanges"),
   appUpdateReloadButton: document.querySelector("#appUpdateReloadButton"),
   appUpdateDismissButton: document.querySelector("#appUpdateDismissButton"),
+  appVersionValue: document.querySelector("#appVersionValue"),
+  checkAppUpdatesButton: document.querySelector("#checkAppUpdatesButton"),
   measurementUnit: document.querySelector("#measurementUnit"),
   languageSelect: document.querySelector("#languageSelect"),
   themeSelect: document.querySelector("#themeSelect"),
@@ -612,8 +618,25 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function renderLayoutMeta({ count, title, width, height, unit }) {
-  // Render layout metadata while allowing the selected title to use the button accent color.
+function renderLayoutMeta({ count, title, width, height, unit, labelStock = null }) {
+  // Keep the legacy count-first line unless an active manufacturer label type needs its own line.
+  el.layoutMeta.classList.toggle("has-label-stock", Boolean(labelStock));
+  if (labelStock) {
+    const dimensionsTemplate = state.messages["status.layoutMetaDimensions"] || "{title} | {width} x {height} {unit} each";
+    const stockName = labelStock.manufacturer ? `${labelStock.manufacturer} - ${labelStock.name}` : labelStock.name;
+    el.layoutMeta.innerHTML = `
+      <div class="layout-meta-line">${dimensionsTemplate
+        .replaceAll("{title}", `<span class="layout-meta-title">${escapeHtml(title)}</span>`)
+        .replaceAll("{width}", escapeHtml(width))
+        .replaceAll("{height}", escapeHtml(height))
+        .replaceAll("{unit}", escapeHtml(unit))}</div>
+      <div class="layout-meta-line layout-meta-stock-line">
+        <span class="layout-meta-stock">${escapeHtml(t("status.selectedLabelStock", { name: stockName }))}</span>
+        <span class="layout-meta-count">${escapeHtml(t("status.layoutStickerCount", { count }))}</span>
+      </div>`;
+    return;
+  }
+
   const template = state.messages["status.layoutMeta"] || "{count} stickers for {title} | {width} x {height} {unit} each";
   el.layoutMeta.innerHTML = template
     .replaceAll("{count}", escapeHtml(count))
@@ -621,6 +644,23 @@ function renderLayoutMeta({ count, title, width, height, unit }) {
     .replaceAll("{width}", escapeHtml(width))
     .replaceAll("{height}", escapeHtml(height))
     .replaceAll("{unit}", escapeHtml(unit));
+}
+
+function updatePreviewLayoutMeta() {
+  // Refresh toolbar metadata independently when only the selected label type changes.
+  const layout = getLayout();
+  const count = layout.columns * layout.rows;
+  const sheetMode = normalizeSheetFillMode(el.sheetFillMode.value);
+  const labelsToPrint = getLabelsToPrint(count);
+  const cellSize = getLabelCellSize(layout);
+  renderLayoutMeta({
+    count: sheetMode === "freestyle" ? state.freestyleObjects.length : count,
+    title: getSheetMetaTitle(labelsToPrint),
+    width: formatMeasurement(sheetMode === "freestyle" ? layout.width : cellSize.width),
+    height: formatMeasurement(sheetMode === "freestyle" ? layout.height : cellSize.height),
+    unit: state.measurementUnit === "imperial" ? "in" : "mm",
+    labelStock: getLabelStockById(el.labelStockSelect.value),
+  });
 }
 
 function showStatusToast(message, duration = 2600) {
@@ -654,6 +694,26 @@ function normalizeAppVersionInfo(rawVersion) {
     date: String(rawVersion?.date || "").trim(),
     changes: (Array.isArray(rawVersion?.changes) ? rawVersion.changes : []).map((change) => String(change || "").trim()).filter(Boolean),
   };
+}
+
+function getLoadedAppVersion() {
+  // Read the commit marker stamped into deployed HTML while keeping local development recognizable.
+  return document.querySelector('meta[name="app-version"]')?.content.trim() || "development";
+}
+
+function renderAboutAppVersion() {
+  // Show the version of the assets currently running, not merely the newest version reported by the server.
+  const loadedVersion = getLoadedAppVersion();
+  el.appVersionValue.textContent = loadedVersion === "development" ? t("status.developmentVersion") : loadedVersion;
+}
+
+async function fetchAppVersionInfo() {
+  // Fetch generated deploy metadata without cache so manual and startup checks share one source.
+  const response = await fetch(`${VERSION_URL}?t=${Date.now()}`, { cache: "no-store" });
+  if (!response.ok) {
+    return null;
+  }
+  return normalizeAppVersionInfo(await response.json());
 }
 
 function getStoredAppVersion() {
@@ -693,9 +753,10 @@ function reloadLatestAppVersion() {
   window.location.reload();
 }
 
-function renderAppUpdateModal(versionInfo) {
+function renderAppUpdateModal(versionInfo, options = {}) {
   // Render generated commit notes inside the update modal without trusting deploy metadata as HTML.
   state.latestAppVersion = versionInfo;
+  el.appUpdateTitle.textContent = t(options.manual ? "modal.latestChanges" : "modal.appUpdate");
   el.appUpdateMeta.textContent = t("status.appUpdateMeta", {
     commit: versionInfo.shortCommit,
     date: versionInfo.date || t("status.unknown"),
@@ -711,17 +772,13 @@ function renderAppUpdateModal(versionInfo) {
 
   el.appUpdateModal.classList.add("is-open");
   el.appUpdateModal.setAttribute("aria-hidden", "false");
+  el.appUpdateCloseButton.focus();
 }
 
 async function checkForAppUpdate() {
-  // Fetch generated deploy metadata without cache so repeat visitors see the latest release notes.
+  // Show release notes automatically only when this browser has not acknowledged the deployed commit.
   try {
-    const response = await fetch(`${VERSION_URL}?t=${Date.now()}`, { cache: "no-store" });
-    if (!response.ok) {
-      return;
-    }
-
-    const versionInfo = normalizeAppVersionInfo(await response.json());
+    const versionInfo = await fetchAppVersionInfo();
     if (!versionInfo || getStoredAppVersion() === versionInfo.commit) {
       return;
     }
@@ -729,6 +786,25 @@ async function checkForAppUpdate() {
     renderAppUpdateModal(versionInfo);
   } catch (error) {
     console.info("App version metadata unavailable.", error);
+  }
+}
+
+async function showLatestAppChanges() {
+  // Let users reopen release notes from About even after dismissing the automatic notice.
+  el.checkAppUpdatesButton.disabled = true;
+  try {
+    const versionInfo = await fetchAppVersionInfo();
+    if (!versionInfo) {
+      showStatusToast(t("status.appVersionUnavailable"));
+      return;
+    }
+    closeDonationModal();
+    renderAppUpdateModal(versionInfo, { manual: true });
+  } catch (error) {
+    console.info("App version metadata unavailable.", error);
+    showStatusToast(t("status.appVersionUnavailable"));
+  } finally {
+    el.checkAppUpdatesButton.disabled = false;
   }
 }
 
@@ -2408,14 +2484,66 @@ function renderLabelStockOptions(selectedValue = el.labelStockSelect.value) {
     el.labelStockSelect.append(option);
   });
 
-  el.labelStockSelect.value = state.catalog.labelStocks.some((stock) => stock.id === selectedValue) ? selectedValue : "";
+  const hasSelectedStock = state.catalog.labelStocks.some((stock) => stock.id === selectedValue);
+  const hasLockedStock = state.catalog.labelStocks.some((stock) => stock.id === state.lockedLabelStockId);
+  if (state.lockedLabelStockId && !hasLockedStock) {
+    // Drop stale defaults after a label type is deleted or replaced during import.
+    state.lockedLabelStockId = "";
+  }
+  el.labelStockSelect.value = hasSelectedStock ? selectedValue : "";
   el.labelStockMeta.textContent = formatLabelStockMeta(getSelectedLabelStock());
   updateLabelStockActionVisibility();
+  updateLabelStockLockButton();
 }
 
 function updateLabelStockActionVisibility() {
   // Show metadata editing only when the current selection points at a saved label type.
   el.editLabelStockButton.classList.toggle("is-hidden", !getSelectedLabelStock());
+}
+
+function updateLabelStockLockButton() {
+  // Present the saved startup default as a familiar locked or unlocked icon.
+  const stock = getLabelStockById(el.labelStockSelect.value);
+  const locked = Boolean(stock && stock.id === state.lockedLabelStockId);
+  el.labelStockLockButton.disabled = !stock;
+  el.labelStockLockButton.classList.toggle("is-locked", locked);
+  el.labelStockLockButton.textContent = locked ? "🔒" : "🔓";
+  el.labelStockLockButton.title = t(locked ? "action.unlockLabelStockDefault" : "action.lockLabelStockDefault");
+  el.labelStockLockButton.setAttribute("aria-label", el.labelStockLockButton.title);
+}
+
+function clearLockedLabelStockIfSelectionChanged(stockId) {
+  // Prevent an old hidden default from surviving after the user chooses a different type.
+  if (state.lockedLabelStockId && state.lockedLabelStockId !== stockId) {
+    state.lockedLabelStockId = "";
+    saveSettings();
+  }
+}
+
+function toggleLabelStockDefaultLock() {
+  // Remember or forget the selected physical stock as the next-session default.
+  const stock = getLabelStockById(el.labelStockSelect.value);
+  if (!stock) {
+    return;
+  }
+  state.lockedLabelStockId = state.lockedLabelStockId === stock.id ? "" : stock.id;
+  saveSettings();
+  updateLabelStockLockButton();
+}
+
+function restoreLockedLabelStock() {
+  // Reapply only the physical sheet geometry after both settings and catalog data are available.
+  const stock = getLabelStockById(state.lockedLabelStockId);
+  if (!stock) {
+    updateLabelStockLockButton();
+    return;
+  }
+  el.labelStockSelect.value = stock.id;
+  el.labelStockCodeInput.value = stock.packageCode || "";
+  applyLabelStockSettings(stock.settings);
+  el.labelStockMeta.textContent = formatLabelStockMeta(stock);
+  updateLabelStockActionVisibility();
+  updateLabelStockLockButton();
 }
 
 function collectLabelStockSettings() {
@@ -2532,6 +2660,7 @@ function applySelectedLabelStock() {
     return;
   }
 
+  clearLockedLabelStockIfSelectionChanged(stock.id);
   el.labelStockSelect.value = stock.id;
   if (stock.packageCode) {
     el.labelStockCodeInput.value = stock.packageCode;
@@ -2601,6 +2730,7 @@ function saveCurrentAsLabelStock() {
   el.labelStockCodeInput.value = savedStock.packageCode;
   el.labelStockMeta.textContent = formatLabelStockMeta(savedStock);
   updateLabelStockActionVisibility();
+  updatePreviewLayoutMeta();
 }
 
 function editSelectedLabelStock() {
@@ -2651,6 +2781,7 @@ function editSelectedLabelStock() {
   el.labelStockCodeInput.value = packageCode;
   el.labelStockMeta.textContent = formatLabelStockMeta(stock);
   updateLabelStockActionVisibility();
+  updatePreviewLayoutMeta();
 }
 
 function deleteSelectedLabelStock() {
@@ -2665,10 +2796,15 @@ function deleteSelectedLabelStock() {
   }
 
   state.catalog.labelStocks = state.catalog.labelStocks.filter((savedStock) => savedStock.id !== stock.id);
+  if (state.lockedLabelStockId === stock.id) {
+    state.lockedLabelStockId = "";
+  }
   el.labelStockCodeInput.value = "";
   saveCatalog();
   renderLabelStockOptions("");
   updateLabelStockActionVisibility();
+  updatePreviewLayoutMeta();
+  saveSettings();
 }
 
 function applyScannedLabelStockCode(rawValue) {
@@ -2761,6 +2897,7 @@ function saveSettings() {
       collapsedGroups: state.collapsedGroups,
       collapsedCatalogCategories: state.collapsedCatalogCategories,
       controlGroupOrder: state.controlGroupOrder,
+      lockedLabelStockId: state.lockedLabelStockId,
     }),
   );
 }
@@ -2773,6 +2910,7 @@ function loadSettings() {
   state.collapsedGroups = saved.collapsedGroups || {};
   state.collapsedCatalogCategories = saved.collapsedCatalogCategories || {};
   state.controlGroupOrder = Array.isArray(saved.controlGroupOrder) ? saved.controlGroupOrder.filter((key) => typeof key === "string") : [];
+  state.lockedLabelStockId = typeof saved.lockedLabelStockId === "string" ? saved.lockedLabelStockId : "";
   state.labelPartOrder = normalizeLabelPartOrder(saved.labelPartOrder);
   state.sheetQueue = normalizeSheetQueue(saved.sheetQueue);
   state.freestyleObjects = normalizeFreestyleObjects(saved.freestyleObjects);
@@ -5854,10 +5992,13 @@ function setVisibleCategoryItemSelection(checked) {
 }
 
 function appendCategorySelectionToolbar() {
-  // Keep select and clear controls pinned inside the scrollable category item list.
+  // Keep selection actions on the left and the independent row-sort control on the right.
   const toolbar = document.createElement("div");
   const selectAllButton = document.createElement("button");
   const clearAllButton = document.createElement("button");
+  const sortLabel = document.createElement("label");
+  const sortLabelText = document.createElement("span");
+  const sortSelect = document.createElement("select");
   toolbar.className = "category-item-toolbar";
   selectAllButton.className = "secondary-button";
   selectAllButton.type = "button";
@@ -5867,8 +6008,59 @@ function appendCategorySelectionToolbar() {
   clearAllButton.type = "button";
   clearAllButton.dataset.categorySelect = "none";
   clearAllButton.textContent = t("action.clearSelection");
-  toolbar.append(selectAllButton, clearAllButton);
+  sortLabel.className = "category-item-sort";
+  sortLabelText.textContent = t("label.sortCategoryItems");
+  [
+    ["name", "sort.itemName"],
+    ["preset", "sort.presetBadge"],
+    ["category", "sort.categoryBadge"],
+    ["mode", "sort.itemTag"],
+  ].forEach(([value, labelKey]) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = t(labelKey);
+    sortSelect.append(option);
+  });
+  sortSelect.value = state.categoryItemSort;
+  sortSelect.addEventListener("change", () => {
+    // Rebuild rows without changing their checked category assignments.
+    state.categoryItemSort = sortSelect.value;
+    renderCategoryItemChecklist(state.selectedCategory?.name || "");
+  });
+  sortLabel.append(sortLabelText, sortSelect);
+  toolbar.append(selectAllButton, clearAllButton, sortLabel);
   el.categoryItemList.append(toolbar);
+}
+
+function getCategoryItemSortValue(item, sortKey) {
+  // Resolve the same visible values used by each row badge so sorting matches what users see.
+  if (sortKey === "preset") {
+    return getCategoryItemPreset(item)?.name || "";
+  }
+  if (sortKey === "category") {
+    return normalizeCategoryName(item.category);
+  }
+  if (sortKey === "mode") {
+    return getCategoryItemModeLabel(item);
+  }
+  return item.title;
+}
+
+function compareCategoryItems(a, b) {
+  // Put missing badge values last, then resolve duplicate values by item name while preserving exact ties.
+  const valueA = getCategoryItemSortValue(a, state.categoryItemSort);
+  const valueB = getCategoryItemSortValue(b, state.categoryItemSort);
+  if (!valueA && valueB) {
+    return 1;
+  }
+  if (valueA && !valueB) {
+    return -1;
+  }
+  const primary = valueA.localeCompare(valueB, state.locale, { numeric: true, sensitivity: "base" });
+  if (primary || state.categoryItemSort === "name") {
+    return primary;
+  }
+  return a.title.localeCompare(b.title, state.locale, { numeric: true, sensitivity: "base" });
 }
 
 function refreshCategoryBulkPresetView() {
@@ -5887,7 +6079,7 @@ function renderCategoryItemChecklist(categoryName) {
   const items = state.catalog.items
     .slice()
     .filter(categoryItemMatchesPresetFilter)
-    .sort((a, b) => a.title.localeCompare(b.title));
+    .sort(compareCategoryItems);
   if (!items.length) {
     const empty = document.createElement("p");
     empty.className = "category-item-empty";
@@ -7316,16 +7508,8 @@ function renderLabels() {
   renderLabelSortControls();
   renderSheetFillControls();
   applyPreviewZoom();
-  const unitLabel = state.measurementUnit === "imperial" ? "in" : "mm";
-  // Show the active sheet fill content in the preview toolbar metadata.
-  const labelTitle = getSheetMetaTitle(labelsToPrint);
-  renderLayoutMeta({
-    count: sheetMode === "freestyle" ? state.freestyleObjects.length : count,
-    title: labelTitle,
-    width: formatMeasurement(sheetMode === "freestyle" ? layout.width : labelWidth),
-    height: formatMeasurement(sheetMode === "freestyle" ? layout.height : labelHeight),
-    unit: unitLabel,
-  });
+  // Show the active content, dimensions, label type, and count in the preview toolbar.
+  updatePreviewLayoutMeta();
   updateCurrentSaveButtonVisibility();
   updatePrintPageSize(layout);
   saveSettings();
@@ -7733,6 +7917,7 @@ function exportJson() {
 
 function openDonationModal() {
   // Show the donation dialog and keep screen readers informed.
+  renderAboutAppVersion();
   el.donationModal.classList.add("is-open");
   el.donationModal.setAttribute("aria-hidden", "false");
   el.donationCloseButton.focus();
@@ -8158,17 +8343,24 @@ function bindEvents() {
   el.labelStockSelect.addEventListener("change", () => {
     // Keep the package code and summary synchronized with the selected physical label type.
     const stock = getSelectedLabelStock();
+    clearLockedLabelStockIfSelectionChanged(stock?.id || "");
     el.labelStockCodeInput.value = stock?.packageCode || "";
     el.labelStockMeta.textContent = formatLabelStockMeta(stock);
     updateLabelStockActionVisibility();
+    updateLabelStockLockButton();
+    updatePreviewLayoutMeta();
   });
   el.labelStockCodeInput.addEventListener("input", () => {
     // Resolve typed package codes without changing the sheet until Apply is clicked.
     const stock = findLabelStockByPackageCode(el.labelStockCodeInput.value);
+    clearLockedLabelStockIfSelectionChanged(stock?.id || "");
     el.labelStockSelect.value = stock?.id || "";
     el.labelStockMeta.textContent = formatLabelStockMeta(stock);
     updateLabelStockActionVisibility();
+    updateLabelStockLockButton();
+    updatePreviewLayoutMeta();
   });
+  el.labelStockLockButton.addEventListener("click", toggleLabelStockDefaultLock);
   el.applyLabelStockButton.addEventListener("click", applySelectedLabelStock);
   el.saveLabelStockButton.addEventListener("click", saveCurrentAsLabelStock);
   el.editLabelStockButton.addEventListener("click", editSelectedLabelStock);
@@ -8200,6 +8392,7 @@ function bindEvents() {
   el.appUpdateCloseButton.addEventListener("click", closeAppUpdateModal);
   el.appUpdateDismissButton.addEventListener("click", closeAppUpdateModal);
   el.appUpdateReloadButton.addEventListener("click", reloadLatestAppVersion);
+  el.checkAppUpdatesButton.addEventListener("click", showLatestAppChanges);
   el.appUpdateModal.addEventListener("click", (event) => {
     // Let users dismiss the update notice by clicking the backdrop outside the modal body.
     if (event.target === el.appUpdateModal) {
@@ -8724,9 +8917,11 @@ async function init() {
 
   await loadMessages(state.locale);
   applyTranslations();
+  renderAboutAppVersion();
   checkForAppUpdate();
   syncActiveLabelModeVisibility();
-  renderLabelStockOptions();
+  renderLabelStockOptions(state.lockedLabelStockId);
+  restoreLockedLabelStock();
   renderGridPresetOptions(el.gridPreset.value);
   rendersignPicker(el.mixsignGrid, []);
   updateCatalogMeta();

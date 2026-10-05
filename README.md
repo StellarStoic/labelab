@@ -72,7 +72,7 @@ Labelab exposes detailed layout controls for users who need labels to match spec
 - Toggle controls for title, code number, text above, text below, bold, and italic styles.
 - Drag-and-drop ordering for label parts.
 
-Presets and label types intentionally serve different jobs. Presets store visual label setup, such as typography, barcode size, colors, and padding. Label types store the physical sheet stock, such as paper size, row/column count, margins, gaps, and package code. Selecting a label type changes the sheet geometry; adapting content is a separate button so carefully tuned label styling is not changed automatically.
+Presets and label types intentionally serve different jobs. Presets store visual label setup, such as typography, barcode size, colors, and padding. Label types store the physical sheet stock, such as paper size, row/column count, margins, gaps, and package code. Selecting a label type changes the sheet geometry; adapting content is a separate button so carefully tuned label styling is not changed automatically. Locking a selected label type makes it the startup default on that browser. An unlocked selector starts at `No label type` on the next visit.
 
 ## Sign And Pictogram Dictionary
 
@@ -129,7 +129,7 @@ On each deploy it:
 - Generates `version.json` from the latest Git commits.
 - Adds the current commit hash to `styles.css` and `app.js` URLs in the deployed `index.html`.
 
-The app fetches `version.json` with `cache: "no-store"` during startup. When the deployed commit differs from the version already acknowledged in that browser, Labelab shows a small "What's new" dialog with the latest commit messages and a reload button. Reloading keeps the same page URL and origin so browser-stored catalog data remains available, while the deployed `index.html` already points to commit-stamped CSS and JavaScript files.
+The app fetches `version.json` with `cache: "no-store"` during startup. When the deployed commit differs from the version already acknowledged in that browser, Labelab shows a small "What's new" dialog with the latest commit messages and a reload button. The About dialog shows the currently loaded commit and can reopen the latest changes manually. Reloading keeps the same page URL and origin so browser-stored catalog data remains available, while the deployed `index.html` already points to commit-stamped CSS and JavaScript files.
 
 For GitHub Pages, set the site source to **GitHub Actions** so this workflow controls deployment.
 

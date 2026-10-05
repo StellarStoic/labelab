@@ -19,6 +19,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- The deploy script replaces this marker with the short Git commit shown in About. -->
+    <meta name="app-version" content="development" />
     <title data-i18n="app.title">Labelab</title>
     <!-- Provides search engines and link previews with the public Labelab site summary. -->
     <meta name="description" content="Labelab is a private local label maker for barcodes, QR codes, text labels, warning signs, custom paper layouts, and printable label sheets." />
@@ -91,7 +93,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
         <section class="control-group">
           <h2 data-i18n="section.labelTypes">Label types</h2>
           <label for="labelStockSelect" data-i18n="label.labelStock">Saved label type</label>
-          <select id="labelStockSelect"></select>
+          <!-- Keeps the startup-default lock beside the label type it controls. -->
+          <div class="label-stock-select-row">
+            <select id="labelStockSelect"></select>
+            <button id="labelStockLockButton" class="catalog-lock-button label-stock-lock-button" type="button" aria-label="Lock label type as default">🔓</button>
+          </div>
           <label for="labelStockCodeInput" data-i18n="label.packageCode">Package EAN / code</label>
           <!-- Lets users scan the code printed on a label package and apply the matching physical sheet layout. -->
           <div class="scan-code-row">
@@ -679,7 +685,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
 
       <section class="preview-area" aria-label="Label preview" data-i18n-aria-label="aria.labelPreview">
         <div class="preview-toolbar">
-          <strong id="layoutMeta">0 labels</strong>
+          <div id="layoutMeta">0 labels</div>
           <div class="zoom-controls" aria-label="Preview zoom controls" data-i18n-aria-label="aria.previewZoomControls">
             <button id="zoomOutButton" type="button">-</button>
             <button id="zoomFitButton" type="button" data-i18n="action.fit">Fit</button>
@@ -936,6 +942,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
           <p data-i18n="donation.intro5">Labelab is local-first. Nothing has to be sent to cloud platforms or big tech servers. You can still export backups yourself, store them wherever you want, or send a label through a link.</p>
           <p data-i18n="donation.intro6">There are four main modes: Repeated fills the paper with one label, Number sequence prints ranges such as cabinet or fuse numbers, Mixed labels builds one sheet from different labels, and Freestyle lets you place text, signs, and images wherever you need them.</p>
           <p data-i18n-html="donation.intro7">If you have suggestions for more signs in search or other improvements, please let me know by creating a PR for Labelab on <a href="https://github.com/StellarStoic/labelab/pulls" target="_blank" rel="noopener noreferrer">GitHub</a>. Labelab is free for everyone and will stay that way. Sharing it with others helps, and if you want to support late-night coding sessions, the donation options are below. Thank you.</p>
+        </div>
+        <!-- Shows the loaded deployment and provides permanent access to its generated release notes. -->
+        <div class="app-version-row">
+          <div>
+            <span class="app-version-label" data-i18n="label.appVersion">App version</span>
+            <strong id="appVersionValue">Development build</strong>
+          </div>
+          <button id="checkAppUpdatesButton" class="secondary-button" type="button" data-i18n="action.viewLatestChanges">Latest changes</button>
         </div>
         <h3 class="donation-section-title" data-i18n="donation.supportTitle">Support Labelab</h3>
         <div class="donation-grid">

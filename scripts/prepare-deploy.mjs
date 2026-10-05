@@ -27,8 +27,9 @@ function runGit(command) {
 }
 
 function stampAssetVersions(indexPath, version) {
-  // Add commit query strings to root CSS and JS files in the deploy artifact only.
+  // Stamp the visible app version and add cache-busting query strings in the deploy artifact only.
   const html = readFileSync(indexPath, "utf8")
+    .replace(/<meta name="app-version" content="[^"]*"\s*\/>/, `<meta name="app-version" content="${version}" />`)
     .replace(/href="styles\.css(?:\?v=[^"]*)?"/, `href="styles.css?v=${version}"`)
     .replace(/src="app\.js(?:\?v=[^"]*)?"/, `src="app.js?v=${version}"`);
   writeFileSync(indexPath, html);
