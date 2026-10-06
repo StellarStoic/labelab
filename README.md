@@ -72,7 +72,7 @@ Labelab exposes detailed layout controls for users who need labels to match spec
 - Toggle controls for title, code number, text above, text below, bold, and italic styles.
 - Drag-and-drop ordering for label parts.
 
-Presets and label types intentionally serve different jobs. Presets store visual label setup, such as typography, barcode size, colors, and padding. Label types store the physical sheet stock, such as paper size, row/column count, margins, gaps, and package code. Selecting a label type changes the sheet geometry; adapting content is a separate button so carefully tuned label styling is not changed automatically. Locking a selected label type makes it the startup default on that browser. An unlocked selector starts at `No label type` on the next visit.
+Presets and label types intentionally serve different jobs. Presets store visual label setup, such as typography, barcode size, colors, and padding. Label types store the physical sheet stock, such as paper size, row/column count, margins, gaps, and package code. Selecting a label type changes the sheet geometry; adapting content is a separate button so carefully tuned label styling is not changed automatically. Locking a selected label type makes it the global sheet-geometry override and startup default on that browser. While locked, it takes precedence over geometry saved on catalog items and sheets without erasing those dormant preferences. An unlocked selector starts at `No label type` on the next visit and saved item or sheet geometry applies normally.
 
 ## Sign And Pictogram Dictionary
 

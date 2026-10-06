@@ -1052,6 +1052,11 @@ button:hover,
   white-space: nowrap;
 }
 
+/* Separates the global-lock indicator from the selected stock name without affecting unlocked rows. */
+.layout-meta-lock-icon {
+  margin-right: 5px;
+}
+
 .layout-meta-count {
   border-left: 1px solid var(--border);
   color: var(--muted);

@@ -35,6 +35,7 @@
   "status.layoutMeta": "{count} stickers for {title} | {width} x {height} {unit} each",
   "status.layoutMetaDimensions": "{title} | {width} x {height} {unit} each",
   "status.selectedLabelStock": "Label type: {name}",
+  "status.lockedLabelStockIndicator": "Locked label type",
   "status.layoutStickerCount": "{count} stickers",
   "status.modeChanged": "Mode changed to: {mode}",
   "section.catalog": "Catalog",

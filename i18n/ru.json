@@ -35,6 +35,7 @@
   "status.layoutMeta": "{count} наклеек для {title} | {width} x {height} {unit} каждая",
   "status.layoutMetaDimensions": "{title} | {width} x {height} {unit} каждая",
   "status.selectedLabelStock": "Тип этикеток: {name}",
+  "status.lockedLabelStockIndicator": "Закрепленный тип этикеток",
   "status.layoutStickerCount": "{count} наклеек",
   "status.modeChanged": "Режим изменен на: {mode}",
   "section.catalog": "Каталог",

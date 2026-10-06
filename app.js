@@ -27,6 +27,21 @@ const UNICODE_SEARCH_URL = "https://home.unicode.org/";
 const SIGN_PICKER_BATCH_SIZE = 150;
 const SIGN_PICKER_SCROLL_THRESHOLD = 80;
 const BUILT_IN_GRID_PRESETS = ["5x15", "4x16", "3x10", "2x8"];
+const LABEL_STOCK_SETTING_KEYS = [
+  "paperSize",
+  "paperOrientation",
+  "paperWidth",
+  "paperHeight",
+  "gridPreset",
+  "columns",
+  "rows",
+  "marginLeft",
+  "marginRight",
+  "marginTop",
+  "marginBottom",
+  "gapX",
+  "gapY",
+];
 const CONTROL_GROUP_LONG_PRESS_MS = 550;
 const PINNED_CONTROL_GROUP_KEYS = new Set(["section.catalog"]);
 
@@ -624,6 +639,9 @@ function renderLayoutMeta({ count, title, width, height, unit, labelStock = null
   if (labelStock) {
     const dimensionsTemplate = state.messages["status.layoutMetaDimensions"] || "{title} | {width} x {height} {unit} each";
     const stockName = labelStock.manufacturer ? `${labelStock.manufacturer} - ${labelStock.name}` : labelStock.name;
+    const lockIcon = labelStock.id === state.lockedLabelStockId
+      ? `<span class="layout-meta-lock-icon" role="img" aria-label="${escapeHtml(t("status.lockedLabelStockIndicator"))}">🔒</span>`
+      : "";
     el.layoutMeta.innerHTML = `
       <div class="layout-meta-line">${dimensionsTemplate
         .replaceAll("{title}", `<span class="layout-meta-title">${escapeHtml(title)}</span>`)
@@ -631,7 +649,7 @@ function renderLayoutMeta({ count, title, width, height, unit, labelStock = null
         .replaceAll("{height}", escapeHtml(height))
         .replaceAll("{unit}", escapeHtml(unit))}</div>
       <div class="layout-meta-line layout-meta-stock-line">
-        <span class="layout-meta-stock">${escapeHtml(t("status.selectedLabelStock", { name: stockName }))}</span>
+        <span class="layout-meta-stock">${lockIcon}${escapeHtml(t("status.selectedLabelStock", { name: stockName }))}</span>
         <span class="layout-meta-count">${escapeHtml(t("status.layoutStickerCount", { count }))}</span>
       </div>`;
     return;
@@ -2185,6 +2203,37 @@ function getCurrentItemSettingsSnapshot() {
   return getItemPresetSettings(collectSettingsSnapshot()) || {};
 }
 
+function getUnlockedItemLayoutSettings(item) {
+  // Reconstruct the geometry an item would use without a global label-type override.
+  const layoutSettings = {};
+  const sources = [state.defaultItemSettingsSnapshot, getItemPresetSettings(getPresetById(item?.presetId)?.settings), getItemPresetSettings(item?.settings)];
+  sources.filter(Boolean).forEach((source) => {
+    LABEL_STOCK_SETTING_KEYS.forEach((key) => {
+      if (Object.hasOwn(source, key)) {
+        layoutSettings[key] = source[key];
+      }
+    });
+  });
+  return layoutSettings;
+}
+
+function preserveUnlockedItemLayoutSettings(snapshot, item) {
+  // Save style edits made under a global lock without replacing the item's dormant sheet geometry.
+  if (!getLockedLabelStock()) {
+    return snapshot;
+  }
+  const preserved = { ...snapshot };
+  const unlockedLayout = getUnlockedItemLayoutSettings(item);
+  LABEL_STOCK_SETTING_KEYS.forEach((key) => {
+    if (Object.hasOwn(unlockedLayout, key)) {
+      preserved[key] = unlockedLayout[key];
+    } else {
+      delete preserved[key];
+    }
+  });
+  return preserved;
+}
+
 function captureDefaultItemSettingsSnapshot() {
   // Keep a neutral item setup so catalog selections do not inherit styling from the previously selected item.
   state.defaultItemSettingsSnapshot = getCurrentItemSettingsSnapshot();
@@ -2287,7 +2336,7 @@ function saveCurrentSetupToSelectedItem() {
     return;
   }
 
-  state.selectedItem.settings = getCurrentItemSettingsSnapshot();
+  state.selectedItem.settings = preserveUnlockedItemLayoutSettings(getCurrentItemSettingsSnapshot(), state.selectedItem);
   saveCatalog();
   captureSelectedItemSettingsBaseline();
   updateCurrentSaveButtonVisibility();
@@ -2457,6 +2506,11 @@ function getSelectedLabelStock() {
   return getLabelStockById(el.labelStockSelect.value) || findLabelStockByPackageCode(el.labelStockCodeInput.value);
 }
 
+function getLockedLabelStock() {
+  // Resolve the one browser-wide stock whose geometry overrides saved item and sheet preferences.
+  return state.lockedLabelStockId ? getLabelStockById(state.lockedLabelStockId) : null;
+}
+
 function formatLabelStockMeta(stock) {
   // Summarize one physical stock so users can verify the selected package before printing.
   if (!stock) {
@@ -2512,28 +2566,54 @@ function updateLabelStockLockButton() {
   el.labelStockLockButton.setAttribute("aria-label", el.labelStockLockButton.title);
 }
 
+function restoreUnlockedActiveLayout() {
+  // Restore the selected sheet, item, or neutral layout when the global stock override is removed.
+  const unlockedLayout = state.selectedSheet?.settings || (state.selectedItem ? getUnlockedItemLayoutSettings(state.selectedItem) : state.defaultItemSettingsSnapshot);
+  if (unlockedLayout) {
+    applyLabelStockSettings(unlockedLayout);
+  }
+  captureSelectedItemSettingsBaseline();
+  captureSelectedSheetSettingsBaseline();
+}
+
 function clearLockedLabelStockIfSelectionChanged(stockId) {
   // Prevent an old hidden default from surviving after the user chooses a different type.
   if (state.lockedLabelStockId && state.lockedLabelStockId !== stockId) {
     state.lockedLabelStockId = "";
+    restoreUnlockedActiveLayout();
     saveSettings();
+    return true;
   }
+  return false;
 }
 
 function toggleLabelStockDefaultLock() {
-  // Remember or forget the selected physical stock as the next-session default.
+  // Toggle the global geometry override and immediately apply the winning layout source.
   const stock = getLabelStockById(el.labelStockSelect.value);
   if (!stock) {
     return;
   }
-  state.lockedLabelStockId = state.lockedLabelStockId === stock.id ? "" : stock.id;
-  saveSettings();
+  const unlocking = state.lockedLabelStockId === stock.id;
+  state.lockedLabelStockId = unlocking ? "" : stock.id;
+  if (unlocking) {
+    el.labelStockSelect.value = "";
+    el.labelStockCodeInput.value = "";
+    restoreUnlockedActiveLayout();
+  } else {
+    el.labelStockCodeInput.value = stock.packageCode || "";
+    applyLabelStockSettings(stock.settings);
+    captureSelectedItemSettingsBaseline();
+    captureSelectedSheetSettingsBaseline();
+  }
+  el.labelStockMeta.textContent = formatLabelStockMeta(getSelectedLabelStock());
+  updateLabelStockActionVisibility();
   updateLabelStockLockButton();
+  renderLabels();
 }
 
 function restoreLockedLabelStock() {
   // Reapply only the physical sheet geometry after both settings and catalog data are available.
-  const stock = getLabelStockById(state.lockedLabelStockId);
+  const stock = getLockedLabelStock();
   if (!stock) {
     updateLabelStockLockButton();
     return;
@@ -3055,7 +3135,7 @@ function applySavedTypography(saved) {
 }
 
 function applySettingsSnapshot(snapshot) {
-  // Apply shared label settings without replacing the receiver's whole saved setup.
+  // Apply saved setup, then let a global locked label type win over its physical sheet geometry.
   if (!snapshot) {
     return;
   }
@@ -3135,6 +3215,10 @@ function applySettingsSnapshot(snapshot) {
   applyExperimentalStyles();
   renderSheetFillControls();
   state.measurementUnit = el.measurementUnit.value || previousUnit;
+  const lockedStock = getLockedLabelStock();
+  if (lockedStock) {
+    applyLabelStockSettings(lockedStock.settings);
+  }
 }
 
 function findItemFromSheetSettings(settings) {
@@ -8343,22 +8427,30 @@ function bindEvents() {
   el.labelStockSelect.addEventListener("change", () => {
     // Keep the package code and summary synchronized with the selected physical label type.
     const stock = getSelectedLabelStock();
-    clearLockedLabelStockIfSelectionChanged(stock?.id || "");
+    const clearedLockedStock = clearLockedLabelStockIfSelectionChanged(stock?.id || "");
     el.labelStockCodeInput.value = stock?.packageCode || "";
     el.labelStockMeta.textContent = formatLabelStockMeta(stock);
     updateLabelStockActionVisibility();
     updateLabelStockLockButton();
-    updatePreviewLayoutMeta();
+    if (clearedLockedStock) {
+      renderLabels();
+    } else {
+      updatePreviewLayoutMeta();
+    }
   });
   el.labelStockCodeInput.addEventListener("input", () => {
     // Resolve typed package codes without changing the sheet until Apply is clicked.
     const stock = findLabelStockByPackageCode(el.labelStockCodeInput.value);
-    clearLockedLabelStockIfSelectionChanged(stock?.id || "");
+    const clearedLockedStock = clearLockedLabelStockIfSelectionChanged(stock?.id || "");
     el.labelStockSelect.value = stock?.id || "";
     el.labelStockMeta.textContent = formatLabelStockMeta(stock);
     updateLabelStockActionVisibility();
     updateLabelStockLockButton();
-    updatePreviewLayoutMeta();
+    if (clearedLockedStock) {
+      renderLabels();
+    } else {
+      updatePreviewLayoutMeta();
+    }
   });
   el.labelStockLockButton.addEventListener("click", toggleLabelStockDefaultLock);
   el.applyLabelStockButton.addEventListener("click", applySelectedLabelStock);

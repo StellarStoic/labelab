@@ -35,6 +35,7 @@
   "status.layoutMeta": "{count} 个 {title} 标签 | 每个 {width} x {height} {unit}",
   "status.layoutMetaDimensions": "{title} | 每个 {width} x {height} {unit}",
   "status.selectedLabelStock": "标签类型：{name}",
+  "status.lockedLabelStockIndicator": "已锁定的标签类型",
   "status.layoutStickerCount": "{count} 个标签",
   "status.modeChanged": "模式已更改为：{mode}",
   "section.catalog": "目录",

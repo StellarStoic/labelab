@@ -35,6 +35,7 @@
   "status.layoutMeta": "{count} nalepk za {title} | {width} x {height} {unit} vsaka",
   "status.layoutMetaDimensions": "{title} | {width} x {height} {unit} vsaka",
   "status.selectedLabelStock": "Vrsta nalepk: {name}",
+  "status.lockedLabelStockIndicator": "Zaklenjena vrsta nalepk",
   "status.layoutStickerCount": "{count} nalepk",
   "status.modeChanged": "Način spremenjen v: {mode}",
   "section.catalog": "Katalog",

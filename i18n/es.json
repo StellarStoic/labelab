@@ -35,6 +35,7 @@
   "status.layoutMeta": "{count} pegatinas para {title} | {width} x {height} {unit} cada una",
   "status.layoutMetaDimensions": "{title} | {width} x {height} {unit} cada una",
   "status.selectedLabelStock": "Tipo de etiqueta: {name}",
+  "status.lockedLabelStockIndicator": "Tipo de etiqueta bloqueado",
   "status.layoutStickerCount": "{count} pegatinas",
   "status.modeChanged": "Modo cambiado a: {mode}",
   "section.catalog": "Catálogo",

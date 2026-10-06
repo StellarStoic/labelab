@@ -35,6 +35,7 @@
   "status.layoutMeta": "{count} étiquettes pour {title} | {width} x {height} {unit} chacune",
   "status.layoutMetaDimensions": "{title} | {width} x {height} {unit} chacune",
   "status.selectedLabelStock": "Type d’étiquette : {name}",
+  "status.lockedLabelStockIndicator": "Type d’étiquette verrouillé",
   "status.layoutStickerCount": "{count} étiquettes",
   "status.modeChanged": "Mode changé en : {mode}",
   "section.catalog": "Catalogue",

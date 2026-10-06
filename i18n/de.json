@@ -35,6 +35,7 @@
   "status.layoutMeta": "{count} Aufkleber für {title} | je {width} x {height} {unit}",
   "status.layoutMetaDimensions": "{title} | je {width} x {height} {unit}",
   "status.selectedLabelStock": "Etikettentyp: {name}",
+  "status.lockedLabelStockIndicator": "Gesperrter Etikettentyp",
   "status.layoutStickerCount": "{count} Aufkleber",
   "status.modeChanged": "Modus geändert zu: {mode}",
   "section.catalog": "Katalog",
