@@ -1713,7 +1713,8 @@ button:hover,
 .scanner-modal,
 .share-modal,
 .translator-modal,
-.app-update-modal {
+.app-update-modal,
+.print-border-modal {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -1723,6 +1724,41 @@ button:hover,
   padding: 22px;
   position: relative;
   width: min(520px, 100%);
+}
+
+.print-border-modal {
+  display: grid;
+  gap: 16px;
+  text-align: center;
+  width: min(420px, 100%);
+}
+
+.print-border-modal p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.print-border-actions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+/* Green confirms border printing while red clearly chooses borderless printing. */
+.print-border-yes {
+  background: #15803d;
+}
+
+.print-border-yes:hover {
+  background: #166534;
+}
+
+.print-border-no {
+  background: #b42318;
+}
+
+.print-border-no:hover {
+  background: #8f1d15;
 }
 
 .app-update-modal {
@@ -2721,6 +2757,7 @@ button:hover,
   .category-edit-row,
   .color-edit-row,
   .modal-actions,
+  .print-border-actions,
   .import-summary-row {
     grid-template-columns: 1fr;
   }

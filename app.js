@@ -389,6 +389,7 @@ const state = {
   favoriteGrids: [],
   latestAppVersion: null,
   lockedLabelStockId: "",
+  lastSelectedCatalogItemKey: "",
 };
 
 const signPickerState = new WeakMap();
@@ -595,9 +596,13 @@ const el = {
   appUpdateDismissButton: document.querySelector("#appUpdateDismissButton"),
   appVersionValue: document.querySelector("#appVersionValue"),
   checkAppUpdatesButton: document.querySelector("#checkAppUpdatesButton"),
+  printBorderModal: document.querySelector("#printBorderModal"),
+  printBorderYesButton: document.querySelector("#printBorderYesButton"),
+  printBorderNoButton: document.querySelector("#printBorderNoButton"),
   measurementUnit: document.querySelector("#measurementUnit"),
   languageSelect: document.querySelector("#languageSelect"),
   themeSelect: document.querySelector("#themeSelect"),
+  rememberLastCatalogItem: document.querySelector("#rememberLastCatalogItem"),
   experimentalLabelBackground: document.querySelector("#experimentalLabelBackground"),
   experimentalBarcodeColor: document.querySelector("#experimentalBarcodeColor"),
   experimentalTitleColor: document.querySelector("#experimentalTitleColor"),
@@ -2978,6 +2983,8 @@ function saveSettings() {
       collapsedCatalogCategories: state.collapsedCatalogCategories,
       controlGroupOrder: state.controlGroupOrder,
       lockedLabelStockId: state.lockedLabelStockId,
+      rememberLastCatalogItem: el.rememberLastCatalogItem.checked,
+      lastSelectedCatalogItemKey: el.rememberLastCatalogItem.checked ? state.lastSelectedCatalogItemKey : "",
     }),
   );
 }
@@ -2991,6 +2998,8 @@ function loadSettings() {
   state.collapsedCatalogCategories = saved.collapsedCatalogCategories || {};
   state.controlGroupOrder = Array.isArray(saved.controlGroupOrder) ? saved.controlGroupOrder.filter((key) => typeof key === "string") : [];
   state.lockedLabelStockId = typeof saved.lockedLabelStockId === "string" ? saved.lockedLabelStockId : "";
+  el.rememberLastCatalogItem.checked = Boolean(saved.rememberLastCatalogItem);
+  state.lastSelectedCatalogItemKey = el.rememberLastCatalogItem.checked && typeof saved.lastSelectedCatalogItemKey === "string" ? saved.lastSelectedCatalogItemKey : "";
   state.labelPartOrder = normalizeLabelPartOrder(saved.labelPartOrder);
   state.sheetQueue = normalizeSheetQueue(saved.sheetQueue);
   state.freestyleObjects = normalizeFreestyleObjects(saved.freestyleObjects);
@@ -4453,6 +4462,9 @@ function selectItem(itemKey) {
   state.selectedCategoryLayoutBaseline = null;
   state.selectedCategoryLayoutConfirmKey = "";
   state.selectedItem = nextItem;
+  if (el.rememberLastCatalogItem.checked) {
+    state.lastSelectedCatalogItemKey = nextKey;
+  }
   if (state.selectedItem) {
     el.sheetFillMode.value = "repeat";
     const didApplyPreset = applyItemPreset(state.selectedItem);
@@ -4468,6 +4480,23 @@ function selectItem(itemKey) {
   if (state.selectedItem) {
     showModeChangedToast(previousMode, nextMode);
   }
+}
+
+function restoreLastSelectedCatalogItem() {
+  // Restore one current catalog entry after startup unless a shared-label URL owns the initial view.
+  if (!el.rememberLastCatalogItem.checked || !state.lastSelectedCatalogItemKey || location.hash.startsWith("#label=")) {
+    return false;
+  }
+  const rememberedItem = state.catalog.items.find(
+    (item) => getItemKey(item) === state.lastSelectedCatalogItemKey || item.code === state.lastSelectedCatalogItemKey,
+  );
+  if (!rememberedItem) {
+    state.lastSelectedCatalogItemKey = "";
+    saveSettings();
+    return false;
+  }
+  selectItem(getItemKey(rememberedItem));
+  return true;
 }
 
 function selectCategory(name) {
@@ -6557,6 +6586,9 @@ function deleteSelectedCode() {
 
   const deletedKey = getItemKey(state.selectedItem);
   state.catalog.items = state.catalog.items.filter((item) => getItemKey(item) !== deletedKey);
+  if (state.lastSelectedCatalogItemKey === deletedKey) {
+    state.lastSelectedCatalogItemKey = "";
+  }
   state.selectedItem = null;
   saveCatalog();
   renderSearchOptions();
@@ -7871,8 +7903,26 @@ function closeTranslatorModal() {
 }
 
 function printWithBorderChoice() {
-  // Ask whether dashed cut borders should be included only for the upcoming print job.
-  const includeBorders = window.confirm(t("confirm.printLabelBorders"));
+  // Open the centered in-app choice instead of relying on the browser's confirm dialog.
+  printWithBorderChoice.opener = document.activeElement;
+  el.printBorderModal.classList.add("is-open");
+  el.printBorderModal.setAttribute("aria-hidden", "false");
+  el.printBorderYesButton.focus();
+}
+
+function closePrintBorderModal() {
+  // Dismiss the choice without printing and return focus to the command that opened it.
+  el.printBorderModal.classList.remove("is-open");
+  el.printBorderModal.setAttribute("aria-hidden", "true");
+  if (printWithBorderChoice.opener?.isConnected) {
+    printWithBorderChoice.opener.focus();
+  }
+  printWithBorderChoice.opener = null;
+}
+
+function printLabelsWithBorderChoice(includeBorders) {
+  // Apply the one-print border choice before opening the native browser print dialog.
+  closePrintBorderModal();
   const previousTitle = document.title;
   const restoreTitle = () => {
     document.title = previousTitle;
@@ -8491,6 +8541,14 @@ function bindEvents() {
       closeAppUpdateModal();
     }
   });
+  el.printBorderYesButton.addEventListener("click", () => printLabelsWithBorderChoice(true));
+  el.printBorderNoButton.addEventListener("click", () => printLabelsWithBorderChoice(false));
+  el.printBorderModal.addEventListener("click", (event) => {
+    // Treat backdrop clicks as dismissal rather than silently choosing borderless printing.
+    if (event.target === el.printBorderModal) {
+      closePrintBorderModal();
+    }
+  });
   el.donateButton.addEventListener("click", openDonationModal);
   document.querySelectorAll("[data-reset-controls]").forEach((button) => {
     // Connect every plus-shaped movement reset button to the shared reset behavior.
@@ -8616,6 +8674,10 @@ function bindEvents() {
     button.addEventListener("click", () => copyDonationAddress(button.dataset.donationAddress || "", button.dataset.donationType || "Wallet"));
   });
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && el.printBorderModal.classList.contains("is-open")) {
+      closePrintBorderModal();
+      return;
+    }
     if (event.key === "Escape" && el.qrViewer.classList.contains("is-open")) {
       closeQrViewer();
       return;
@@ -8977,6 +9039,12 @@ function bindEvents() {
     saveSettings();
   });
 
+  el.rememberLastCatalogItem.addEventListener("change", () => {
+    // Capture the active saved item when enabled and discard the remembered key when disabled.
+    state.lastSelectedCatalogItemKey = el.rememberLastCatalogItem.checked && isSavedCatalogItem(state.selectedItem) ? getItemKey(state.selectedItem) : "";
+    saveSettings();
+  });
+
   window.addEventListener("resize", () => {
     applyPreviewZoom();
   });
@@ -9017,6 +9085,7 @@ async function init() {
   renderGridPresetOptions(el.gridPreset.value);
   rendersignPicker(el.mixsignGrid, []);
   updateCatalogMeta();
+  restoreLastSelectedCatalogItem();
   handleSharedLabelFromUrl();
   renderSearchOptions();
   renderLabels();

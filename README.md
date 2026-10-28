@@ -39,6 +39,7 @@ The app is useful for simple product labels, warehouse labels, shelf tags, warni
 - Save a single label setup as a `.label.json` file.
 - Export and import the full catalog as JSON.
 - Store catalog, settings, presets, saved sheets, and label types in browser `localStorage`.
+- Optionally remember and restore the last selected catalog item on the next visit.
 - Switch between Light, Dark, Coffee, Ocean, and Coder themes.
 - Switch between metric and imperial measurement units.
 - Use the interface in English, Slovenian, French, and Chinese.

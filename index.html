@@ -637,6 +637,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
               </select>
               <button id="translatorHelpButton" class="translator-link" type="button" data-i18n="action.translatorsClickHere">Help translate Labelab</button>
             </label>
+            <!-- Stores only the stable catalog key so the current item data remains the source of truth. -->
+            <label class="check-row">
+              <input id="rememberLastCatalogItem" type="checkbox" />
+              <span data-i18n="label.rememberLastCatalogItem">Remember last selected catalog item</span>
+            </label>
           </div>
         </section>
 
@@ -1011,6 +1016,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
         <div class="modal-actions">
           <button id="appUpdateReloadButton" type="button" data-i18n="action.reloadLatest">Reload latest</button>
           <button id="appUpdateDismissButton" class="secondary-button" type="button" data-i18n="action.dismiss">Dismiss</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Replaces the browser confirm dialog with an accessible centered print choice. -->
+    <div id="printBorderModal" class="modal-backdrop" aria-hidden="true">
+      <div class="print-border-modal" role="dialog" aria-modal="true" aria-labelledby="printBorderTitle" aria-describedby="printBorderMessage">
+        <h2 id="printBorderTitle" data-i18n="modal.printBorders">Dashed label borders</h2>
+        <p id="printBorderMessage" data-i18n="confirm.printLabelBorders">Include dashed cut borders around labels in this print?</p>
+        <div class="print-border-actions">
+          <button id="printBorderYesButton" class="print-border-yes" type="button" data-i18n="action.yes">Yes</button>
+          <button id="printBorderNoButton" class="print-border-no" type="button" data-i18n="action.no">No</button>
         </div>
       </div>
     </div>
