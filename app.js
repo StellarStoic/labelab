@@ -44,6 +44,7 @@ const LABEL_STOCK_SETTING_KEYS = [
 ];
 const CONTROL_GROUP_LONG_PRESS_MS = 550;
 const PINNED_CONTROL_GROUP_KEYS = new Set(["section.catalog"]);
+const QUICK_PRINT_GROUP_KEY = "section.quickPrint";
 
 const PAPER_SIZES = {
   A0: { width: 841, height: 1189 },
@@ -515,6 +516,8 @@ const el = {
   exportButton: document.querySelector("#exportButton"),
   importInput: document.querySelector("#importInput"),
   printButton: document.querySelector("#printButton"),
+  quickPrintButton: document.querySelector("#quickPrintButton"),
+  quickPrintGroup: document.querySelector("#quickPrintGroup"),
   shareButton: document.querySelector("#shareButton"),
   donateButton: document.querySelector("#donateButton"),
   itemEditModal: document.querySelector("#itemEditModal"),
@@ -603,6 +606,9 @@ const el = {
   languageSelect: document.querySelector("#languageSelect"),
   themeSelect: document.querySelector("#themeSelect"),
   rememberLastCatalogItem: document.querySelector("#rememberLastCatalogItem"),
+  showQuickPrintButton: document.querySelector("#showQuickPrintButton"),
+  printLabelBorders: document.querySelector("#printLabelBorders"),
+  showPrintBorderPrompt: document.querySelector("#showPrintBorderPrompt"),
   experimentalLabelBackground: document.querySelector("#experimentalLabelBackground"),
   experimentalBarcodeColor: document.querySelector("#experimentalBarcodeColor"),
   experimentalTitleColor: document.querySelector("#experimentalTitleColor"),
@@ -1710,7 +1716,11 @@ function applyControlGroupOrder() {
 
   const movableGroups = getMovableControlGroups();
   const groupByKey = new Map(movableGroups.map((group) => [group.dataset.groupKey, group]));
-  const orderedKeys = [...state.controlGroupOrder, ...movableGroups.map((group) => group.dataset.groupKey)].filter(Boolean);
+  const defaultKeys = movableGroups.map((group) => group.dataset.groupKey);
+  // Introduce Quick print directly below Catalog for older saved orders, then preserve user movement afterward.
+  const orderedKeys = state.controlGroupOrder.includes(QUICK_PRINT_GROUP_KEY)
+    ? [...state.controlGroupOrder, ...defaultKeys]
+    : [QUICK_PRINT_GROUP_KEY, ...state.controlGroupOrder, ...defaultKeys];
   const orderedGroups = [];
   const seen = new Set();
   orderedKeys.forEach((key) => {
@@ -1832,7 +1842,8 @@ function setupCollapsibleGroups() {
     group.dataset.collapseReady = "true";
     group.dataset.groupKey = key;
 
-    const collapsed = state.hasSavedCollapsedGroups ? Boolean(state.collapsedGroups[key]) : true;
+    // Keep the convenience command open by default while retaining the usual collapsed defaults elsewhere.
+    const collapsed = state.hasSavedCollapsedGroups ? Boolean(state.collapsedGroups[key]) : key !== QUICK_PRINT_GROUP_KEY;
     group.classList.toggle("is-collapsed", collapsed);
     updateCollapseButton(toggle, collapsed);
     updateCollapseLabels();
@@ -2985,6 +2996,9 @@ function saveSettings() {
       lockedLabelStockId: state.lockedLabelStockId,
       rememberLastCatalogItem: el.rememberLastCatalogItem.checked,
       lastSelectedCatalogItemKey: el.rememberLastCatalogItem.checked ? state.lastSelectedCatalogItemKey : "",
+      showQuickPrintButton: el.showQuickPrintButton.checked,
+      printLabelBorders: el.printLabelBorders.checked,
+      showPrintBorderPrompt: el.showPrintBorderPrompt.checked,
     }),
   );
 }
@@ -3000,6 +3014,10 @@ function loadSettings() {
   state.lockedLabelStockId = typeof saved.lockedLabelStockId === "string" ? saved.lockedLabelStockId : "";
   el.rememberLastCatalogItem.checked = Boolean(saved.rememberLastCatalogItem);
   state.lastSelectedCatalogItemKey = el.rememberLastCatalogItem.checked && typeof saved.lastSelectedCatalogItemKey === "string" ? saved.lastSelectedCatalogItemKey : "";
+  el.showQuickPrintButton.checked = Boolean(saved.showQuickPrintButton);
+  el.quickPrintGroup.classList.toggle("is-hidden", !el.showQuickPrintButton.checked);
+  el.printLabelBorders.checked = Boolean(saved.printLabelBorders);
+  el.showPrintBorderPrompt.checked = saved.showPrintBorderPrompt !== false;
   state.labelPartOrder = normalizeLabelPartOrder(saved.labelPartOrder);
   state.sheetQueue = normalizeSheetQueue(saved.sheetQueue);
   state.freestyleObjects = normalizeFreestyleObjects(saved.freestyleObjects);
@@ -7903,6 +7921,12 @@ function closeTranslatorModal() {
 }
 
 function printWithBorderChoice() {
+  // Use saved print defaults immediately when the user has disabled the per-print question.
+  if (!el.showPrintBorderPrompt.checked) {
+    printLabelsWithBorderChoice(el.printLabelBorders.checked);
+    return;
+  }
+
   // Open the centered in-app choice instead of relying on the browser's confirm dialog.
   printWithBorderChoice.opener = document.activeElement;
   el.printBorderModal.classList.add("is-open");
@@ -8516,6 +8540,7 @@ function bindEvents() {
   el.deletePresetButton.addEventListener("click", deleteSelectedPreset);
   el.exportButton.addEventListener("click", exportJson);
   el.printButton.addEventListener("click", printWithBorderChoice);
+  el.quickPrintButton.addEventListener("click", printWithBorderChoice);
   el.saveItemSetupButton.addEventListener("click", saveCurrentWork);
   el.shareButton.addEventListener("click", openShareModal);
   el.shareCloseButton.addEventListener("click", closeShareModal);
@@ -8674,6 +8699,14 @@ function bindEvents() {
     button.addEventListener("click", () => copyDonationAddress(button.dataset.donationAddress || "", button.dataset.donationType || "Wallet"));
   });
   document.addEventListener("keydown", (event) => {
+    // Route the standard keyboard print command through the same dashed-line choice as app buttons.
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "p") {
+      event.preventDefault();
+      if (!event.repeat && !el.printBorderModal.classList.contains("is-open")) {
+        printWithBorderChoice();
+      }
+      return;
+    }
     if (event.key === "Escape" && el.printBorderModal.classList.contains("is-open")) {
       closePrintBorderModal();
       return;
@@ -9043,6 +9076,21 @@ function bindEvents() {
     // Capture the active saved item when enabled and discard the remembered key when disabled.
     state.lastSelectedCatalogItemKey = el.rememberLastCatalogItem.checked && isSavedCatalogItem(state.selectedItem) ? getItemKey(state.selectedItem) : "";
     saveSettings();
+  });
+
+  el.showQuickPrintButton.addEventListener("change", () => {
+    // Show or hide the duplicate command while keeping its customized group order for later use.
+    el.quickPrintGroup.classList.toggle("is-hidden", !el.showQuickPrintButton.checked);
+    hideGroupMoveControls();
+    updateAllGroupMoveButtons();
+    saveSettings();
+  });
+
+  [el.printLabelBorders, el.showPrintBorderPrompt].forEach((input) => {
+    input.addEventListener("change", () => {
+      // Persist the border default and whether printing should ask for a one-time override.
+      saveSettings();
+    });
   });
 
   window.addEventListener("resize", () => {

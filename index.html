@@ -75,6 +75,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
           </div>
         </section>
 
+        <!-- Adds an optional second print command that can be reordered below the fixed Catalog group. -->
+        <section id="quickPrintGroup" class="control-group is-hidden">
+          <h2 data-i18n="section.quickPrint">Quick print</h2>
+          <button id="quickPrintButton" class="standalone-print" type="button" data-i18n="action.printLabels">Print labels</button>
+        </section>
+
         <section class="control-group">
           <h2 data-i18n="section.presets">Presets</h2>
           <label for="presetSelect" data-i18n="label.preset">Saved preset</label>
@@ -642,6 +648,21 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
               <input id="rememberLastCatalogItem" type="checkbox" />
               <span data-i18n="label.rememberLastCatalogItem">Remember last selected catalog item</span>
             </label>
+            <!-- Controls the optional movable print shortcut without removing the fixed bottom action. -->
+            <label class="check-row">
+              <input id="showQuickPrintButton" type="checkbox" />
+              <span data-i18n="label.showQuickPrintButton">Show a movable Print labels button below Catalog</span>
+            </label>
+            <!-- Saves the border default used when the per-print question is disabled. -->
+            <label class="check-row">
+              <input id="printLabelBorders" type="checkbox" />
+              <span data-i18n="label.printLabelBorders">Include dashed label borders</span>
+            </label>
+            <!-- Lets frequent users bypass the print question while retaining their chosen border default. -->
+            <label class="check-row">
+              <input id="showPrintBorderPrompt" type="checkbox" checked />
+              <span data-i18n="label.showPrintBorderPrompt">Ask about the label borders before each print</span>
+            </label>
           </div>
         </section>
 
@@ -1022,13 +1043,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. -->
 
     <!-- Replaces the browser confirm dialog with an accessible centered print choice. -->
     <div id="printBorderModal" class="modal-backdrop" aria-hidden="true">
-      <div class="print-border-modal" role="dialog" aria-modal="true" aria-labelledby="printBorderTitle" aria-describedby="printBorderMessage">
+      <div class="print-border-modal" role="dialog" aria-modal="true" aria-labelledby="printBorderTitle" aria-describedby="printBorderMessage printBorderSettingsHint">
         <h2 id="printBorderTitle" data-i18n="modal.printBorders">Dashed label borders</h2>
         <p id="printBorderMessage" data-i18n="confirm.printLabelBorders">Include dashed cut borders around labels in this print?</p>
         <div class="print-border-actions">
           <button id="printBorderYesButton" class="print-border-yes" type="button" data-i18n="action.yes">Yes</button>
           <button id="printBorderNoButton" class="print-border-no" type="button" data-i18n="action.no">No</button>
         </div>
+        <p id="printBorderSettingsHint" class="print-border-settings-hint" data-i18n="status.printPromptSettingsHint">If you wish, you can disable this prompt in Settings.</p>
       </div>
     </div>
 

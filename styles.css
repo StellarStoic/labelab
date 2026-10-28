@@ -1738,6 +1738,13 @@ button:hover,
   line-height: 1.5;
 }
 
+.print-border-modal .print-border-settings-hint {
+  /* De-emphasizes the persistent-setting note without reducing its readability. */
+  color: var(--muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
 .print-border-actions {
   display: grid;
   gap: 10px;
